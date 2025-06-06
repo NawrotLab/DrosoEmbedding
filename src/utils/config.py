@@ -5,106 +5,17 @@ import torch.nn as nn
 from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad, GradCAMElementWise
 
 
-# classes = ['SOP', 'SON', 'FOP', 'FON', 'STP', 'STN', 'FTP', 'FTN', 'SMMP', 'SMMN', 'FMMP', 'FMMN']
 classes = ['Starved', 'Fed']
-# classes = ['Odor', 'Taste', 'Odor + Taste']
-# classes = ['Positive', 'Negative']
-# classes = ['Appetitive', 'Aversive']
-
-# classes = ["Positive Stimulus", "Negative Stimulus"]     # SON
-#
-# classes = [
-#     "Starved-Odor (+)",     # SOP
-#     "Starved-Odor (-)",     # SON
-#     "Fed-Odor (+)",         # FOP
-#     "Fed-Odor (-)",         # FON
-#     "Starved-Taste (+)",    # STP
-#     "Starved-Taste (-)",    # STN
-#     "Fed-Taste (+)",        # FTP
-#     "Fed-Taste (-)",        # FTN
-#     "Starved-Multi (+)",    # SMMP
-#     "Starved-Multi (-)",    # SMMN
-#     "Fed-Multi (+)",        # FMMP
-#     "Fed-Multi (-)"         # FMMN
-# ]
-#
-# classes = [
-#     # Odor-Only Conditions
-#     "Odor$^{+}$ (S)",  # SOP
-#     "Odor$^{-}$ (S)",  # SON
-#     "Odor$^{+}$ (F)",  # FOP
-#     "Odor$^{-}$ (F)",  # FON
-#
-#     # Taste-Only Conditions
-#     "Taste$^{+}$ (S)",  # STP
-#     "Taste$^{-}$ (S)",  # STN
-#     "Taste$^{+}$ (F)",  # FTP
-#     "Taste$^{-}$ (F)",  # FTN
-#
-#     # Multi (Bimodal: Odor + Taste)
-#     "Odor$^{+}$+Taste$^{+}$ (S)",  # SMMP
-#     "Odor$^{-}$+Taste$^{-}$ (S)",  # SMMN
-#     "Odor$^{+}$+Taste$^{+}$ (F)",
-#     "Odor$^{-}$+Taste$^{-}$ (F)",
-# ]
-
-
-
-# classes = [
-#     # Multi (Bimodal: Odor + Taste)
-#     "O$^{(+)}$+T$^{(+)}$ (S)",
-#     "O$^{(+)}$+T$^{(+)}$ (F)",
-#     "O$^{(-)}$+T$^{(-)}$ (S)",
-#     "O$^{(-)}$+T$^{(-)}$ (F)",
-#
-#     "O$^{(-)}$+T$^{(+)}$ (S)",
-#     "O$^{(-)}$+T$^{(+)}$ (F)",
-#     "O$^{(+)}$+T$^{(-)}$ (S)",
-#     "O$^{(+)}$+T$^{(-)}$ (F)"
-# ]
-
-
-# classes = [
-#     # Multi (Bimodal: Odor + Taste)
-#     "Odor$^{+}$+\nTaste$^{+}$ (S)",
-#     "Odor$^{+}$+\nTaste$^{+}$ (F)",
-#     "Odor$^{-}$+\nTaste$^{-}$ (S)",
-#     "Odor$^{-}$+\nTaste$^{-}$ (F)",
-
-#     "Odor$^{-}$+\nTaste$^{+}$ (S)",
-#     "Odor$^{-}$+\nTaste$^{+}$ (F)",
-#     "Odor$^{+}$+\nTaste$^{-}$ (S)",
-#     "Odor$^{+}$+\nTaste$^{-}$ (F)"
-# ]
-#
-# classes = [
-#     # Multi (Bimodal: Odor + Taste)
-#     "(S)",
-#     "(F)",
-#     "(S)",
-#     "(F)",
-#
-#     "(S)",
-#     "(F)",
-#     "(S)",
-#     "(F)"
-# ]
-
-# classes = [
-#     "(S)", "(S)", "(F)",  "(F)", # Odor-Only Conditions
-#     "(S)", "(S)", "(F)", "(F)",  # Taste-Only Conditions
-#     "(S)", "(S)", "(F)", "(F)", # Multi (Bimodal: Odor + Taste)
-# ]
 
 training_config = {
     "model_name": "CNN_Transformer",
-
-    "run_name" : "2MCLASSES_10eps_newLogger",
+    "task_name": "MetabolicState_Binary",
+    "run_name" : "Reproducing_MSc",
     "pickle_ID_name": "S_F",
 
-    "ROOT_PATH": '/rhomes/aabdel/MSc_DL4DrosoWBCI',
+    "ROOT_PATH": '/rhomes/aabdel/DrosoEmbedding',
     "class_names": classes,
-    "split_strategy": 'SplitWithinAnimal',
+    "split_strategy": 'WithinAnimal',
     "model_params": {'nr_channels': 1,
                      'embed_dim': 16,
                      'num_heads': 2, #8, #4,
@@ -112,7 +23,7 @@ training_config = {
                      'nr_classes': len(classes),
                      'seq_len': 5,
                      'seq_steps': 10, #5,
-                     'num_epochs': 10,
+                     'num_epochs': 4000,
                      'lr': 0.0005, #0.0005
                      "weight_decay":1e-5, # was 1e-5
                      "criterion" : nn.CrossEntropyLoss()},
@@ -133,7 +44,7 @@ else:
     logT_name = f"logTs_KO_{training_config["Neuropil"]}"
     allT_name = f"allTs_KO_{training_config["Neuropil"]}"
 training_config["pickleID_logTs"] = f'meanZ_{logT_name}_{training_config["pickle_ID_name"]}'
-training_config["data_PicklePath"] = f'{training_config["ROOT_PATH"]}/pickles/TrainValTest_LSImagePaths_Labels/{training_config["split_strategy"]}/{training_config["pickleID_logTs"]}.pickle'
+training_config["data_PicklePath"] = f'{training_config["ROOT_PATH"]}/pickles/TrainValTest_LocalScratch_Paths-Labels/{training_config["split_strategy"]}/{training_config["pickleID_logTs"]}.pickle'
 training_config["data_path_allTs"] = f'/localscratch/aabdel/imgs4DL/meanZ_{allT_name}'
 training_config["evaluation_path"] = f'{training_config["ROOT_PATH"]}/results/{training_config["model_name"]}_{training_config["run_name"]}/evaluation/'
 training_config["visualizations_path"] = f'{training_config["ROOT_PATH"]}/results/{training_config["model_name"]}_{training_config["run_name"]}/visualizations/'
@@ -156,11 +67,9 @@ nr_classes = len(class_names)
 
 config = {
     "run_name": "CNN_Transformer",
-    "split_strategy": "SplitWithinAnimal",
-    "ROOT_PATH": '/rhomes/aabdel/MSc_DL4DrosoWBCI/pickles/TrainValTest_ImagePaths_Labels/SplitWithinAnimal',
+    "split_strategy": "WithinAnimal",
+    "ROOT_PATH": '/rhomes/aabdel/DrosoEmbedding/pickles/TrainValTest_LocalScratch_Paths-Labels/WithinAnimal',
     "allTs_path" :'/projects/lab-data/Collaboration/Gruenwald_Kadow/imgs4DL/meanZ_allTs',
-    # "dataID_logTs": "meanZ_logTs_SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_FMMP_FMMN",
-    # "dataID_allTs": "meanZ_allTs_SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_FMMP_FMMN",
     "dataID_logTs": "meanZ_logTs_P_N",
     "dataID_allTs": "meanZ_allTs_P_N",
     "class_names": class_names,

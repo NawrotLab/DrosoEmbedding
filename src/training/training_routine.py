@@ -2,14 +2,14 @@ import torch
 from torch.nn import CrossEntropyLoss
 import logging
 import torch.optim as optim
-
+from src.utils.config import training_config
 from pathlib import Path
 from typing import Optional, Dict, Any
 
 # from src.analysis.learning_dynamics import EnhancedDynamicsAnalyzer
 from src.utils import config 
 
-logger = logging.getLogger("train_model")
+logger = logging.getLogger(training_config["run_name"])
 
 
 def train_seq_seq_Classifier(model: torch.nn.Module,
