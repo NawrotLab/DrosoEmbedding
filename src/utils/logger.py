@@ -2,6 +2,7 @@ import logging
 import os
 from datetime import datetime
 import socket  
+import sys
 
 
 def setup_logger(task_name: str, log_dir: str = "logs") -> logging.Logger:
@@ -60,5 +61,14 @@ def setup_logger(task_name: str, log_dir: str = "logs") -> logging.Logger:
     logger.info(f"Timestamp: {timestamp}")
     logger.info(f"Hostname: {socket.gethostname()}")
     logger.info("=" * 60)
+
+    # Global exception logging hook
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+        logger.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_exception
 
     return logger

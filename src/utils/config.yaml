@@ -1,0 +1,47 @@
+run_id: "yaml_config__1"
+
+data:
+  task: "MetabolicState_Binary"
+  split_strategy: "WithinAnimal"
+  pickle_id: "S_F"
+  classes: ["Starved", "Fed"]
+  neuropil: "WT"
+  cache_images: false
+  preprocessing:
+    resize: [128, 128]
+    knock_neuropil_out: true
+    base_points: [0, 250]
+  sequence:
+    length: 1
+    steps: 0
+  augmentation:
+    enabled: false
+    num_augmentations: 5
+
+model:
+  architecture: "CNN_Transformer"
+  parameters:
+    nr_channels: 1
+    embed_dim: 16
+    num_heads: 2
+    num_layers: 1
+    dropout: 0.3
+
+training:
+  batch_size: 256
+  epochs: 5
+  learning_rate: 0.0005
+  weight_decay: 0.00001
+  criterion: "CrossEntropyLoss"
+  num_workers: 8
+
+paths:
+  root: "/rhomes/aabdel/DrosoEmbedding"
+  pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
+  allTs_base: "/localscratch/aabdel/imgs4DL"
+
+visualization:
+  plot_batch_size: 16
+  cam:
+    method: "GradCAMPlusPlus"
+    target_layer: 0
