@@ -112,43 +112,43 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
     if plot_visualizations:
         os.makedirs(viz_dir, exist_ok=True)
 
-        # plot_train_val_loss(
-        #     training_loss=train_loss,
-        #     validation_loss=val_loss,
-        #     dataID=paths['pickle_path'],
-        #     model_name=Classifier.__class__.__name__,
-        #     batch_size=config['training']['batch_size'],
-        #     learning_rate=config['training']['batch_size'],
-        #     output_path=viz_dir
-        # )
+        plot_train_val_loss(
+            training_loss=train_loss,
+            validation_loss=val_loss,
+            dataID=paths['pickle_path'],
+            model_name=Classifier.__class__.__name__,
+            batch_size=config['training']['batch_size'],
+            learning_rate=config['training']['batch_size'],
+            output_path=viz_dir
+        )
 
-        # plot_confusion_matrix(
-        #     cl_name="Evaluation",
-        #     cm=cm,
-        #     class_names=config['data']['classes'],
-        #     output_path=viz_dir,
-        #     dataID=paths['pickle_path'],
-        #     hyperparameters={
-        #         'batch_size': training_params['batch_size'],
-        #         'seq_length': model_params['seq_len'],
-        #         'embed_dim': model_params['embed_dim']
-        #     }
-        # )
+        plot_confusion_matrix(
+            cl_name="Evaluation",
+            cm=cm,
+            class_names=config['data']['classes'],
+            output_path=viz_dir,
+            dataID=paths['pickle_path'],
+            hyperparameters={
+                'batch_size': training_params['batch_size'],
+                'seq_length': model_params['seq_len'],
+                'embed_dim': model_params['embed_dim']
+            }
+        )
 
-        # plot_tsne(
-        #     model=Classifier,
-        #     data_loader=test_loader,
-        #     device=config['device'],
-        #     cl_name="Evaluation",
-        #     output_path=viz_dir,
-        #     dataID=paths['pickle_path'],
-        #     class_names=config['data']['classes'],
-        #     hyperparameters={
-        #         'batch_size': training_params['batch_size'],
-        #         'seq_length': model_params['seq_len'],
-        #         'embed_dim': model_params['embed_dim']
-        #     }
-        # )
+        plot_tsne(
+            model=Classifier,
+            data_loader=test_loader,
+            device=config['device'],
+            cl_name="Evaluation",
+            output_path=viz_dir,
+            dataID=paths['pickle_path'],
+            class_names=config['data']['classes'],
+            hyperparameters={
+                'batch_size': training_params['batch_size'],
+                'seq_length': model_params['seq_len'],
+                'embed_dim': model_params['embed_dim']
+            }
+        )
         
         plot_umap(
             model=Classifier,
@@ -171,9 +171,7 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
         
         
 
-        # plot_classes_cam(Classifier, device, test_loader, config['data']['classes'], viz_dir, cam_method=config['visualization']['cam']["method"],
-        #                                   classifier_target_layer=config['visualization']['cam']["target_layer"])
-        
+
 
         # visualize_full_sequences(data_loader=test_loader,
         #                          class_names=config["class_names"],
@@ -198,6 +196,7 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
 
 
 if __name__ == "__main__":
-    logger = setup_logger(task_name="evaluate_model", log_dir="logs/evaluation")
+    config = load_config()
+    logger = setup_logger(task_name=config["run_id"], log_dir="logs/evaluation")
     standard_results = evaluate_model(plot_visualizations=True)
     logger.info('Done')
