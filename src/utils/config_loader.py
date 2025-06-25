@@ -20,9 +20,12 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
         logT_name = f"logTs_KO_{neuropil}"
         allT_name = f"allTs_KO_{neuropil}" 
 
+    config["paths"]["recodings_df"] = f"{config["paths"]["data_root"]}/PaulRecordings_df.xlsx"
+    config["paths"]["imgs4DL"] = f"{config["paths"]["data_root"]}/imgs4DL"
+
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_{logT_name}_{pickle_id}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'
-    config["paths"]["results_root"] = str(root / "results" / f"{config['run_id']}")
+    config["paths"]["results_root"] = str(root / "results" / f"{config['data']['task']}_{config['run_id']}")
     config["paths"]["models"] = f"{config['paths']['results_root']}/models/"
     config["paths"]["visualizations"] = f"{config['paths']['results_root']}/visualizations/"
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"

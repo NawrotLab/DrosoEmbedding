@@ -1,22 +1,60 @@
-run_id: "yaml_config__1"
+run_id: "go6"
 
 data:
-  task: "MetabolicState_Binary"
+  task: "State_Modality_6Classes" # "MetabolicState_Binary", "State_Modality_Valence_16Classes"
   split_strategy: "WithinAnimal"
-  pickle_id: "S_F"
-  classes: ["Starved", "Fed"]
+  pickle_id: 'SO_FO_ST_FT_SM_FM' # 'SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_SMCP_SMCN_FMMP_FMMN_FMCP_FMCN' #'SO_FO_ST_FT_SM_FM' # "S_F"
+  classes: 
+  # 2
+  # - "Starved"
+  # - "Fed"
+
+  # 6
+  - "Odor (S)"
+  - "Odor (F)"
+  - "Taste (S)"
+  - "Taste (F)"
+  - "Odor + Taste (S)"
+  - "Odor + Taste (F)"
+
+  # 16
+  # - "O$^{+}$ (S)"
+  # - "O$^{-}$ (S)"
+  # - "O$^{+}$ (F)"
+  # - "O$^{-}$ (F)"
+  # - "T$^{+}$ (S)"
+  # - "T$^{-)}$ (S)"
+  # - "T$^{+}$ (F)"
+  # - "T$^{-)}$ (F)"
+  # - "O$^{+}$+T$^{+}$ (S)"
+  # - "O$^{_}$+T$^{-}$ (S)"
+  # - "O$^{-}$+T$^{+}$ (S)"
+  # - "O$^{+}$+T$^{-}$ (S)"
+  # - "O$^{+}$+T$^{+}$ (F)"
+  # - "O$^{_}$+T$^{-}$ (F)"
+  # - "O$^{-}$+T$^{+}$ (F)"
+  # - "O$^{+}$+T$^{-}$ (F)"
   neuropil: "WT"
   cache_images: false
-  preprocessing:
-    resize: [128, 128]
-    knock_neuropil_out: true
-    base_points: [0, 250]
   sequence:
-    length: 1
-    steps: 0
+    length: 5
+    steps: 10
   augmentation:
     enabled: false
     num_augmentations: 5
+  preprocessing:
+    id: 'meanZ_allTs'
+    split_by: ['SOP', 'SON', 'FOP', 'FON', 'STP', 'STN','FTP', 'FTN', 'SMMP', 'SMMN', 'SMCP', 'SMCN','FMMP', 'FMMN', 'FMCP', 'FMCN']
+    exclude_controls: True
+    include_StimType: True
+    include_MetaboliteState: True
+    include_Valence: True
+    train_startingFrame: 550
+    val_test_proportion: 0.5
+    resize: [128, 128]
+    knock_neuropil_out: false
+    base_points: [0, 250]
+
 
 model:
   architecture: "CNN_Transformer"
@@ -29,14 +67,15 @@ model:
 
 training:
   batch_size: 256
-  epochs: 5
-  learning_rate: 0.0005
+  epochs: 2000
+  learning_rate: 0.0001
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8
 
 paths:
   root: "/rhomes/aabdel/DrosoEmbedding"
+  data_root: "/projects/lab-data/Collaboration/Gruenwald_Kadow"
   pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
   allTs_base: "/localscratch/aabdel/imgs4DL"
 
