@@ -3,21 +3,16 @@ import sys
 import time
 import pickle
 import argparse
-import logging
-import json
-import torch
 from torch.utils.data import DataLoader
-from torch.optim import Adam
 import torch.nn as nn 
 import mlflow
-import mlflow.pytorch
-
 from src.utils.logger import setup_logger
 from src.utils.config_loader import load_config
 from src.data.dataset import CustomDataset
 from src.models.cnn_transformer import CNN_Transformer
 from src.training.training_routine import train_seq_seq_Classifier
 from src.models.model_io import load_model, save_model
+from src.utils.helpers import log_params_recursive
 
 
 # Argument parsing
@@ -41,14 +36,11 @@ def main(logger):
     mlflow.set_tracking_uri("file:/projects/group-share/MLflow/DrosoEmbedding")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
-    with mlflow.start_run(run_name=config["data"]["task"]):
+    with mlflow.start_run(run_name=config["run_id"]): #    with mlflow.start_run(run_name=config["data"]["task"]):
+
         try:
             # Log config parameters
-            for section, params in config.items():
-                if isinstance(params, dict):
-                    for key, value in params.items():
-                        if isinstance(value, (int, float, str, bool)):
-                            mlflow.log_param(f"{section}_{key}", value)
+            log_params_recursive(config)
 
             # Setup output paths
             out_root = config["paths"]["results_root"] + f"_{args.run_name}" if args.run_name else config["paths"]["results_root"]
@@ -64,13 +56,13 @@ def main(logger):
             logger.info("============================================================")
             # Datasets and loaders
             train_dataset = CustomDataset(X_train, Y_train, transform=True,
-                                        seq_length=config['data']['sequence']["length"],
-                                        seq_steps=config['data']['sequence']["steps"],
+                                        seq_length=config['data']['sequence']["seq_len"],
+                                        seq_steps=config['data']['sequence']["seq_steps"],
                                           allTs_path=config["paths"]["allTs_path"],
                                           augment=False, num_augmentations=2)
             val_dataset = CustomDataset(X_val, Y_val, transform=True,
-                                        seq_length=config['data']['sequence']["length"],
-                                        seq_steps=config['data']['sequence']["steps"],
+                                        seq_length=config['data']['sequence']["seq_len"],
+                                        seq_steps=config['data']['sequence']["seq_steps"],
                                         allTs_path=config["paths"]["allTs_path"])
 
             train_loader = DataLoader(train_dataset, batch_size=config["training"]["batch_size"],

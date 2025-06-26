@@ -1,44 +1,13 @@
-run_id: "CNN-Transformer__1"
+run_id: "quickRun"
 
 data:
-  task: "MetabolicState_Binary" # "MetabolicState_Binary", "State_Modality_6Classes", "State_Modality_Valence_16Classes"
+  task: "State_Modality_6" # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
   split_strategy: "WithinAnimal"
-  pickle_id: 'S_F' # 'SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_SMCP_SMCN_FMMP_FMMN_FMCP_FMCN' #'SO_FO_ST_FT_SM_FM' # "S_F"
-  classes: 
-  # 2
-  - "Starved"
-  - "Fed"
-
-  # # 6
-  # - "Odor (S)"
-  # - "Odor (F)"
-  # - "Taste (S)"
-  # - "Taste (F)"
-  # - "Odor + Taste (S)"
-  # - "Odor + Taste (F)"
-
-  # 16
-  # - "O$^{+}$ (S)"
-  # - "O$^{-}$ (S)"
-  # - "O$^{+}$ (F)"
-  # - "O$^{-}$ (F)"
-  # - "T$^{+}$ (S)"
-  # - "T$^{-)}$ (S)"
-  # - "T$^{+}$ (F)"
-  # - "T$^{-)}$ (F)"
-  # - "O$^{+}$+T$^{+}$ (S)"
-  # - "O$^{_}$+T$^{-}$ (S)"
-  # - "O$^{-}$+T$^{+}$ (S)"
-  # - "O$^{+}$+T$^{-}$ (S)"
-  # - "O$^{+}$+T$^{+}$ (F)"
-  # - "O$^{_}$+T$^{-}$ (F)"
-  # - "O$^{-}$+T$^{+}$ (F)"
-  # - "O$^{+}$+T$^{-}$ (F)"
   neuropil: "WT"
   cache_images: false
   sequence:
-    length: 5
-    steps: 10
+    seq_len: 5
+    seq_steps: 10
   augmentation:
     enabled: false
     num_augmentations: 5
@@ -67,8 +36,8 @@ model:
 
 training:
   batch_size: 256
-  epochs: 50
-  learning_rate: 0.0005
+  epochs: 100
+  learning_rate: 0.001
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8

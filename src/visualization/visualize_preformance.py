@@ -215,16 +215,6 @@ def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_na
         plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1], label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
                     color=colors[i], edgecolors='gray', linewidth=0.5)
 
-        # # Annotate with count
-        # plt.text(centroid[0], centroid[1], str(count), fontsize=12, ha='center', va='center', fontweight='bold',
-        #          color='black', bbox=dict(facecolor='white', alpha=0.6, edgecolor='black'))
-
-    # Title with hyperparameters
-    # hyperparams_str = ', '.join([f"{key}={value}" for key, value in hyperparameters.items()]) if hyperparameters else ''
-    # title = f'{cl_name} Latent Space TSNE: {hyperparams_str}'
-    # wrapped_title = "\n".join(textwrap.wrap(title, width=70))
-    # plt.title(wrapped_title, fontsize=14)
-
     plt.xlim([-100,100])
     plt.ylim([-110, 100])
     plt.xticks(fontsize=22)  # Adjust tick labels font size

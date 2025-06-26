@@ -1,0 +1,29 @@
+# Logs
+logs/
+
+# test scripts
+tests/
+
+# Experiment outputs and models
+results/
+*.pt
+*.pickle
+pickles/
+
+# MLflow (local storage)
+mlruns/
+projects/group-share/MLflow/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# macOS
+.DS_Store
+
+# Poetry env (if local)
+.venv/
