@@ -6,12 +6,14 @@
 #SBATCH --cpus-per-task=16
 #SBATCH --gres=shard:8
 #SBATCH --mem=8GB
-
 #SBATCH --output=/dev/null
 #SBATCH --error=/dev/null
 
-eval "$(conda shell.bash hook)"
-conda activate myenv
 
-python -m scripts.evaluating
+
+source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate 
+
+RUN_NAME="${SLURM_ARRAY_TASK_ID}"
+
+python -m scripts.evaluating --run_name $RUN_NAME
 

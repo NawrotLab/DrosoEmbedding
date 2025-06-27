@@ -1,6 +1,5 @@
 import os
 import pickle
-import logging
 import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
@@ -11,7 +10,7 @@ from src.visualization.visualize_preformance import plot_confusion_matrix, plot_
 from src.utils.logger import setup_logger
 from src.models.cnn_transformer import CNN_Transformer
 from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
-
+from src.utils.helpers import get_latent_space, get_predictions
 
 
 def evaluate_model(plot_visualizations: bool = True) -> dict:
@@ -118,7 +117,7 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
             dataID=paths['pickle_path'],
             model_name=Classifier.__class__.__name__,
             batch_size=config['training']['batch_size'],
-            learning_rate=config['training']['batch_size'],
+            learning_rate=config['training']['learning_rate'],
             output_path=viz_dir
         )
 
