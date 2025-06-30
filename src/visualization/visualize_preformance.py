@@ -8,6 +8,7 @@ from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import os
 import textwrap
 import umap
+import pandas as pd
 
 
 
@@ -196,10 +197,13 @@ def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_na
     latent_2d = tsne.fit_transform(latent_features_np)
 
     num_classes = len(class_names)
-    if num_classes <= 10:
-        colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
-    elif num_classes <= 12:
-        colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
+    colors = sns.color_palette("tab20", num_classes)  
+    # if num_classes <= 10:
+    #     colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
+    # elif num_classes <= 12:
+    #     colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
+    # elif num_classes <= 16:
+    #     colors = sns.color_palette("tab20", num_classes)  
 
     # Plot TSNE
     plt.figure(figsize=(12, 10))
@@ -264,11 +268,13 @@ def plot_umap(model, data_loader, device, cl_name, output_path, dataID, class_na
     reducer = umap.UMAP(n_components=2, random_state=42, min_dist=0.1, n_neighbors=15)
     latent_2d = reducer.fit_transform(latent_features_np)
 
-    num_classes = len(class_names)
-    if num_classes <= 10:
-        colors = sns.color_palette("tab10", num_classes)
-    elif num_classes <= 12:
-        colors = sns.color_palette("Paired", num_classes)
+    colors = sns.color_palette("tab20")  
+    # if num_classes <= 10:
+    #     colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
+    # elif num_classes <= 12:
+    #     colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
+    # elif num_classes <= 16:
+    #     colors = sns.color_palette("tab20", num_classes)  
 
     plt.figure(figsize=(12, 10))
     unique_labels = np.unique(labels_np)
@@ -414,3 +420,40 @@ def plot_InputTensors(data_dict, output_path, output_name, plot_title = 'Raw Mea
     # plt.suptitle(plot_title, fontsize=18)
     out_name = f'{output_path}/{output_name}.png'
     plt.savefig(out_name)
+
+
+
+def plot_metric_distribution(score_dict, output_path, title):
+    """
+    Plots a boxplot of distribution of scores (cosine, euclidean, silhouette).
+    """
+    data = []
+    for label, scores in score_dict.items():
+        data.extend([(label, s) for s in scores])
+    df = pd.DataFrame(data, columns=["Class", "Score"])
+
+    plt.figure(figsize=(8, 4))
+    sns.boxplot(data=df, x="Class", y="Score")
+    plt.title(title)
+    plt.ylabel("Score")
+    plt.xlabel("Class")
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.savefig(output_path)
+    plt.close()
+
+
+def plot_similarity_matrix(matrix, class_labels, output_path, title):
+    """
+    Plots a heatmap for inter-class similarity/distance matrix.
+    """
+    plt.figure(figsize=(6, 5))
+    sns.heatmap(matrix, xticklabels=class_labels, yticklabels=class_labels, cmap="viridis")
+    plt.title(title)
+    plt.tight_layout()
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    plt.savefig(output_path)
+    plt.close()
+
+

@@ -6,12 +6,12 @@ from sklearn.metrics import accuracy_score, confusion_matrix, classification_rep
 from src.utils.config_loader import load_config
 from src.data.dataset import CustomDataset
 from src.models.model_io import load_model
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_tsne, plot_train_val_loss,  plot_classes_cam, plot_umap
+from src.visualization.visualize_preformance import plot_confusion_matrix, plot_tsne, plot_train_val_loss,  plot_classes_cam, plot_umap, plot_metric_distribution, plot_similarity_matrix
 from src.utils.logger import setup_logger
 from src.models.cnn_transformer import CNN_Transformer
 from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 from src.utils.helpers import get_latent_space, get_predictions
-
+from src.utils.analysis import cosine_intra_class, cosine_inter_class, euclidean_intra_class, euclidean_inter_class, silhouette_scores
 
 def evaluate_model(plot_visualizations: bool = True) -> dict:
     config = load_config()
@@ -69,39 +69,24 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
     if Classifier is None:
         raise ValueError("Model not found. Please train the model first.")
 
-    # Perform evaluation (no learning dynamics yet)
-    Classifier.eval()
-    y_pred, y_true = [], []
-    total_test_loss = 0.0
-    criterion = torch.nn.CrossEntropyLoss()
+
 
     logger.info("Starting standard evaluation on test data...")
-    with torch.no_grad():
-        for images, labels in test_loader:
-            images = images.float().to(config['device'])
-            labels = labels.to(config['device'])
+    latent_space, latent_labels = get_latent_space(Classifier, test_loader, device)
+    logger.info(f"latent space shape: {latent_space.shape}")
+    y_pred, y_true = get_predictions(Classifier, test_loader, device)
 
-            # Forward pass
-            outputs = Classifier(images)
-            predicted = torch.argmax(outputs, dim=1)
 
-            # Compute loss
-            loss = criterion(outputs, labels)
-            total_test_loss += loss.item()
-
-            # Collect predictions and true labels
-            y_pred.extend(predicted.cpu().numpy())
-            y_true.extend(labels.cpu().numpy())
 
     # Compute evaluation metrics
     accuracy = accuracy_score(y_true, y_pred)
     cm = confusion_matrix(y_true, y_pred)
     report = classification_report(y_true, y_pred, target_names=config['data']['classes'])
     logger.info(f"Classification Report: {report}")
-    avg_test_loss = total_test_loss / len(test_loader)
+    # avg_test_loss = total_test_loss / len(test_loader)
 
     logger.info(f"Test Accuracy: {accuracy:.4f}")
-    logger.info(f"Test Loss: {avg_test_loss:.4f}")
+    # logger.info(f"Test Loss: {avg_test_loss:.4f}")
     #logger.info("\nClassification Report:\n" + report)
 
     with open(f'{paths["evaluation"]}ClassificationReport.txt', 'w') as file:
@@ -164,12 +149,26 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
             }
         )
 
-        cams = {"GradCAM": GradCAM, "GradCAMPlusPlus": GradCAMPlusPlus, "ScoreCAM": ScoreCAM, "AblationCAM": AblationCAM,"HiResCAM": HiResCAM,"XGradCAM": XGradCAM,"EigenCAM": EigenCAM, "FullGrad": FullGrad}
-        plot_classes_cam(Classifier, device, test_loader, config['data']['classes'], viz_dir, cam_method=cams[config['visualization']['cam']["method"]], classifier_target_layer=config['visualization']['cam']["target_layer"])
+        # --- COSINE ---
+        cos_intra = cosine_intra_class(latent_space, latent_labels)
+        cos_inter, cos_labels = cosine_inter_class(latent_space, latent_labels)
+        plot_metric_distribution(cos_intra, os.path.join(viz_dir, "cosine_intra_boxplot.png"), "Intra-class Cosine Similarity")
+        plot_similarity_matrix(cos_inter, cos_labels, os.path.join(viz_dir, "cosine_inter_heatmap.png"), "Inter-class Cosine Similarity")
 
-        
-        
+        # --- EUCLIDEAN ---
+        euc_intra = euclidean_intra_class(latent_space, latent_labels)
+        euc_inter, euc_labels = euclidean_inter_class(latent_space, latent_labels)
+        plot_metric_distribution(euc_intra, os.path.join(viz_dir, "euclidean_intra_boxplot.png"), "Intra-class Euclidean Distance")
+        plot_similarity_matrix(euc_inter, euc_labels, os.path.join(viz_dir, "euclidean_inter_heatmap.png"), "Inter-class Euclidean Distance")
 
+        # --- SILHOUETTE ---
+        sil_scores = silhouette_scores(latent_space, latent_labels)
+        plot_metric_distribution(sil_scores, os.path.join(viz_dir, "silhouette_score_boxplot.png"), "Silhouette Score per Class")
+
+
+        # Why these no work all of the sudden? 
+        # cams = {"GradCAM": GradCAM, "GradCAMPlusPlus": GradCAMPlusPlus, "ScoreCAM": ScoreCAM, "AblationCAM": AblationCAM,"HiResCAM": HiResCAM,"XGradCAM": XGradCAM,"EigenCAM": EigenCAM, "FullGrad": FullGrad}
+        # plot_classes_cam(Classifier, device, test_loader, config['data']['classes'], viz_dir, cam_method=cams[config['visualization']['cam']["method"]], classifier_target_layer=config['visualization']['cam']["target_layer"])
 
 
         # visualize_full_sequences(data_loader=test_loader,
@@ -186,8 +185,7 @@ def evaluate_model(plot_visualizations: bool = True) -> dict:
     results = {
         'accuracy': accuracy,
         'confusion_matrix': cm,
-        'classification_report': report,
-        'test_loss': avg_test_loss
+        'classification_report': report
     }
 
     return results
