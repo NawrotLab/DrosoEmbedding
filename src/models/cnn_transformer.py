@@ -64,11 +64,9 @@ class CNN_Transformer(nn.Module):
         
 
     def forward(self, x, return_latent=False, 
-                return_latent_per_seq=False,
-                return_embeddings=False):
+                return_latent_per_seq=False):
 
         if self.seq_len == 1:
-            #x = x.unsqueeze(1)
             if x.dim() != 4:
                 raise ValueError(f"Expected input with 4 dimensions for seq_len=1, got {x.dim()} dimensions.")
             
@@ -78,9 +76,7 @@ class CNN_Transformer(nn.Module):
             features = features.view(batch_size, -1)  # Shape: (batch_size, 64)
             pooled_output = self.embedding(features)  # Shape: (batch_size, embed_dim)
             if return_latent:
-                return pooled_output
-            if return_embeddings:
-                return self.fc(pooled_output), pooled_output
+                return pooled_output # "pooled_output, self.fc(pooled_output)" -->  would latent, labels 
             # Classification
             out = self.fc(pooled_output)
             return out
@@ -115,10 +111,7 @@ class CNN_Transformer(nn.Module):
             if return_latent:
                 return pooled_output  # Return latent features if specified
             if return_latent_per_seq:
-                return transformer_output
-            
-            if return_embeddings:
-                return self.fc(pooled_output), pooled_output
+                return transformer_output   
 
             # Classification
             out = self.fc(pooled_output)  # Shape: (batch_size, nr_classes)
