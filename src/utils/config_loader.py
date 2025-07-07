@@ -31,12 +31,7 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
                                      "T$^{+}$ (S)", "T$^{-)}$ (S)", "T$^{+}$ (F)", "T$^{-)}$ (F)", 
                                      "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
                                      "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
-        # # this is the wrong one..
-        # config['data']['classes'] = ['O$^{+}$ (S)', 'O$^{-}$ (S)', 'O$^{+}$ (F)', 'O$^{-}$ (F)', 'T$^{+}$ (S)', 'T$^{-)}$ (S)', 'T$^{+}$ (F)', 'T$^{-)}$ (F)', 'O$^{+}$+T$^{+}$ (S)', 'O$^{_}$+T$^{-}$ (S)', 'O$^{-}$+T$^{+}$ (S)', 'O$^{+}$+T$^{-}$ (S)', 'O$^{+}$+T$^{+}$ (F)', 'O$^{_}$+T$^{-}$ (F)', 'O$^{-}$+T$^{+}$ (F)', 'O$^{+}$+T$^{-}$ (F)']
-
-    # elif task_name == 'State_Modality_Valence_16Classes':
-    #     config['data']['classes'] = ['O$^{+}$ (S)', 'O$^{-}$ (S)', 'O$^{+}$ (F)', 'O$^{-}$ (F)', 'T$^{+}$ (S)', 'T$^{-)}$ (S)', 'T$^{+}$ (F)', 'T$^{-)}$ (F)', 'O$^{+}$+T$^{+}$ (S)', 'O$^{_}$+T$^{-}$ (S)', 'O$^{-}$+T$^{+}$ (S)', 'O$^{+}$+T$^{-}$ (S)', 'O$^{+}$+T$^{+}$ (F)', 'O$^{_}$+T$^{-}$ (F)', 'O$^{-}$+T$^{+}$ (F)', 'O$^{+}$+T$^{-}$ (F)']
-    
+  
     neuropil = config["data"]["preprocessing"]["neuropil"]
     if neuropil == "WT":
         logT_name = "logTs"
