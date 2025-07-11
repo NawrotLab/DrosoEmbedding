@@ -28,8 +28,8 @@ def save_model(
         'epoch': epoch,  # Current epoch
         'model_class': model_class.__name__,  # Model class name
         'params': params,  # Model parameters for reconstruction
-        'train_loss': train_loss,  # Training loss history
-        'val_loss': val_loss,  # Validation loss history
+        'train_loss': [] if train_loss is None else list(train_loss),  # Ensure we always save a list
+        'val_loss': [] if val_loss is None else list(val_loss),  # Ensure we always save a list
     }
 
     try:
@@ -69,10 +69,9 @@ def load_model(
             model.load_state_dict(new_state_dict, strict=False)
 
             # Extract other metadata
-            start_epoch = checkpoint.get('epoch', 0)
             train_loss = checkpoint.get('train_loss', [])
             val_loss = checkpoint.get('val_loss', [])
-
+            start_epoch = len(train_loss)
             logging.info(f"Model loaded from {model_save_path}, starting from epoch {start_epoch}")
             return model, start_epoch, train_loss, val_loss
         except Exception as e:

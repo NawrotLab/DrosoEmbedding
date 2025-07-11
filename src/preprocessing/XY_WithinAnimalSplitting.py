@@ -119,7 +119,7 @@ def main(config, logger):
     args = config['data']['preprocessing']
     paths = config['paths']
 
-    PREPROCESSING_ID = args['id']
+    PREPROCESSING_ID = f"{args['method_ch']}_{args['times']}" #args['id']
     CLASSES = args['split_by']
     outID = '_'.join(CLASSES)
 
@@ -134,7 +134,7 @@ def main(config, logger):
     RECORDING_LIST= paths["recodings_df"]
     PROSESSED_DATA_PATH = f'{paths["imgs4DL"]}/{PREPROCESSING_ID}'
 
-    PICKLE_OUTPATH = f'{paths["root"]}/pickles/TrainValTest_LocalScratch_Paths-Labels/{config["data"]["split_strategy"]}/{args['id']}_{outID}.pickle'
+    PICKLE_OUTPATH = f'{paths["root"]}/pickles/TrainValTest_LocalScratch_Paths-Labels/{config["data"]["split_strategy"]}/{PREPROCESSING_ID}_{outID}.pickle'
 
     rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, exclude_controls=exclude_controls)
     filtered_dict, labels = filterRecordings_and_returnLabels(rec_paths_dict, CLASSES, include_StimType=include_StimType, include_Valence= include_Valence, include_MetaboliteState= include_MetaboliteState)

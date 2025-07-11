@@ -7,10 +7,93 @@ import seaborn as sns
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import os
 import textwrap
-import umap
+
 import pandas as pd
+from matplotlib.colors import ListedColormap, BoundaryNorm
+
+def plot_weighted_avg(report_dict, output_path):
+    metrics = ["accuracy", "precision", "recall", "f1-score"]
+    values = [
+        report_dict["accuracy"], 
+        report_dict["weighted avg"]["precision"], 
+        report_dict["weighted avg"]["recall"], 
+        report_dict["weighted avg"]["f1-score"]
+    ]
+
+    plt.figure(figsize=(5, 4))
+    plt.bar(metrics, values, color=["#8c564b", "#4e79a7", "#f28e2b", "#59a14f"])
+    plt.ylim(0, 1)
+    plt.ylabel("Score")
+    plt.title("Weighted Average + Accuracy")
+    plt.tight_layout()
+
+    out_path = os.path.join(output_path, "weighted_avg.png")
+    plt.savefig(out_path, dpi=300)
+    plt.close()
+
+# def plot_per_class_metrics(report_dict, output_path):
+#     classes = [k for k in report_dict.keys() if k not in ("accuracy", "macro avg", "weighted avg")]
+#     metrics = ["precision", "recall", "f1-score"]
+
+#     values = {m: [report_dict[cls][m] for cls in classes] for m in metrics}
+#     x = np.arange(len(classes))
+#     width = 0.25
+
+#     plt.figure(figsize=(8, 5))
+#     plt.bar(x - width, values["precision"], width, label="Precision")
+#     plt.bar(x,         values["recall"],    width, label="Recall")
+#     plt.bar(x + width, values["f1-score"],  width, label="F1-score")
+
+#     # Add overall accuracy as dashed line
+#     plt.axhline(report_dict["accuracy"], color="gray", linestyle="--", label="Accuracy")
+
+#     plt.xticks(x, classes)
+#     plt.ylim(0, 1)
+#     plt.ylabel("Score")
+#     plt.title("Per-Class Performance")
+#     plt.legend()
+#     plt.tight_layout()
+
+#     out_path = os.path.join(output_path, "per_class_metrics.png")
+#     plt.savefig(out_path, dpi=300)
+#     plt.close()
 
 
+def plot_per_class_metrics(report_dict, output_path):
+    classes = [k for k in report_dict.keys() if k not in ("accuracy", "macro avg", "weighted avg")]
+    metrics = ["precision", "recall", "f1-score"]
+    num_classes = len(classes)
+    chance_level = 1.0 / num_classes
+
+    values = {m: [report_dict[cls][m] for cls in classes] for m in metrics}
+    x = np.arange(num_classes)
+    width = 0.25
+
+    plt.figure(figsize=(8, 5))
+    plt.bar(x - width, values["precision"], width, label="Precision")
+    plt.bar(x,         values["recall"],    width, label="Recall")
+    plt.bar(x + width, values["f1-score"],  width, label="F1-score")
+
+    # Add accuracy line with annotation
+    accuracy = report_dict["accuracy"]
+    plt.axhline(accuracy, color="gray", linestyle="--", label="Accuracy")
+    plt.text(num_classes - 0.5, accuracy + 0.01, f"Accuracy: {accuracy:.2f}", 
+             color="gray", fontsize=9, va="bottom", ha="right")
+
+    # Adjust y-axis
+    y_min = np.floor(chance_level * 10) / 10
+    plt.ylim(y_min, 1.0)
+    plt.yticks(np.arange(y_min, 1.01, 0.1))
+
+    plt.xticks(x, classes, rotation=45)
+    plt.ylabel("Score")
+    plt.title("Per-Class Performance")
+    plt.legend()
+    plt.tight_layout()
+
+    out_path = os.path.join(output_path, "per_class_metrics.png")
+    plt.savefig(out_path, dpi=300)
+    plt.close()
 
 
 def plot_train_val_loss(training_loss, validation_loss, dataID, model_name,
@@ -108,15 +191,16 @@ def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperpa
     cm_percentage = (cm / cm.sum(axis=1, keepdims=True)) * 100
     annot_labels = np.array([[f"{percent:.1f}%\n({count})" for percent, count in zip(row_percent, row)]
                              for row_percent, row in zip(cm_percentage, cm)])
-    # annot_labels = np.array([[f"{percent:.1f}%" for percent, count in zip(row_percent, row)]
-    #                          for row_percent, row in zip(cm_percentage, cm)])
+
+
+
 
 
     # cadetblue_cmap = LinearSegmentedColormap.from_list("CadetBlue", ["#d1e8e2", "#5f9ea0", "#2a5050"])
     sns.heatmap(cm_percentage,
-                annot=annot_labels,
+                # annot=annot_labels,
                 fmt="",
-                cmap="Blues",
+                cmap='Blues',
                 xticklabels=class_names,
                 yticklabels=class_names,
                 cbar=False,
@@ -198,35 +282,25 @@ def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_na
 
     num_classes = len(class_names)
     colors = sns.color_palette("tab20", num_classes)  
-    # if num_classes <= 10:
-    #     colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
-    # elif num_classes <= 12:
-    #     colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
-    # elif num_classes <= 16:
-    #     colors = sns.color_palette("tab20", num_classes)  
 
-    # Plot TSNE
     plt.figure(figsize=(12, 10))
-
-    # plt.figure(figsize=(12, 10))
     unique_labels = np.unique(labels_np)
     for i, class_label in enumerate(unique_labels):
         indices = labels_np == class_label
         count = np.sum(indices)  # Count samples for this class
         print(class_label, count)
 
-        # plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1], label=class_names[i], alpha=0.7, s=50, color=colors[i])
         plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1], label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
                     color=colors[i], edgecolors='gray', linewidth=0.5)
 
-    plt.xlim([-100,100])
-    plt.ylim([-110, 100])
+    plt.xlim([-110,110])
+    plt.ylim([-110, 110])
     plt.xticks(fontsize=22)  # Adjust tick labels font size
     plt.yticks(fontsize=22)
     plt.xlabel('TSNE Component 1', fontsize=26)
 
     plt.ylabel('TSNE Component 2', fontsize=26)
-    plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
+    #plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
 
     # Save the plot
     out_path = os.path.join(output_path, f"{len(class_names)}Cls_LatentSpace_TSNE.png")
@@ -236,6 +310,7 @@ def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_na
 
 
 def plot_umap(model, data_loader, device, cl_name, output_path, dataID, class_names, hyperparameters=None):
+    import umap
     """
     Plot and save a UMAP visualization of the latent space.
 

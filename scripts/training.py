@@ -6,6 +6,7 @@ import argparse
 from torch.utils.data import DataLoader
 import torch.nn as nn 
 import mlflow
+import random
 from src.utils.logger import setup_logger
 from src.utils.config_loader import load_config
 from src.data.dataset import CustomDataset
@@ -25,8 +26,9 @@ else:
     args = parser.parse_args()
 
 
-def main(logger):
-    config = load_config()
+def main(config, logger):
+    os.environ.pop("MLFLOW_RUN_ID", None)  # 💣 Prevent carryover
+
     model_params = config["model"]["parameters"]
     time_start = time.time()
 
@@ -36,23 +38,39 @@ def main(logger):
     mlflow.set_tracking_uri("file:/projects/group-share/MLflow/DrosoEmbedding")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
-    with mlflow.start_run(run_name=config["run_id"]): #    with mlflow.start_run(run_name=config["data"]["task"]):
 
+    with mlflow.start_run(run_name=config["run_id"], nested=False) as run:
         try:
+            mlflow.set_tag("run_name", config["run_id"])  # optional, for clarity in UI
+            mlflow_id = run.info.run_id
+            mlflow.log_param("mlflow_run_id", mlflow_id)
+        
             # Log config parameters
             log_params_recursive(config)
 
             # Setup output paths
             out_root = config["paths"]["results_root"] + f"_{args.run_name}" if args.run_name else config["paths"]["results_root"]
+            logger.info(f"out root... {out_root}")
             outPath_model = f"{out_root}/models"
             out_evaluation = f"{out_root}/evaluation"
             os.makedirs(outPath_model, exist_ok=True)
             os.makedirs(out_evaluation, exist_ok=True)
 
+            # Save for later
+            with open(os.path.join(out_root, "mlflow_run_id.txt"), "w") as f:
+                f.write(mlflow_id)
+
             # Load data
             with open(config["paths"]["pickle_path"], 'rb') as file:
                 X_train, X_val, X_test, Y_train, Y_val, Y_test = pickle.load(file)
             logger.info(f"Loaded pickle: {config['data']['pickle_id']}, Sizes — Train: {len(Y_train)}, Val: {len(Y_val)}, Test: {len(Y_test)}")
+            if config["training"]["shuffle_labels_naive"]:
+                random.shuffle(Y_train)
+                logger.warning("Shuffled Y_train — naive label shuffling baseline enabled.")
+                indices = random.sample(range(len(X_train)), 10)
+                for idx in indices:
+                    logger.info(f"Sample {idx}: X = {X_train[idx]}, Y = {Y_train[idx]}")
+
             logger.info("============================================================")
             # Datasets and loaders
             train_dataset = CustomDataset(X_train, Y_train, transform=True,
@@ -78,8 +96,9 @@ def main(logger):
             criterion_name = config["training"]["criterion"]
             criterion_cls = getattr(nn, criterion_name)
 
-
             if Classifier is None:
+                # Initialize new model
+                logger.info("Initializing new model...")
                 logger.info("config.data")
                 for k, v in config["data"].items():
                     logger.info(f"{k}: {v}")
@@ -91,28 +110,48 @@ def main(logger):
                     logger.info(f"{k}: {v}")
                 logger.info("============================================================")
 
-
-
                 Classifier = CNN_Transformer(**model_params)
-                Classifier, training_loss, validation_loss = train_seq_seq_Classifier(
-                    model=Classifier,
-                    device=config["device"],
-                    train_loader=train_loader,
-                    val_loader=val_loader,
-                    num_epochs=config['training']['epochs'],
-                    lr=config['training']['learning_rate'],
-                    weight_decay=config['training']['weight_decay'],
-                    criterion=criterion_cls(),
-                    logger=logger  
-                )
+                num_epochs = config['training']['epochs']
+                start_epoch = 0
+                training_loss = []
+                validation_loss = []
+            else:
+                # Continue training existing model
+                logger.info(f"Continuing training from epoch {start_epoch}...")
+                logger.info(f"Previous training loss:{len(prev_train_loss),prev_train_loss}")
+                logger.info(f"Previous training loss: {prev_train_loss[-1]:.4f}")
+                logger.info(f"Previous validation loss: {prev_val_loss[-1]:.4f}")
+                num_epochs = config['training']['continue_training']['until_epoch']
+                logger.info(f"Will continue training until epoch: {num_epochs} ")
+                training_loss = prev_train_loss
+                validation_loss = prev_val_loss
 
-                save_model(model=Classifier,
-                           epoch=start_epoch + config['training']['epochs'],
-                           model_class=CNN_Transformer,
-                           params=model_params,
-                           output_path=outPath_model,
-                           train_loss=training_loss,
-                           val_loss=validation_loss)
+            # Train model
+            Classifier, new_training_loss, new_validation_loss = train_seq_seq_Classifier(
+                model=Classifier,
+                device=config["device"],
+                train_loader=train_loader,
+                val_loader=val_loader,
+                num_epochs=num_epochs,
+                lr=config['training']['learning_rate'],
+                weight_decay=config['training']['weight_decay'],
+                start_epoch=start_epoch,
+                criterion=criterion_cls(),
+                logger=logger  
+            )
+            # Combine previous and new losses
+            training_loss.extend(new_training_loss)
+            validation_loss.extend(new_validation_loss)
+
+            # Save model
+            final_epoch = start_epoch + num_epochs
+            save_model(model=Classifier,
+                       epoch=final_epoch,
+                       model_class=CNN_Transformer,
+                       params=model_params,
+                       output_path=outPath_model,
+                       train_loss=training_loss,
+                       val_loss=validation_loss)
 
             # Timing and logging
             time_end = time.time() - time_start
@@ -137,5 +176,8 @@ def main(logger):
 
 if __name__ == "__main__":
     config = load_config()
+    # slurm_id = os.getenv("SLURM_ARRAY_TASK_ID")
+    # if slurm_id:
+    #     config["run_id"] = f"{config['run_id']}_{slurm_id}"
     logger = setup_logger(task_name=config["run_id"], log_dir="logs/training")
-    main(logger)
+    main(config, logger)

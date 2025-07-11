@@ -27,10 +27,15 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
                                      "Odor + Taste (S)", "Odor + Taste (F)"]
     elif task_name == 'State_Modality_Valence_16':
         config['data']['pickle_id'] = 'SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_SMCP_SMCN_FMMP_FMMN_FMCP_FMCN'
-        config['data']['classes'] = ["O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)", 
-                                     "T$^{+}$ (S)", "T$^{-)}$ (S)", "T$^{+}$ (F)", "T$^{-)}$ (F)", 
-                                     "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
-                                     "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
+        config['data']['classes'] = [
+            #  0 -  3
+            "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)",
+            #  4 -  7
+            "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)",
+            #  8 - 11
+            "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
+            # 12 - 16
+            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
   
     neuropil = config["data"]["preprocessing"]["neuropil"]
     if neuropil == "WT":

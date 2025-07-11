@@ -1,9 +1,12 @@
-run_id: "quickRun"
+run_id: "test_shuffle_naive"
+
+
 
 data:
-  task: "State_Modality_6" # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
+  # use one of following or define a new task name in config_loader: 
+  # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
+  task: "State_Modality_Valence_16" 
   split_strategy: "WithinAnimal"
-  neuropil: "WT"
   cache_images: false
   sequence:
     seq_len: 5
@@ -12,7 +15,14 @@ data:
     enabled: false
     num_augmentations: 5
   preprocessing:
-    id: 'meanZ_allTs'
+    method_ch: 'meanZ'
+    times: 'all'
+    neuropil: 'WT'
+    remove_neuropil: false
+    isolate_neuropil: false
+    
+
+    # splitting 
     split_by: ['SOP', 'SON', 'FOP', 'FON', 'STP', 'STN','FTP', 'FTN', 'SMMP', 'SMMN', 'SMCP', 'SMCN','FMMP', 'FMMN', 'FMCP', 'FMCN']
     exclude_controls: True
     include_StimType: True
@@ -21,7 +31,6 @@ data:
     train_startingFrame: 550
     val_test_proportion: 0.5
     resize: [128, 128]
-    knock_neuropil_out: false
     base_points: [0, 250]
 
 
@@ -36,17 +45,23 @@ model:
 
 training:
   batch_size: 256
-  epochs: 100
-  learning_rate: 0.001
+  epochs: 2
+  learning_rate: 0.0005
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8
+  shuffle_labels_naive: true
+  shuffle_labels_consistantly: false 
+  continue_training:
+    resume: false
+    until_epoch: 0
 
 paths:
   root: "/rhomes/aabdel/DrosoEmbedding"
   data_root: "/projects/lab-data/Collaboration/Gruenwald_Kadow"
   pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
   allTs_base: "/localscratch/aabdel/imgs4DL"
+  peakIDs_Times_All: '/rhomes/aabdel/MSc_DL4DrosoWBCI/pickles/IDs_logTs.pickle'
 
 visualization:
   plot_batch_size: 16
