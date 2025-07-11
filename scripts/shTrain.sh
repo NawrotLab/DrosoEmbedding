@@ -12,7 +12,7 @@
 #SBATCH --error=/dev/null
 
 
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate 
+source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 RUN_NAME="${SLURM_ARRAY_TASK_ID}"
 
