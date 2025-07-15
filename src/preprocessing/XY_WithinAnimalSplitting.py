@@ -40,6 +40,8 @@ def filterRecordings_and_returnLabels(rec_paths_dict, classes, include_StimType,
         valences = np.unique([i[-1] for i in classes]).tolist()
     elif include_StimType and not include_Valence and not include_MetaboliteState:  # eg O
         stimuli = classes
+    elif include_MetaboliteState and not include_StimType and not include_Valence: # eg S, F
+        states = np.unique([i for i in classes]).tolist()
     else:
         print("menmen still has to add this case")
 
@@ -53,8 +55,9 @@ def filterRecordings_and_returnLabels(rec_paths_dict, classes, include_StimType,
             current_MetaboliteState = recCond[0]
 
             # for whenever i dont care about MultiMatch or MultiContra
-            if len(current_StimType) == 2 and 'M' in stimuli:
-                current_StimType = 'M'
+            if include_StimType: 
+                if len(current_StimType) == 2 and 'M' in stimuli:
+                    current_StimType = 'M'
 
             if ((not include_StimType or current_StimType in stimuli) and
                     (not include_Valence or current_Valence in valences) and
@@ -70,6 +73,8 @@ def filterRecordings_and_returnLabels(rec_paths_dict, classes, include_StimType,
                     class_pattern = f"{current_StimType}{current_Valence}"
                 elif include_StimType and not include_Valence and not include_MetaboliteState:
                     class_pattern = current_StimType
+                elif not include_StimType and not include_Valence and include_MetaboliteState:
+                    class_pattern = current_MetaboliteState
                 else:
                     class_pattern = None  # Handle other cases if needed
 
@@ -139,13 +144,17 @@ def main(config, logger):
     rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, exclude_controls=exclude_controls)
     filtered_dict, labels = filterRecordings_and_returnLabels(rec_paths_dict, CLASSES, include_StimType=include_StimType, include_Valence= include_Valence, include_MetaboliteState= include_MetaboliteState)
 
+    if config['training']['shuffle_labels_consistantly']: 
+        random.shuffle(labels)
+        PICKLE_OUTPATH = f'{paths["root"]}/pickles/TrainValTest_LocalScratch_Paths-Labels/{config["data"]["split_strategy"]}/SHUFFLED_{PREPROCESSING_ID}_{outID}.pickle'
+
     X_train, X_test, X_val, Y_train, Y_val,  Y_test = split_train_val_test(filtered_dict, labels, train_startingFrame, val_test_proportion)
 
     logger.info("User please check the pairings make sense! ;-)")
     logger.info(f"We are spliiting into following: {args["split_by"]}")
-    preview_random_samples(X_train, Y_train, n=5, set_name="train")
-    preview_random_samples(X_val, Y_val, n=5, set_name="val")
-    preview_random_samples(X_test, Y_test, n=5, set_name="test")
+    preview_random_samples(X_train, Y_train, n=2, set_name="train")
+    preview_random_samples(X_val, Y_val, n=2, set_name="val")
+    preview_random_samples(X_test, Y_test, n=2, set_name="test")
 
     with open(PICKLE_OUTPATH, 'wb') as file:
         pickle.dump((X_train, X_val, X_test, Y_train, Y_val, Y_test), file)

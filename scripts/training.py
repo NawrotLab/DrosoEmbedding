@@ -70,6 +70,15 @@ def main(config, logger):
                 indices = random.sample(range(len(X_train)), 10)
                 for idx in indices:
                     logger.info(f"Sample {idx}: X = {X_train[idx]}, Y = {Y_train[idx]}")
+            elif config["training"]["shuffle_labels_consistantly"]:
+                logger.warning("Shuffling Y_train labels in a consistant manner")
+                with open(config["paths"]["pickle_path_shuffled"], 'rb') as file:
+                    X_train, _, _, Y_train, _, _ = pickle.load(file)
+                indices = random.sample(range(len(X_train)), 10)
+                for idx in indices:
+                    logger.info(f"Sample {idx}: X = {X_train[idx]}, Y = {Y_train[idx]}")
+
+
 
             logger.info("============================================================")
             # Datasets and loaders
