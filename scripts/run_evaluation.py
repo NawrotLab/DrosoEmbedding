@@ -49,7 +49,9 @@ def evaluate_model(config) -> dict:
         raise FileNotFoundError("Trained model not found.")
 
     # Inference
-    latent_space, latent_labels = get_latent_space(classifier, test_loader, config['device'])
+    # Get both latent spaces
+    cnn_latent_space, latent_labels = get_latent_space(classifier, test_loader, config['device'], return_cnn_latent=True)
+    transformer_latent_space, latent_labels = get_latent_space(classifier, test_loader, config['device'], return_latent=True)
     y_pred, y_true = get_predictions(classifier, test_loader, config['device'])
 
 
@@ -87,7 +89,8 @@ def evaluate_model(config) -> dict:
         'confusion_matrix': cm,
         'classification_report_dict': report_dict,
         
-        'latent_space': latent_space,
+        'cnn_latent_space': cnn_latent_space,
+        'transformer_latent_space': transformer_latent_space,
         'latent_labels': latent_labels,
         'tsne_2d': tsne_2d,
         'umap_2d': umap_2d,

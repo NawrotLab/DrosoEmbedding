@@ -24,8 +24,8 @@ def plot_all(results: dict, config: dict, logger) -> None:
     ts            = results['train_loss']
     vs            = results['val_loss']
     cm            = results['confusion_matrix']
-    ls            = results['latent_space']
-    print(ls.shape)
+    cnn_latent    = results['cnn_latent_space']
+    transformer_latent = results['transformer_latent_space']
     ll            = results['latent_labels']
     tsne_2d       = results['tsne_2d']
     umap_2d       = results['umap_2d']
@@ -62,22 +62,44 @@ def plot_all(results: dict, config: dict, logger) -> None:
                                 'embed_dim': model_params['embed_dim']
                             })
 
-    # 4. Latent-space 2D projections
+    # 4. Latent-space 2D projections for both CNN and Transformer
+    # CNN Latent Space
+    tsne_2d_cnn = compute_tsne(cnn_latent)
+    umap_2d_cnn = compute_umap(cnn_latent)
+    
+    plot_tsne_latent(
+        latent_2d=tsne_2d_cnn,
+        labels_np=ll,
+        class_names=class_names,
+        output_path=viz_dir,
+        filename=f"{len(class_names)}Cls_CNN_TSNE2.png",
+        title="t-SNE Projection (CNN Latent Space)"
+    )
+    plot_umap_latent(
+        latent_2d=umap_2d_cnn,
+        labels_np=ll,
+        class_names=class_names,
+        output_path=viz_dir,
+        filename=f"{len(class_names)}Cls_CNN_UMAP2.png",
+        title="UMAP Projection (CNN Latent Space)"
+    )
+    
+    # Transformer Latent Space
     plot_tsne_latent(
         latent_2d=tsne_2d,
         labels_np=ll,
         class_names=class_names,
         output_path=viz_dir,
-        filename=f"{len(class_names)}Cls_TSNE2.png",
-        title="t-SNE Projection"
+        filename=f"{len(class_names)}Cls_Transformer_TSNE2.png",
+        title="t-SNE Projection (Transformer Latent Space)"
     )
     plot_umap_latent(
         latent_2d=umap_2d,
         labels_np=ll,
         class_names=class_names,
         output_path=viz_dir,
-        filename=f"{len(class_names)}Cls_UMAP2.png",
-        title="UMAP Projection"
+        filename=f"{len(class_names)}Cls_Transformer_UMAP2.png",
+        title="UMAP Projection (Transformer Latent Space)"
     )
 
     # 5. Similarity analyses

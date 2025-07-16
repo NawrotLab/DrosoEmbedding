@@ -11,7 +11,7 @@ def log_params_recursive(d):
         elif isinstance(v, (int, float, str, bool)):
             mlflow.log_param(k, v)
 
-def get_latent_space(model, data_loader, device ):
+def get_latent_space(model, data_loader, device, return_cnn_latent=False):
     model.eval()
     latent_space, latent_labels = [], []
     with torch.no_grad():
@@ -19,7 +19,7 @@ def get_latent_space(model, data_loader, device ):
             sequences = sequences.float().to(device)
             labels = labels.to(device)
             # Pass data through the model and collect latent features
-            latent_features = model(sequences, return_latent=True)
+            latent_features = model(sequences, return_cnn_latent=return_cnn_latent)
             latent_space.append(latent_features.cpu().numpy())
             latent_labels.append(labels.cpu().numpy())
 

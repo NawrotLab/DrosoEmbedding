@@ -42,7 +42,8 @@ model:
   architecture: "CNN_Transformer"
   parameters:
     nr_channels: 1
-    embed_dim: 32
+    cnn_embed_dim: 16
+    transformer_embed_dim: 16
     num_heads: 2
     num_layers: 1
     dropout: 0.3

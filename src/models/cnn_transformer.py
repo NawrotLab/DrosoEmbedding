@@ -24,7 +24,7 @@ class PositionalEncodingLearnable(nn.Module):
     
 
 class CNN_Transformer(nn.Module):
-    def __init__(self, nr_channels=1, embed_dim=16, num_heads=4, 
+    def __init__(self, nr_channels=1, cnn_embed_dim=16, transformer_embed_dim=16, num_heads=4, 
                  num_layers=2, nr_classes=6, seq_len:int=10, seq_steps:int=1, dropout=0.1):
         super(CNN_Transformer, self).__init__()
         
@@ -45,26 +45,27 @@ class CNN_Transformer(nn.Module):
         )
         self.seq_len = seq_len
         self.seq_steps = seq_steps
-        # Flatten CNN output and project to embed_dim
-        self.embedding = nn.Linear(64, embed_dim)
+        # Flatten CNN output and project to cnn_embed_dim
+        self.embedding = nn.Linear(64, cnn_embed_dim)
         
         # Positional encoding
         #self.positional_encoding = PositionalEncoding(embed_dim, dropout, max_len=seq_len)
         self.positional_encoding = PositionalEncodingLearnable(
-            embed_dim, seq_len=self.seq_len, dropout=dropout)
+            transformer_embed_dim, seq_len=self.seq_len, dropout=dropout)
 
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embed_dim, nhead=num_heads, 
-            dim_feedforward= 4*embed_dim, dropout=dropout)
+            d_model=transformer_embed_dim, nhead=num_heads, 
+            dim_feedforward= 4*transformer_embed_dim, dropout=dropout)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
         # Classification head
-        self.fc = nn.Linear(embed_dim, nr_classes)
+        self.fc = nn.Linear(transformer_embed_dim, nr_classes)
         
 
     def forward(self, x, return_latent=False, 
-                return_latent_per_seq=False):
+                return_latent_per_seq=False,
+                return_cnn_latent=False):
 
         if self.seq_len == 1:
             if x.dim() != 4:
@@ -107,9 +108,11 @@ class CNN_Transformer(nn.Module):
             
             # Use mean pooling over the sequence dimension
             transformer_output = transformer_output.permute(1, 0, 2)  # Shape: (batch_size, seq_len, embed_dim)
-            pooled_output = transformer_output.mean(dim=1)  # Shape: (batch_size, embed_dim)
+            pooled_output = transformer_output.mean(dim=1)  # Shape: (batch_size, transformer_embed_dim)
+            if return_cnn_latent:
+                return features  # Return CNN features before transformer
             if return_latent:
-                return pooled_output  # Return latent features if specified
+                return pooled_output  # Return transformer latent features if specified
             if return_latent_per_seq:
                 return transformer_output   
 

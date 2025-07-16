@@ -89,7 +89,8 @@ def evaluate_model(config, logger, plot_visualizations: bool = True) -> dict:
                               hyperparameters={
                                   'batch_size': training_params['batch_size'],
                                   'seq_length': model_params['seq_len'],
-                                  'embed_dim': model_params['embed_dim']
+                                  'cnn_embed_dim': model_params['cnn_embed_dim'],
+                                  'transformer_embed_dim': model_params['transformer_embed_dim']
                               })
 
         # plot_tsne(Classifier, test_loader, config['device'], "Evaluation",
