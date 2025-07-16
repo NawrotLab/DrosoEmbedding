@@ -1,11 +1,11 @@
-run_id: "test_shuffle_naive"
+run_id: "32embed_trial_1"
 
 
 
 data:
   # use one of following or define a new task name in config_loader: 
   # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
-  task: "State_Modality_Valence_16" 
+  task: "State_Modality_6" 
   split_strategy: "WithinAnimal"
   cache_images: false
   sequence:
@@ -16,18 +16,22 @@ data:
     num_augmentations: 5
   preprocessing:
     method_ch: 'meanZ'
-    times: 'all'
+    times: 'logTs'
     neuropil: 'WT'
     remove_neuropil: false
     isolate_neuropil: false
     
 
     # splitting 
-    split_by: ['SOP', 'SON', 'FOP', 'FON', 'STP', 'STN','FTP', 'FTN', 'SMMP', 'SMMN', 'SMCP', 'SMCN','FMMP', 'FMMN', 'FMCP', 'FMCN']
+    # split-by one of following and adjust flags accordingly
+    # ['S', 'F']
+    # ['SO', 'FO', 'ST', 'FT', 'SM', 'FM']
+    # ['SOP', 'SON', 'FOP', 'FON', 'STP', 'STN','FTP', 'FTN', 'SMMP', 'SMMN', 'SMCP', 'SMCN','FMMP', 'FMMN', 'FMCP', 'FMCN']
+    split_by: ['S', 'F'] 
     exclude_controls: True
-    include_StimType: True
+    include_StimType: False    
     include_MetaboliteState: True
-    include_Valence: True
+    include_Valence: False
     train_startingFrame: 550
     val_test_proportion: 0.5
     resize: [128, 128]
@@ -38,20 +42,20 @@ model:
   architecture: "CNN_Transformer"
   parameters:
     nr_channels: 1
-    embed_dim: 16
+    embed_dim: 32
     num_heads: 2
     num_layers: 1
     dropout: 0.3
 
 training:
   batch_size: 256
-  epochs: 2
-  learning_rate: 0.0005
+  epochs: 5
+  learning_rate: 0.0001
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8
-  shuffle_labels_naive: true
-  shuffle_labels_consistantly: false 
+  shuffle_labels_naive: false
+  shuffle_labels_consistantly: true 
   continue_training:
     resume: false
     until_epoch: 0

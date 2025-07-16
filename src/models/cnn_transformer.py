@@ -24,7 +24,7 @@ class PositionalEncodingLearnable(nn.Module):
     
 
 class CNN_Transformer(nn.Module):
-    def __init__(self, nr_channels=1, embed_dim=128, num_heads=4, 
+    def __init__(self, nr_channels=1, embed_dim=16, num_heads=4, 
                  num_layers=2, nr_classes=6, seq_len:int=10, seq_steps:int=1, dropout=0.1):
         super(CNN_Transformer, self).__init__()
         

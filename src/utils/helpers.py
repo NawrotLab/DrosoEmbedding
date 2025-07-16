@@ -1,6 +1,8 @@
 import mlflow
 import numpy as np
 import torch
+from sklearn.manifold import TSNE
+import umap
 
 def log_params_recursive(d):
     for k, v in d.items():
@@ -41,4 +43,16 @@ def get_predictions(model, data_loader, device):
     # Stack collected predictions and labels
     predictions_np = np.concatenate(predictions, axis=0)
     true_labels_np = np.concatenate(true_labels, axis=0)
-    return predictions_np, true_labels_np    
+    return predictions_np, true_labels_np 
+
+
+def compute_tsne(latent_features, perplexity=30, random_state=42):
+    tsne = TSNE(n_components=2, perplexity=perplexity, random_state=random_state)
+    return tsne.fit_transform(latent_features)
+
+def compute_umap(latent_features, n_neighbors=15, min_dist=0.1, random_state=42):
+    reducer = umap.UMAP(n_components=2,
+                        n_neighbors=n_neighbors,
+                        min_dist=min_dist,
+                        random_state=random_state)
+    return reducer.fit_transform(latent_features)

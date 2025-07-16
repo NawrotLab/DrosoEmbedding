@@ -12,7 +12,7 @@ from src.models.cnn_transformer import CNN_Transformer
 from src.utils.logger import setup_logger
 from src.visualization.visualize_preformance import (
     plot_confusion_matrix, plot_tsne, plot_train_val_loss,
-    plot_classes_cam, plot_umap, plot_metric_distribution, plot_similarity_matrix, plot_weighted_avg, plot_per_class_metrics
+    plot_classes_cam, plot_umap, plot_metric_distribution, plot_similarity_matrix, plot_weighted_avg, plot_per_class_metrics, plot_umap_latent, plot_tsne_latent 
 )
 from src.utils.helpers import get_latent_space, get_predictions
 from src.utils.analysis import (
@@ -92,23 +92,46 @@ def evaluate_model(config, logger, plot_visualizations: bool = True) -> dict:
                                   'embed_dim': model_params['embed_dim']
                               })
 
-        plot_tsne(Classifier, test_loader, config['device'], "Evaluation",
-                  output_path=viz_dir, dataID=paths['pickle_path'],
-                  class_names=config['data']['classes'],
-                  hyperparameters={
-                      'batch_size': training_params['batch_size'],
-                      'seq_length': model_params['seq_len'],
-                      'embed_dim': model_params['embed_dim']
-                  })
+        # plot_tsne(Classifier, test_loader, config['device'], "Evaluation",
+        #           output_path=viz_dir, dataID=paths['pickle_path'],
+        #           class_names=config['data']['classes'],
+        #           hyperparameters={
+        #               'batch_size': training_params['batch_size'],
+        #               'seq_length': model_params['seq_len'],
+        #               'embed_dim': model_params['embed_dim']
+        #           })
 
-        plot_umap(Classifier, test_loader, config['device'], "Evaluation",
-                  output_path=viz_dir, dataID=paths['pickle_path'],
-                  class_names=config['data']['classes'],
-                  hyperparameters={
-                      'batch_size': training_params['batch_size'],
-                      'seq_length': model_params['seq_len'],
-                      'embed_dim': model_params['embed_dim']
-                  })
+        # plot_umap(Classifier, test_loader, config['device'], "Evaluation",
+        #           output_path=viz_dir, dataID=paths['pickle_path'],
+        #           class_names=config['data']['classes'],
+        #           hyperparameters={
+        #               'batch_size': training_params['batch_size'],
+        #               'seq_length': model_params['seq_len'],
+        #               'embed_dim': model_params['embed_dim']
+        #           })
+        
+
+                # 2a) TSNE
+        fig_tsne, ax_tsne = plot_tsne_latent(
+            latent_space,
+            latent_labels,
+            class_names=config['data']['classes'],
+            output_path=viz_dir,
+            filename=f"{len(config['data']['classes'])}Cls_TSNE2.png",
+            title=f"{len(config['data']['classes'])}-way TSNE"
+        )
+
+        # 2b) UMAP
+        fig_umap, ax_umap = plot_umap_latent(
+            latent_space,
+            latent_labels,
+            class_names=config['data']['classes'],
+            output_path=viz_dir,
+            filename=f"{len(config['data']['classes'])}Cls_UMAP2.png",
+            title=f"{len(config['data']['classes'])}-way UMAP"
+        )
+        
+
 
         # --- COSINE ---
         cos_intra = cosine_intra_class(latent_space, latent_labels)

@@ -31,33 +31,6 @@ def plot_weighted_avg(report_dict, output_path):
     plt.savefig(out_path, dpi=300)
     plt.close()
 
-# def plot_per_class_metrics(report_dict, output_path):
-#     classes = [k for k in report_dict.keys() if k not in ("accuracy", "macro avg", "weighted avg")]
-#     metrics = ["precision", "recall", "f1-score"]
-
-#     values = {m: [report_dict[cls][m] for cls in classes] for m in metrics}
-#     x = np.arange(len(classes))
-#     width = 0.25
-
-#     plt.figure(figsize=(8, 5))
-#     plt.bar(x - width, values["precision"], width, label="Precision")
-#     plt.bar(x,         values["recall"],    width, label="Recall")
-#     plt.bar(x + width, values["f1-score"],  width, label="F1-score")
-
-#     # Add overall accuracy as dashed line
-#     plt.axhline(report_dict["accuracy"], color="gray", linestyle="--", label="Accuracy")
-
-#     plt.xticks(x, classes)
-#     plt.ylim(0, 1)
-#     plt.ylabel("Score")
-#     plt.title("Per-Class Performance")
-#     plt.legend()
-#     plt.tight_layout()
-
-#     out_path = os.path.join(output_path, "per_class_metrics.png")
-#     plt.savefig(out_path, dpi=300)
-#     plt.close()
-
 
 def plot_per_class_metrics(report_dict, output_path):
     classes = [k for k in report_dict.keys() if k not in ("accuracy", "macro avg", "weighted avg")]
@@ -137,8 +110,182 @@ def plot_train_val_loss(training_loss, validation_loss, dataID, model_name,
     print(f"Train/Validation loss plot saved to {out_path}")
 
 
+# def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperparameters=None):
+#     """
+#     Plot and save a confusion matrix with overall accuracy in the title.
 
-def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperparameters=None):
+#     Args:
+#     - cl_name: Classifier name or title.
+#     - cm: Confusion matrix array.
+#     - class_names: List of class names for the matrix.
+#     - output_path: Directory where the plot will be saved.
+#     - dataID: Identifier for the dataset.
+#     - hyperparameters: Optional dictionary of hyperparameters for the title.
+#     """
+#     if len(class_names) < 4:
+#         fontsize_annot = 30
+#         fontsize_ticks = 30
+#         fontsize_axis = 30
+#         fontsize_title = 30
+#     else:
+#         fontsize_annot = 15
+#         fontsize_ticks = 18
+#         fontsize_axis = 18
+#         fontsize_title = 26
+
+
+#     plt.figure(figsize=(12, 12))
+
+#     # Calculate overall accuracy
+#     total_correct = np.trace(cm)  # Sum of diagonal elements
+#     total_samples = np.sum(cm)
+#     accuracy = (total_correct / total_samples) * 100
+
+#     # Build title with overall accuracy
+#     hyperparams_str = ', '.join([f"{key}={value}" for key, value in hyperparameters.items()]) if hyperparameters else ''
+#     title = f'Test Set Accuracy: {accuracy:.2f}%'
+#     # title = f'{cl_name} (Accuracy: {accuracy:.2f}%): {hyperparams_str}'
+#     wrapped_title = "\n".join(textwrap.wrap(title, width=70))
+#     plt.title(wrapped_title, fontsize=fontsize_title, pad=20)
+
+#     # Normalize confusion matrix to percentages for better visualization
+#     cm_percentage = (cm / cm.sum(axis=1, keepdims=True)) * 100
+#     annot_labels = np.array([[f"{percent:.1f}%\n({count})" for percent, count in zip(row_percent, row)]
+#                              for row_percent, row in zip(cm_percentage, cm)])
+
+
+
+
+
+#     # cadetblue_cmap = LinearSegmentedColormap.from_list("CadetBlue", ["#d1e8e2", "#5f9ea0", "#2a5050"])
+#     sns.heatmap(cm_percentage,
+#                 # annot=annot_labels,
+#                 fmt="",
+#                 cmap='Blues',
+#                 xticklabels=class_names,
+#                 yticklabels=class_names,
+#                 cbar=False,
+#                 vmin=0, vmax=100,
+#                 annot_kws={"size": fontsize_annot})  # Increase annotation font size
+
+#     # Increase font size of x and y axis labels
+#     plt.xticks(fontsize=fontsize_ticks)  # Adjust tick labels font size
+#     plt.yticks(fontsize=fontsize_ticks)
+#     plt.xticks(rotation=0)  # Rotate X labels
+#     plt.yticks(rotation=90)  # Rotate X labels
+
+#     plt.xlabel('Predicted Label', fontsize=fontsize_axis, labelpad=20)
+#     plt.ylabel('True Label', fontsize=fontsize_axis, labelpad=20)
+
+#     # Adjust layout for long class names
+#     plt.tight_layout()  # Automatically adjust layout
+#     plt.subplots_adjust(left=0.2, bottom=0.2)  # Leave extra space for labels if needed
+
+#     # Save the confusion matrix plot
+#     out_path = os.path.join(output_path, f"{len(class_names)}Cls_ConfusionMatrix.png")
+
+#     # out_path = os.path.join(output_path, f"{dataID}_{cl_name}_ConfusionMatrix.png")
+#     #plt.savefig(out_path)
+#     plt.savefig(out_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
+#     plt.close()
+#     print(f"Confusion matrix saved to {out_path}")
+
+# def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperparameters=None):
+#     """
+#     Plot and save a confusion matrix with overall accuracy in the title.
+
+#     Args:
+#     - cl_name: Classifier name or title.
+#     - cm: Confusion matrix array.
+#     - class_names: List of class names for the matrix.
+#     - output_path: Directory where the plot will be saved. If None, the function returns the axis instead of saving.
+#     - dataID: Identifier for the dataset.
+#     - hyperparameters: Optional dictionary of hyperparameters for the title.
+#     """
+#     # Determine figure saving behavior
+#     save_fig = output_path is not None
+
+#     # Set font sizes based on number of classes
+#     if len(class_names) < 4:
+#         fontsize_annot = 30
+#         fontsize_ticks = 30
+#         fontsize_axis = 30
+#         fontsize_title = 30
+#     else:
+#         fontsize_annot = 15
+#         fontsize_ticks = 18
+#         fontsize_axis = 18
+#         fontsize_title = 26
+
+#     # Create figure and axis
+#     fig, ax = plt.subplots(figsize=(12, 12))
+
+#     # Calculate overall accuracy
+#     total_correct = np.trace(cm)  # Sum of diagonal elements
+#     total_samples = np.sum(cm)
+#     accuracy = (total_correct / total_samples) * 100
+
+#     # Build title with overall accuracy
+#     hyperparams_str = ', '.join([f"{key}={value}" for key, value in hyperparameters.items()]) if hyperparameters else ''
+#     title = f'Test Set Accuracy: {accuracy:.2f}%'
+#     wrapped_title = "\n".join(textwrap.wrap(title, width=70))
+#     ax.set_title(wrapped_title, fontsize=fontsize_title, pad=20)
+
+#     # Normalize confusion matrix to percentages for better visualization
+#     cm_percentage = (cm / cm.sum(axis=1, keepdims=True)) * 100
+#     print(cm_percentage)
+
+#     # Annotate with counts and percentages
+#     annot_labels = np.array([
+#         [f"{percent:.1f}%\n({count})" for percent, count in zip(row_percent, row)]
+#         for row_percent, row in zip(cm_percentage, cm)
+#     ])
+
+#     # Plot heatmap
+#     sns.heatmap(
+#         cm_percentage,
+#         annot=annot_labels,
+#         fmt="",
+#         cmap='Blues',
+#         xticklabels=class_names,
+#         yticklabels=class_names,
+#         cbar=False,
+#         vmin=0, vmax=100,
+#         annot_kws={"size": fontsize_annot},
+#         ax=ax
+#     )
+
+#     # Format axis labels and ticks
+#     ax.set_xlabel('Predicted Label', fontsize=fontsize_axis, labelpad=20)
+#     ax.set_ylabel('True Label', fontsize=fontsize_axis, labelpad=20)
+#     ax.tick_params(axis='x', labelsize=fontsize_ticks, rotation=0)
+#     ax.tick_params(axis='y', labelsize=fontsize_ticks, rotation=90)
+
+#     # Adjust layout
+#     fig.tight_layout()
+#     fig.subplots_adjust(left=0.2, bottom=0.2)
+
+#     if save_fig:
+#         # Ensure the output directory exists
+#         os.makedirs(output_path, exist_ok=True)
+#         # Build output file path
+#         out_path = os.path.join(output_path, f"{len(class_names)}Cls_ConfusionMatrix.png")
+#         # Save the confusion matrix plot
+#         fig.savefig(out_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
+#         plt.close(fig)
+#         print(f"Confusion matrix saved to {out_path}")
+#     else:
+#         return ax
+
+def plot_confusion_matrix(cl_name,
+                          cm,
+                          class_names,
+                          output_path,
+                          dataID,
+                          hyperparameters=None,
+                          ax=None,
+                          annot=True,
+                          cbar=False):
     """
     Plot and save a confusion matrix with overall accuracy in the title.
 
@@ -146,88 +293,102 @@ def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperpa
     - cl_name: Classifier name or title.
     - cm: Confusion matrix array.
     - class_names: List of class names for the matrix.
-    - output_path: Directory where the plot will be saved.
+    - output_path: Directory where the plot will be saved. If None, returns the Axes.
     - dataID: Identifier for the dataset.
-    - hyperparameters: Optional dictionary of hyperparameters for the title.
+    - hyperparameters: Optional dict of hyperparameters for the title.
+    - ax: Optional matplotlib Axes to draw on. If None, creates a new figure/axes.
+    - annot: Boolean flag to enable cell annotations (percentages only).
+    - cbar: Boolean flag to draw a colorbar for this matrix.
     """
-    if len(class_names) < 4:
-        fontsize_annot = 30
-        fontsize_ticks = 30
-        fontsize_axis = 30
-        fontsize_title = 30
+    save_fig = output_path is not None
+    standalone = ax is None
+
+    # Create or use provided Axes
+    if standalone:
+        fig, ax = plt.subplots(figsize=(12, 12))
+        # font sizes for standalone figure
+        if len(class_names) < 4:
+            fontsize_annot = 30
+            fontsize_ticks = 30
+            fontsize_axis = 30
+            fontsize_title = 30
+        else:
+            fontsize_annot = 12
+            fontsize_ticks = 12
+            fontsize_axis = 18
+            fontsize_title = 26
     else:
-        fontsize_annot = 15
-        fontsize_ticks = 18
-        fontsize_axis = 18
-        fontsize_title = 26
+        fig = ax.figure
+        fontsize_annot = 12
+        fontsize_ticks = 12
+        fontsize_axis = None
+        fontsize_title = None
 
-    # Desired order for rows and columns
-    # order = [0, 2, 1, 3, 4, 6, 5, 7, 8, 10, 9, 11]
-
-    # # Reorder the rows and columns
-    # print(cm)
-    # cm = cm[np.ix_(order, order)]
-    # print(cm, '\n')
-    # print(class_names)
-    # class_names = [class_names[i] for i in order]
-    # print(class_names)
-
-
-    plt.figure(figsize=(12, 12))
-
-    # Calculate overall accuracy
-    total_correct = np.trace(cm)  # Sum of diagonal elements
+    # Compute overall accuracy
+    total_correct = np.trace(cm)
     total_samples = np.sum(cm)
     accuracy = (total_correct / total_samples) * 100
 
-    # Build title with overall accuracy
-    hyperparams_str = ', '.join([f"{key}={value}" for key, value in hyperparameters.items()]) if hyperparameters else ''
-    title = f'Test Set Accuracy: {accuracy:.2f}%'
-    # title = f'{cl_name} (Accuracy: {accuracy:.2f}%): {hyperparams_str}'
-    wrapped_title = "\n".join(textwrap.wrap(title, width=70))
-    plt.title(wrapped_title, fontsize=fontsize_title, pad=20)
+    # Title only in standalone mode
+    if standalone:
+        hp_str = ', '.join(f"{k}={v}" for k, v in (hyperparameters or {}).items())
+        title = f"Test Set Accuracy: {accuracy:.2f}%"
+        if hp_str:
+            title += f" ({hp_str})"
+        wrapped_title = "\n".join(textwrap.wrap(title, width=70))
+        ax.set_title(wrapped_title, fontsize=fontsize_title, pad=20)
 
-    # Normalize confusion matrix to percentages for better visualization
-    cm_percentage = (cm / cm.sum(axis=1, keepdims=True)) * 100
-    annot_labels = np.array([[f"{percent:.1f}%\n({count})" for percent, count in zip(row_percent, row)]
-                             for row_percent, row in zip(cm_percentage, cm)])
+    # Normalize to percentages
+    cm_pct = (cm / cm.sum(axis=1, keepdims=True)) * 100
 
+    # Prepare annotations
+    if annot:
+        annot_data = np.array([
+            [f"{pct:.1f}%" for pct, _ in zip(row_pct, row_cnt)]
+            for row_pct, row_cnt in zip(cm_pct, cm)
+        ])
+        annot_kws = {"size": fontsize_annot} if fontsize_annot else {}
+    else:
+        annot_data = False
+        annot_kws = {}
 
+    # Draw heatmap
+    sns.heatmap(
+        cm_pct,
+        annot=annot_data,
+        fmt="",
+        cmap='Blues',
+        xticklabels=class_names,
+        yticklabels=class_names if standalone else [],
+        cbar=cbar,
+        vmin=0,
+        vmax=100,
+        annot_kws=annot_kws,
+        ax=ax
+    )
 
+    # Labels in standalone mode
+    if standalone:
+        ax.set_xlabel('Predicted Label', fontsize=fontsize_axis, labelpad=20)
+        ax.set_ylabel('True Label', fontsize=fontsize_axis, labelpad=20)
+    else:
+        ax.set_xlabel('')
+        ax.set_ylabel('')
 
+    # Rotate ticks
+    ax.tick_params(axis='x', rotation=45, labelsize=fontsize_ticks or plt.rcParams['xtick.labelsize'])
+    if standalone:
+        ax.tick_params(axis='y', rotation=90, labelsize=fontsize_ticks)
 
-    # cadetblue_cmap = LinearSegmentedColormap.from_list("CadetBlue", ["#d1e8e2", "#5f9ea0", "#2a5050"])
-    sns.heatmap(cm_percentage,
-                # annot=annot_labels,
-                fmt="",
-                cmap='Blues',
-                xticklabels=class_names,
-                yticklabels=class_names,
-                cbar=False,
-                vmin=0, vmax=100,
-                annot_kws={"size": fontsize_annot})  # Increase annotation font size
+    if save_fig and standalone:
+        os.makedirs(output_path, exist_ok=True)
+        out_path = os.path.join(output_path, f"{len(class_names)}Cls_ConfusionMatrix.png")
+        fig.savefig(out_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
+        plt.close(fig)
+        print(f"Confusion matrix saved to {out_path}")
+    else:
+        return ax
 
-    # Increase font size of x and y axis labels
-    plt.xticks(fontsize=fontsize_ticks)  # Adjust tick labels font size
-    plt.yticks(fontsize=fontsize_ticks)
-    plt.xticks(rotation=0)  # Rotate X labels
-    plt.yticks(rotation=90)  # Rotate X labels
-
-    plt.xlabel('Predicted Label', fontsize=fontsize_axis, labelpad=20)
-    plt.ylabel('True Label', fontsize=fontsize_axis, labelpad=20)
-
-    # Adjust layout for long class names
-    plt.tight_layout()  # Automatically adjust layout
-    plt.subplots_adjust(left=0.2, bottom=0.2)  # Leave extra space for labels if needed
-
-    # Save the confusion matrix plot
-    out_path = os.path.join(output_path, f"{len(class_names)}Cls_ConfusionMatrix.png")
-
-    # out_path = os.path.join(output_path, f"{dataID}_{cl_name}_ConfusionMatrix.png")
-    #plt.savefig(out_path)
-    plt.savefig(out_path, bbox_inches='tight', pad_inches=0.3, dpi=300)
-    plt.close()
-    print(f"Confusion matrix saved to {out_path}")
 
 
 def dataloader2dictionary(dataloader, classes_namelist):
@@ -242,135 +403,248 @@ def dataloader2dictionary(dataloader, classes_namelist):
     return data_by_class
 
 
-def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_names, hyperparameters=None):
+def plot_tsne_latent(latent_2d,
+                     labels_np,
+                     class_names,
+                     output_path=None,
+                     filename="latent_tsne.png",
+                     ax=None,
+                     title=None,
+                     legend=True,
+                     draw_axis=True,
+                     draw_title=True):
     """
-    Plot and save a TSNE visualization of the latent space.
+    Scatter‐plot of a precomputed TSNE embedding.
 
     Args:
-    - model: Trained model to extract latent features.
-    - data_loader: DataLoader containing data to visualize.
-    - device: Torch device (e.g., 'cpu' or 'cuda').
-    - cl_name: Classifier name or title.
-    - output_path: Directory where the plot will be saved.
-    - dataID: Identifier for the dataset.
-    - class_names: List of class names.
-    - hyperparameters: Optional dictionary of hyperparameters for the title.
+      latent_2d: (N,2) array of t-SNE coordinates
+      labels_np: (N,) array of class labels
+      class_names: list of class name strings
+      output_path: if provided, save standalone figure here
+      filename: name for saving
+      ax: Optional Axes to draw on (subplot mode)
+      title: Optional subplot title
+      legend: whether to show legend
+      draw_axis: whether to draw x/y labels
+      draw_title: whether to draw the title
     """
-    model.eval()
-    latent_features_list, labels_list = [], []
+    standalone = ax is None
+    if standalone:
+        fig, ax = plt.subplots(figsize=(12, 10))
 
-    # Extract latent features and labelsno i dont understand
-    with torch.no_grad():
-        for sequences, labels in data_loader:
-            sequences = sequences.float().to(device)
-            labels = labels.to(device)
+    palette = sns.color_palette("tab20", len(class_names))
+    for cls in np.unique(labels_np):
+        idx = labels_np == cls
+        ax.scatter(latent_2d[idx, 0], latent_2d[idx, 1],
+                   label=f"{class_names[int(cls)]} ({idx.sum()})",
+                   alpha=0.6, s=6,
+                   color=palette[int(cls)], edgecolors='none')
 
-            # Pass data through the model and collect latent features
-            latent_features = model(sequences, return_latent=True)
-            latent_features_list.append(latent_features.cpu().numpy())
-            labels_list.append(labels.cpu().numpy())
+    # determine limits
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_position(('data', xmin))
+    ax.spines['bottom'].set_position(('data', ymin))
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
 
-    # Stack collected features and labels
-    latent_features_np = np.concatenate(latent_features_list, axis=0)
-    labels_np = np.concatenate(labels_list, axis=0)
+    if draw_axis:
+        ax.set_xlabel('TSNE Component 1', fontsize=14)
+        ax.set_ylabel('TSNE Component 2', fontsize=14)
+    if draw_title and title:
+        ax.set_title(title, fontsize=16, pad=10)
+    if legend:
+        ax.legend(loc='upper right', fontsize=12)
 
+    if standalone and output_path:
+        os.makedirs(output_path, exist_ok=True)
+        out = os.path.join(output_path, filename)
+        fig.savefig(out, dpi=300, bbox_inches='tight')
+        plt.close(fig)
+        print(f"TSNE plot saved to {out}")
+        return fig, ax
 
-
-    # Apply TSNE
-    tsne = TSNE(n_components=2, random_state=42, perplexity=30)
-    latent_2d = tsne.fit_transform(latent_features_np)
-
-    num_classes = len(class_names)
-    colors = sns.color_palette("tab20", num_classes)  
-
-    plt.figure(figsize=(12, 10))
-    unique_labels = np.unique(labels_np)
-    for i, class_label in enumerate(unique_labels):
-        indices = labels_np == class_label
-        count = np.sum(indices)  # Count samples for this class
-        print(class_label, count)
-
-        plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1], label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
-                    color=colors[i], edgecolors='gray', linewidth=0.5)
-
-    plt.xlim([-110,110])
-    plt.ylim([-110, 110])
-    plt.xticks(fontsize=22)  # Adjust tick labels font size
-    plt.yticks(fontsize=22)
-    plt.xlabel('TSNE Component 1', fontsize=26)
-
-    plt.ylabel('TSNE Component 2', fontsize=26)
-    #plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
-
-    # Save the plot
-    out_path = os.path.join(output_path, f"{len(class_names)}Cls_LatentSpace_TSNE.png")
-    plt.savefig(out_path)
-    plt.close()
-    print(f"TSNE plot saved to {out_path}")
+    return ax
 
 
-def plot_umap(model, data_loader, device, cl_name, output_path, dataID, class_names, hyperparameters=None):
-    import umap
+def plot_umap_latent(latent_2d,
+                     labels_np,
+                     class_names,
+                     output_path=None,
+                     filename="latent_umap.png",
+                     ax=None,
+                     title=None):
     """
-    Plot and save a UMAP visualization of the latent space.
-
-    Args:
-    - model: Trained model to extract latent features.
-    - data_loader: DataLoader containing data to visualize.
-    - device: Torch device (e.g., 'cpu' or 'cuda').
-    - cl_name: Classifier name or title.
-    - output_path: Directory where the plot will be saved.
-    - dataID: Identifier for the dataset.
-    - class_names: List of class names.
-    - hyperparameters: Optional dictionary of hyperparameters for the title.
+    Scatter‐plot of a precomputed UMAP embedding.
     """
-    model.eval()
-    latent_features_list, labels_list = [], []
+    standalone = ax is None
+    if standalone:
+        fig, ax = plt.subplots(figsize=(12, 10))
 
-    with torch.no_grad():
-        for sequences, labels in data_loader:
-            sequences = sequences.float().to(device)
-            labels = labels.to(device)
+    for class_label in np.unique(labels_np):
+        idx = labels_np == class_label
+        count = idx.sum()
+        ax.scatter(latent_2d[idx, 0],
+                   latent_2d[idx, 1],
+                   label=f"{class_names[int(class_label)]} ({count})",
+                   alpha=0.5, s=50,
+                   color=sns.color_palette("tab20")[int(class_label)],
+                   edgecolors='gray', linewidth=0.5)
 
-            latent_features = model(sequences, return_latent=True)
-            latent_features_list.append(latent_features.cpu().numpy())
-            labels_list.append(labels.cpu().numpy())
+    ax.set_xlabel('UMAP Component 1', fontsize=26)
+    ax.set_ylabel('UMAP Component 2', fontsize=26)
+    if title:
+        ax.set_title(title, fontsize=28)
+    ax.legend(loc='upper right', fontsize=16, markerscale=2)
 
-    latent_features_np = np.concatenate(latent_features_list, axis=0)
-    labels_np = np.concatenate(labels_list, axis=0)
+    if standalone and output_path:
+        out = os.path.join(output_path, filename)
+        fig.savefig(out)
+        plt.close(fig)
+        print(f"UMAP plot saved to {out}")
+        return fig, ax
 
-    # Apply UMAP
-    reducer = umap.UMAP(n_components=2, random_state=42, min_dist=0.1, n_neighbors=15)
-    latent_2d = reducer.fit_transform(latent_features_np)
+    return ax
 
-    colors = sns.color_palette("tab20")  
-    # if num_classes <= 10:
-    #     colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
-    # elif num_classes <= 12:
-    #     colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
-    # elif num_classes <= 16:
-    #     colors = sns.color_palette("tab20", num_classes)  
+# def plot_tsne(model, data_loader, device, cl_name, output_path, dataID, class_names, ax=None, hyperparameters=None):
+#     """
+#     Plot and save a TSNE visualization of the latent space.
 
-    plt.figure(figsize=(12, 10))
-    unique_labels = np.unique(labels_np)
+#     Args:
+#     - model: Trained model to extract latent features.
+#     - data_loader: DataLoader containing data to visualize.
+#     - device: Torch device (e.g., 'cpu' or 'cuda').
+#     - cl_name: Classifier name or title.
+#     - output_path: Directory where the plot will be saved.
+#     - dataID: Identifier for the dataset.
+#     - class_names: List of class names.
+#     - hyperparameters: Optional dictionary of hyperparameters for the title.
+#     """
+#     model.eval()
+#     latent_features_list, labels_list = [], []
 
-    for i, class_label in enumerate(unique_labels):
-        indices = labels_np == class_label
-        count = np.sum(indices)
+#     # Extract latent features and labelsno i dont understand
+#     with torch.no_grad():
+#         for sequences, labels in data_loader:
+#             sequences = sequences.float().to(device)
+#             labels = labels.to(device)
 
-        plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1],
-                    label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
-                    color=colors[i], edgecolors='gray', linewidth=0.5)
+#             # Pass data through the model and collect latent features
+#             latent_features = model(sequences, return_latent=True)
+#             latent_features_list.append(latent_features.cpu().numpy())
+#             labels_list.append(labels.cpu().numpy())
 
-    plt.xticks(fontsize=22)
-    plt.yticks(fontsize=22)
-    plt.xlabel('UMAP Component 1', fontsize=26)
-    plt.ylabel('UMAP Component 2', fontsize=26)
-    plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
+#     # Stack collected features and labels
+#     latent_features_np = np.concatenate(latent_features_list, axis=0)
+#     labels_np = np.concatenate(labels_list, axis=0)
 
-    out_path = os.path.join(output_path, f"{len(class_names)}Cls_LatentSpace_UMAP.png")
-    plt.savefig(out_path)
-    plt.close()
+
+
+#     # Apply TSNE
+#     tsne = TSNE(n_components=2, random_state=42, perplexity=30)
+#     latent_2d = tsne.fit_transform(latent_features_np)
+
+#     num_classes = len(class_names)
+#     colors = sns.color_palette("tab20", num_classes)  
+
+#     if ax is None:
+#         fig, ax = plt.subplots(figsize=(12, 10))
+#         standalone = True
+#     else:
+#         standalone = False
+
+#     unique_labels = np.unique(labels_np)
+
+#     for i, class_label in enumerate(unique_labels):
+#         indices = labels_np == class_label
+#         count = np.sum(indices)
+#         ax.scatter(latent_2d[indices, 0], latent_2d[indices, 1],
+#                    label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
+#                    color=colors[i], edgecolors='gray', linewidth=0.5)
+
+#     ax.set_xlim([-110,110])
+#     ax.set_ylim([-110, 110])
+#     ax.tick_params(labelsize=22)
+#     ax.set_xlabel('TSNE Component 1', fontsize=26)
+#     ax.set_ylabel('TSNE Component 2', fontsize=26)
+#     #plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
+
+#     if standalone and output_path:
+#         out_path = os.path.join(output_path, f"{len(class_names)}Cls_LatentSpace_TSNE.png")
+#         fig.savefig(out_path)
+#         plt.close(fig)
+#         print(f"TSNE plot saved to {out_path}")
+
+#     if standalone:
+#         return fig, ax
+#     else:
+#         return ax
+
+
+# def plot_umap(model, data_loader, device, cl_name, output_path, dataID, class_names, hyperparameters=None):
+#     import umap
+#     """
+#     Plot and save a UMAP visualization of the latent space.
+
+#     Args:
+#     - model: Trained model to extract latent features.
+#     - data_loader: DataLoader containing data to visualize.
+#     - device: Torch device (e.g., 'cpu' or 'cuda').
+#     - cl_name: Classifier name or title.
+#     - output_path: Directory where the plot will be saved.
+#     - dataID: Identifier for the dataset.
+#     - class_names: List of class names.
+#     - hyperparameters: Optional dictionary of hyperparameters for the title.
+#     """
+#     model.eval()
+#     latent_features_list, labels_list = [], []
+
+#     with torch.no_grad():
+#         for sequences, labels in data_loader:
+#             sequences = sequences.float().to(device)
+#             labels = labels.to(device)
+
+#             latent_features = model(sequences, return_latent=True)
+#             latent_features_list.append(latent_features.cpu().numpy())
+#             labels_list.append(labels.cpu().numpy())
+
+#     latent_features_np = np.concatenate(latent_features_list, axis=0)
+#     labels_np = np.concatenate(labels_list, axis=0)
+
+#     # Apply UMAP
+#     reducer = umap.UMAP(n_components=2, random_state=42, min_dist=0.1, n_neighbors=15)
+#     latent_2d = reducer.fit_transform(latent_features_np)
+
+#     colors = sns.color_palette("tab20")  
+#     # if num_classes <= 10:
+#     #     colors = sns.color_palette("tab10", num_classes)  # Up to 10 colors
+#     # elif num_classes <= 12:
+#     #     colors = sns.color_palette("Paired", num_classes)  # Exactly 12 colors
+#     # elif num_classes <= 16:
+#     #     colors = sns.color_palette("tab20", num_classes)  
+
+#     plt.figure(figsize=(12, 10))
+#     unique_labels = np.unique(labels_np)
+
+#     for i, class_label in enumerate(unique_labels):
+#         indices = labels_np == class_label
+#         count = np.sum(indices)
+
+#         plt.scatter(latent_2d[indices, 0], latent_2d[indices, 1],
+#                     label=f"{class_names[i]} ({count})", alpha=0.5, s=50,
+#                     color=colors[i], edgecolors='gray', linewidth=0.5)
+
+#     plt.xticks(fontsize=22)
+#     plt.yticks(fontsize=22)
+#     plt.xlabel('UMAP Component 1', fontsize=26)
+#     plt.ylabel('UMAP Component 2', fontsize=26)
+#     plt.legend(loc='upper right', fontsize=16, markerscale=2, scatterpoints=1)
+
+#     out_path = os.path.join(output_path, f"{len(class_names)}Cls_LatentSpace_UMAP.png")
+#     plt.savefig(out_path)
+#     plt.close()
 
 
 

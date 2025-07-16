@@ -55,6 +55,7 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
     config["paths"]["recodings_df"] = f"{config["paths"]["data_root"]}/PaulRecordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config["paths"]["data_root"]}/imgs4DL"
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
+    config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / split / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'
     config["paths"]["results_root"] = str(root / "results" / f"{config['data']['task']}_{config['run_id']}")
     config["paths"]["models"] = f"{config['paths']['results_root']}/models/"
