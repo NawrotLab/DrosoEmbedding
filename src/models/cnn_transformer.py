@@ -45,8 +45,8 @@ class CNN_Transformer(nn.Module):
         )
         self.seq_len = seq_len
         self.seq_steps = seq_steps
-        # Flatten CNN output and project to cnn_embed_dim
-        self.embedding = nn.Linear(64, cnn_embed_dim)
+        # Flatten CNN output and project to transformer_embed_dim
+        self.embedding = nn.Linear(64, transformer_embed_dim)
         
         # Positional encoding
         #self.positional_encoding = PositionalEncoding(embed_dim, dropout, max_len=seq_len)
@@ -100,7 +100,7 @@ class CNN_Transformer(nn.Module):
             # Add positional encoding
             cnn_features = self.positional_encoding(cnn_features)
             
-            # Permute for transformer input: (seq_len, batch_size, embed_dim)
+            # Permute for transformer input: (seq_len, batch_size, transformer_embed_dim)
             cnn_features = cnn_features.permute(1, 0, 2)
             
             # Pass through transformer encoder
