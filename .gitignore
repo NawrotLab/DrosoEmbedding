@@ -27,3 +27,6 @@ __pycache__/
 
 # Poetry env (if local)
 .venv/
+
+# Source images
+src/src_imgs/
