@@ -11,7 +11,7 @@ class CustomDataset(Dataset):
     def __init__(self, image_paths, labels, transform=None, 
                  resize_img=(128, 128), seq_length=1, seq_steps=1, 
                  allTs_path=None, augment=False, num_augmentations=5, 
-                 cache_images=False):
+                 cache_images=False, preload_to_ram=False):
         self.image_paths = image_paths
         self.labels = labels
         self.img_size = resize_img
@@ -34,7 +34,20 @@ class CustomDataset(Dataset):
         # Filter valid sequences
         self.image_paths, self.labels = self._filter_valid_sequences()
 
-        # Optional: Cache images to RAM
+        # Preload all data to RAM if requested
+        self.preloaded_data = None
+        if preload_to_ram:
+            self.preloaded_data = [
+                (self._load_and_preprocess_sequence(idx) if seq_length > 1 else self._load_and_preprocess_image(img_path), label)
+                for idx, (img_path, label) in enumerate(zip(self.image_paths, self.labels))
+            ]
+            # Convert to tensor once
+            self.preloaded_data = [
+                (torch.stack(imgs).float() if isinstance(imgs, list) else imgs.float(), torch.tensor(label)) 
+                for imgs, label in self.preloaded_data
+            ]
+        
+        # Optional: Cache images to RAM (for single images only)
         self.cached_samples = None
         if cache_images:
             self.cached_samples = [
@@ -50,14 +63,18 @@ class CustomDataset(Dataset):
         original_sample_idx = idx // (self.num_augmentations + 1)
         augmentation_idx = idx % (self.num_augmentations + 1)
 
-        if self.cached_samples is not None:
+        # If data is preloaded to RAM
+        if self.preloaded_data is not None:
+            img, label = self.preloaded_data[original_sample_idx]
+        # If using cached samples
+        elif self.cached_samples is not None:
             img, label = self.cached_samples[original_sample_idx]
         else:
             label = self.labels[original_sample_idx]
             if self.seq_length == 1:
                 img = self._load_image(self.image_paths[original_sample_idx])
             else:
-                img = self._load_sequence(original_sample_idx)
+                img = self._load_and_preprocess_sequence(original_sample_idx)
 
         # Apply augmentation if needed
         if augmentation_idx > 0 and self.augment:
@@ -65,31 +82,35 @@ class CustomDataset(Dataset):
 
         return img, label
 
-    def _load_image(self, img_path):
-        """Load a single image and apply transforms."""
+    def _load_and_preprocess_image(self, img_path):
+        """Load and preprocess a single image."""
         try:
             img = tifffile.imread(img_path)
             if self.transform:
                 img = self.transform(img)
+            # Convert to float32 immediately
+            img = img.float()
             return img
         except Exception as e:
             raise ValueError(f"Error loading image {img_path}: {e}")
 
-    def _load_sequence(self, idx):
-        """Load a sequence of images."""
+    def _load_and_preprocess_sequence(self, idx):
+        """Load and preprocess a sequence of images."""
         img_paths = self._get_sequence_paths(idx)
         if not img_paths:
             # Fallback to a different sequence if this one is invalid
             return self._load_sequence((idx + 1) % len(self.image_paths))
         
-        # Load and transform all images in the sequence
+        # Load, transform, and preprocess all images in the sequence
         images = []
         for path in img_paths:
             img = tifffile.imread(path)
             if self.transform:
                 img = self.transform(img)
+            # Convert to float32 immediately
+            img = img.float()
             images.append(img)
-        return torch.stack(images)
+        return torch.stack(images)  # Always return a tensor
 
     def _get_sequence_paths(self, idx):
         """Get paths for all images in a sequence."""

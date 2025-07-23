@@ -13,7 +13,7 @@
 source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 # Set run name manually or via argument
-RUN_NAME="my_run_id"  # <-- CHANGE THIS!
 
 # Run evaluation
-python -m scripts.evaluating --run_name "$RUN_NAME"
+python -m scripts.run_evaluation
+python -m scripts.run_plotting

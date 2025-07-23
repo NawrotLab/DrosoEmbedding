@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_umap_latent, plot_metric_distribution, plot_similarity_matrix
-
+from src.visualization.visualize_preformance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_metric_distribution, plot_similarity_matrix
+from src.utils.helpers import compute_tsne
 
 def plot_all(results: dict, config: dict, logger) -> None:
     """
@@ -28,7 +28,7 @@ def plot_all(results: dict, config: dict, logger) -> None:
     transformer_latent = results['transformer_latent_space']
     ll            = results['latent_labels']
     tsne_2d       = results['tsne_2d']
-    umap_2d       = results['umap_2d']
+    # umap_2d       = results['umap_2d']
     ci            = results['cosine_intra']
     co            = results['cosine_inter']
     cl            = results['cosine_inter_labels']
@@ -59,13 +59,12 @@ def plot_all(results: dict, config: dict, logger) -> None:
                             hyperparameters={
                                 'batch_size': training_params['batch_size'],
                                 'seq_length': model_params['seq_len'],
-                                'embed_dim': model_params['embed_dim']
+                                'embed_dim': model_params['transformer_embed_dim']
                             })
 
     # 4. Latent-space 2D projections for both CNN and Transformer
     # CNN Latent Space
     tsne_2d_cnn = compute_tsne(cnn_latent)
-    umap_2d_cnn = compute_umap(cnn_latent)
     
     plot_tsne_latent(
         latent_2d=tsne_2d_cnn,
@@ -74,14 +73,6 @@ def plot_all(results: dict, config: dict, logger) -> None:
         output_path=viz_dir,
         filename=f"{len(class_names)}Cls_CNN_TSNE2.png",
         title="t-SNE Projection (CNN Latent Space)"
-    )
-    plot_umap_latent(
-        latent_2d=umap_2d_cnn,
-        labels_np=ll,
-        class_names=class_names,
-        output_path=viz_dir,
-        filename=f"{len(class_names)}Cls_CNN_UMAP2.png",
-        title="UMAP Projection (CNN Latent Space)"
     )
     
     # Transformer Latent Space
@@ -92,14 +83,6 @@ def plot_all(results: dict, config: dict, logger) -> None:
         output_path=viz_dir,
         filename=f"{len(class_names)}Cls_Transformer_TSNE2.png",
         title="t-SNE Projection (Transformer Latent Space)"
-    )
-    plot_umap_latent(
-        latent_2d=umap_2d,
-        labels_np=ll,
-        class_names=class_names,
-        output_path=viz_dir,
-        filename=f"{len(class_names)}Cls_Transformer_UMAP2.png",
-        title="UMAP Projection (Transformer Latent Space)"
     )
 
     # 5. Similarity analyses
@@ -141,13 +124,14 @@ def plot_all(results: dict, config: dict, logger) -> None:
 def main():
     # Load config and logger
     config = load_config()
+    run_id = config['run_id']
     logger = setup_logger(
         task_name=config['run_id'],
-        log_dir=os.path.join(config['paths']['results_root'], 'logs', 'plots')
+        log_dir='logs/plots/'
     )
 
     # Load evaluation results
-    eval_path = os.path.join(config['paths']['evaluation'], 'evaluation_results.pkl')
+    eval_path = os.path.join(config['paths']['evaluation'], f'{run_id}_evalResults.pkl')
     if not os.path.exists(eval_path):
         logger.error(f"Evaluation results not found at {eval_path}")
         return

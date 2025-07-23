@@ -27,6 +27,7 @@ else:
 
 
 def main(config, logger):
+    
     os.environ.pop("MLFLOW_RUN_ID", None)  # 💣 Prevent carryover
 
     model_params = config["model"]["parameters"]
@@ -83,14 +84,15 @@ def main(config, logger):
             logger.info("============================================================")
             # Datasets and loaders
             train_dataset = CustomDataset(X_train, Y_train, transform=True,
-                                        seq_length=config['data']['sequence']["seq_len"],
-                                        seq_steps=config['data']['sequence']["seq_steps"],
-                                          allTs_path=config["paths"]["allTs_path"],
-                                          augment=False, num_augmentations=2)
+                                        seq_length=config['data']['sequence']['seq_len'],
+                                        seq_steps=config['data']['sequence']['seq_steps'],
+                                        allTs_path=config["paths"]["allTs_path"],
+                                        preload_to_ram=config['training']['preload_to_ram'])
             val_dataset = CustomDataset(X_val, Y_val, transform=True,
-                                        seq_length=config['data']['sequence']["seq_len"],
-                                        seq_steps=config['data']['sequence']["seq_steps"],
-                                        allTs_path=config["paths"]["allTs_path"])
+                                        seq_length=config['data']['sequence']['seq_len'],
+                                        seq_steps=config['data']['sequence']['seq_steps'],
+                                        allTs_path=config["paths"]["allTs_path"],
+                                        preload_to_ram=config['training']['preload_to_ram'])
 
             train_loader = DataLoader(train_dataset, batch_size=config["training"]["batch_size"],
                                       shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True)
@@ -185,8 +187,17 @@ def main(config, logger):
 
 if __name__ == "__main__":
     config = load_config()
-    # slurm_id = os.getenv("SLURM_ARRAY_TASK_ID")
-    # if slurm_id:
-    #     config["run_id"] = f"{config['run_id']}_{slurm_id}"
+    slurm_id = os.getenv("SLURM_ARRAY_TASK_ID")
+    if slurm_id:
+        config["run_id"] = f"{config['run_id']}_{slurm_id}"
     logger = setup_logger(task_name=config["run_id"], log_dir="logs/training")
+    
+    # Save config dictionary to pickle file
+    # config_file = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}_{slurm_id}.pkl"
+    config_file = f'{config['paths']['root']}/results/{config['data']['task']}_{config['run_id']}/config.pkl'
+    os.makedirs(os.path.dirname(config_file), exist_ok=True)
+    with open(config_file, 'wb') as f:
+        pickle.dump(config, f)
+    logger.info(f"Saved config to {config_file}")
+    
     main(config, logger)

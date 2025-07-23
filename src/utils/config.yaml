@@ -1,11 +1,10 @@
-run_id: "32embed_trial_1"
-
+run_id: "go16_newLR_cnn16_trf16" #"go6_cnn16_trf64"
 
 
 data:
   # use one of following or define a new task name in config_loader: 
   # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
-  task: "State_Modality_6" 
+  task: "State_Modality_Valence_16" 
   split_strategy: "WithinAnimal"
   cache_images: false
   sequence:
@@ -31,7 +30,7 @@ data:
     exclude_controls: True
     include_StimType: False    
     include_MetaboliteState: True
-    include_Valence: False
+    include_Valence: false
     train_startingFrame: 550
     val_test_proportion: 0.5
     resize: [128, 128]
@@ -42,7 +41,7 @@ model:
   architecture: "CNN_Transformer"
   parameters:
     nr_channels: 1
-    cnn_embed_dim: 16
+    cnn_embed_dim: 64
     transformer_embed_dim: 16
     num_heads: 2
     num_layers: 1
@@ -50,13 +49,14 @@ model:
 
 training:
   batch_size: 256
-  epochs: 5
-  learning_rate: 0.0001
+  epochs: 3000
+  learning_rate: 0.001
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8
+  preload_to_ram: true
   shuffle_labels_naive: false
-  shuffle_labels_consistantly: true 
+  shuffle_labels_consistantly: false 
   continue_training:
     resume: false
     until_epoch: 0
