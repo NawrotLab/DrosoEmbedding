@@ -12,15 +12,20 @@ class PositionalEncodingLearnable(nn.Module):
         
         # Initialize embeddings
         nn.init.uniform_(self.position_embeddings.weight, -0.1, 0.1)
+        self.register_buffer("position_ids",
+                        torch.arange(seq_len).unsqueeze(0), persistent=False) # VR: register once instead of registering position id in every forward call
         
+    # def forward(self, x):
+    #     # x shape: (batch_size, seq_len, embed_dim)
+    #     seq_len = x.size(1)
+    #     position_ids = torch.arange(seq_len, dtype=torch.long, device=x.device)
+    #     position_ids = position_ids.unsqueeze(0).expand(x.size(0), seq_len)
+    #     position_embeddings = self.position_embeddings(position_ids)
+    #     x = x + position_embeddings
+    #     return self.dropout(x)
     def forward(self, x):
-        # x shape: (batch_size, seq_len, embed_dim)
-        seq_len = x.size(1)
-        position_ids = torch.arange(seq_len, dtype=torch.long, device=x.device)
-        position_ids = position_ids.unsqueeze(0).expand(x.size(0), seq_len)
-        position_embeddings = self.position_embeddings(position_ids)
-        x = x + position_embeddings
-        return self.dropout(x)
+        pos = self.position_ids.expand(x.size(0), -1)  # no new tensor
+        return self.dropout(x + self.position_embeddings(pos))
     
 
 class CNN_Transformer(nn.Module):
@@ -56,7 +61,10 @@ class CNN_Transformer(nn.Module):
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=transformer_embed_dim, nhead=num_heads, 
-            dim_feedforward= 4*transformer_embed_dim, dropout=dropout)
+            dim_feedforward= 4*transformer_embed_dim, dropout=dropout,
+            batch_first=True)  # VR: I added batch_first to avoid permuting multiple times. we can now remove permuting in the forward pass (check comment below)
+        
+        
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
         # Classification head
@@ -83,8 +91,25 @@ class CNN_Transformer(nn.Module):
             return out
         else:  
             batch_size, seq_len, channels, height, width = x.size()
-            #batch_size, seq_len, height, width = x.size()
+            x = x.view(batch_size * seq_len, channels, height, width) 
+            
+            feats = self.cnn(x) # (B·S, 64, 1, 1)
+            feats = feats.flatten(1)           # (B·S, 64)  
+            feats = self.embedding(feats)      # (B·S, d_model)
+            cnn_feats = feats.view(batch_size, seq_len, -1)       # restore sequence dim
+            pe_feats = self.positional_encoding(cnn_feats)   # (B, S, d_model)
+            transformer_out = self.transformer_encoder(pe_feats)  # (B, S, d_model)
+            
+            pooled = transformer_out.mean(dim=1)        # (B, d_model)
+            if return_latent_per_seq:   return cnn_feats
+            if return_latent:           return pooled
+            if return_cnn_latent:       return feats.view(batch_size*seq_len, -1) # VR: Here we concatenate all the cnn embedding of all seqs. we could also average them.
 
+            # Classification
+            cls_out = self.fc(pooled_output)  # Shape: (batch_size, nr_classes)
+
+            return cls_out
+            """
             # Extract features for each image in the sequence
             cnn_features = []
             for t in range(seq_len):
@@ -120,3 +145,4 @@ class CNN_Transformer(nn.Module):
             out = self.fc(pooled_output)  # Shape: (batch_size, nr_classes)
             
             return out
+            """

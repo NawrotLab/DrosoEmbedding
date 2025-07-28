@@ -95,7 +95,7 @@ def main(config, logger):
                                         preload_to_ram=config['training']['preload_to_ram'])
 
             train_loader = DataLoader(train_dataset, batch_size=config["training"]["batch_size"],
-                                      shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True)
+                                      shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True) # VR: have you tried with 8 or more?
             val_loader = DataLoader(val_dataset, batch_size=config["training"]["batch_size"] * 2,
                                     shuffle=False, num_workers=4, pin_memory=True, persistent_workers=True)
 
