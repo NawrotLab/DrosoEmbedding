@@ -6,8 +6,8 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32GB
-#SBATCH --gres=shard:6
-#SBATCH --array=1-2
+#SBATCH --gres=shard:8
+#SBATCH --array=1
 #SBATCH --output=/dev/null
 #SBATCH --error=/dev/null
 

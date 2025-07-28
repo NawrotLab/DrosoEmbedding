@@ -47,7 +47,8 @@ def evaluate_model(run_id, config_path, logger) -> dict:
     # temporary and dirty
     paths['models'] = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/models/"
     paths['evaluation'] = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/"
-    eval_dir = paths['evaluation']
+    eval_dir = paths["evaluation"]
+
     os.makedirs(eval_dir, exist_ok=True)
 
     logger.info(f"Locating Model at {paths['models']}")
@@ -128,12 +129,14 @@ def main():
     # config_path = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}.pkl"
     config_path = f"{config["paths"]["results_root"]}/config.pkl"
     if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file not found at {config_path}. Make sure to train the model first.")
-        
+        raise FileNotFoundError(f"Config file not found at {config_path}. Make sure to train the model first.")  
     logger = setup_logger(task_name=config['run_id'], log_dir=os.path.join('logs/evaluation'))
-
-    results = evaluate_model(run_id, config_path, logger)
-    logger.info(f"Saved evaluation results to {config['paths']['evaluation']}/evaluation_results.pkl")
+    eval_dir = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/{run_id}_evalResults.pkl"
+    if not os.path.exists(eval_dir):
+        evaluate_model(run_id, config_path, logger)
+        logger.info(f"Saved evaluation results to {eval_dir}")
+    else:
+        logger.info(f"Evaluation results already exist at {eval_dir}")
 
 if __name__ == '__main__':
     main()

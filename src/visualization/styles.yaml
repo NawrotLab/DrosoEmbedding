@@ -1,0 +1,112 @@
+styles:
+  # 2 Classes
+  starved:
+    color: "#FFFFFF"
+    edgecolor: "#D9D9D9"
+    shape: "s"  # square
+  fed:
+    color: "#595959"
+    edgecolor: "#FFFFFF"
+    shape: "o"  # circle
+  
+  # 6 Classes
+  starved_odor:
+    color: "#FFFFFF"
+    edgecolor: "#C02325"
+    shape: "s"  
+  starved_taste:
+    color: "#FFFFFF"
+    edgecolor: "#3382BE"
+    shape: "s"
+  starved_odor_taste:
+    color: "#FFFFFF"
+    edgecolor: "#7B4278"
+    shape: "s"
+  fed_odor:
+    color: "#C02325"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_taste:
+    color: "#3382BE"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_taste:
+    color: "#7B4278"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  
+  # 16 Classes
+  starved_odor_positive:
+    color: "#FFFFFF"
+    edgecolor: "#C02325"
+    shape: "s"
+  starved_odor_negative:
+    color: "#FFFFFF"
+    edgecolor: "#FF9A96"
+    shape: "s"
+  starved_taste_positive:
+    color: "#FFFFFF"
+    edgecolor: "#3382BE"
+    shape: "s"
+  starved_taste_negative:
+    color: "#FFFFFF"
+    edgecolor: "#B0C7EB"
+    shape: "s"
+  starved_odor_pos_taste_pos:
+    color: "#FFFFFF"
+    edgecolor: "#7B4278"
+    shape: "s"
+  starved_odor_pos_taste_neg:
+    color: "#FFFFFF"
+    edgecolor: "#A45198"
+    shape: "s"
+  starved_odor_neg_taste_pos:
+    color: "#FFFFFF"
+    edgecolor: "#CD6DBB"
+    shape: "s"
+  starved_odor_neg_taste_neg:
+    color: "#FFFFFF"
+    edgecolor: "#E59ADC"
+    shape: "s"
+  fed_odor_positive:
+    color: "#C02325"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_negative:
+    color: "#FF9A96"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_taste_positive:
+    color: "#3382BE"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_taste_negative:
+    color: "#B0C7EB"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_pos_taste_pos:
+    color: "#7B4278"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_pos_taste_neg:
+    color: "#A45198"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_neg_taste_pos:
+    color: "#CD6DBB"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+  fed_odor_neg_taste_neg:
+    color: "#E59ADC"
+    edgecolor: "#FFFFFF"
+    shape: "o"
+
+
+      
+  # other shapes: 
+  # "P" plus (filled)
+  # "p" plus (open)
+  #"D" diamond (filled)
+  #"d" diamond (open)
+  # "v" triangle_down
+  # .....
