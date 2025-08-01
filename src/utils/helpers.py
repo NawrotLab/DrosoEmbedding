@@ -1,6 +1,8 @@
 import mlflow
 import numpy as np
 import torch
+import os
+import pickle
 from sklearn.manifold import TSNE
 # import umap
 
@@ -45,7 +47,85 @@ def get_predictions(model, data_loader, device):
     true_labels_np = np.concatenate(true_labels, axis=0)
     return predictions_np, true_labels_np 
 
-
 def compute_tsne(latent_features, perplexity=30, random_state=42):
     tsne = TSNE(n_components=2, perplexity=perplexity, random_state=random_state)
     return tsne.fit_transform(latent_features)
+
+def load_all_results(base_dir, TASK_CLASS_NAMES):
+    """Load eval pickles plus attach class names.
+    
+    Args:
+        base_dir: Base directory containing task folders
+        TASK_CLASS_NAMES: Dictionary mapping task names to class names
+        
+    Returns:
+        dict: Nested dictionary with structure:
+            {
+                'task_name': {
+                    'run_name': { ... evaluation results ... },
+                    'dim_runs': {
+                        'dim_4': [run1_data, run2_data, ...],
+                        'dim_8': [run1_data, run2_data, ...],
+                        ...
+                    },
+                    '__class_names__': [...]
+                },
+                ...
+            }
+    """
+    results = {}
+    for task in sorted(os.listdir(base_dir)):
+        task_path = os.path.join(base_dir, task)
+        if not os.path.isdir(task_path):
+            continue
+            
+        results[task] = {}
+        dim_runs_path = os.path.join(task_path, 'dim_runs')
+        
+        # Load regular runs
+        for run_name in sorted(os.listdir(task_path)):
+            if run_name == 'dim_runs':
+                continue  # Handle dim_runs separately
+                
+            pkl = os.path.join(task_path, run_name, 'evaluation_results.pkl')
+            if os.path.isfile(pkl):
+                with open(pkl, 'rb') as f:
+                    results[task][run_name] = pickle.load(f)
+        
+        # Load dimension runs if they exist
+        if os.path.exists(dim_runs_path):
+            results[task]['dim_runs'] = {}
+            for filename in sorted(os.listdir(dim_runs_path)):
+                if not filename.endswith('_evalResults.pkl'):
+                    continue
+                    
+                # Parse dimension and run number from filename
+                # Format: 'SpeedSeed6_trf4_1_evalResults.pkl' -> dim=4, run=1
+                try:
+                    parts = filename.split('_')
+                    dim = int(parts[1].replace('trf', ''))
+                    run_num = int(parts[2].split('_')[0])
+                    
+                    # Load the results
+                    pkl_path = os.path.join(dim_runs_path, filename)
+                    with open(pkl_path, 'rb') as f:
+                        run_data = pickle.load(f)
+                        
+                    # Store with dimension and run info
+                    dim_key = f'dim_{dim}'
+                    if dim_key not in results[task]['dim_runs']:
+                        results[task]['dim_runs'][dim_key] = []
+                    results[task]['dim_runs'][dim_key].append({
+                        'run': run_num,
+                        'data': run_data,
+                        'dimension': dim
+                    })
+                except (IndexError, ValueError) as e:
+                    print(f"Warning: Could not parse dimension/run from {filename}: {e}")
+                    continue
+        
+        # Add class names if available
+        if task in TASK_CLASS_NAMES:
+            results[task]['__class_names__'] = TASK_CLASS_NAMES[task]
+            
+    return results

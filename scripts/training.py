@@ -7,6 +7,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn 
 import mlflow
 import random
+import numpy as np
+import torch
 from src.utils.logger import setup_logger
 from src.utils.config_loader import load_config
 from src.data.dataset import CustomDataset
@@ -27,21 +29,41 @@ else:
 
 
 def main(config, logger):
+    # Set random seeds for reproducibility
+    slurm_id = int(config['slurm_id'])  # Ensure slurm_id is an integer
+    seed = int(config["seeds"][slurm_id])  # Now we can safely use it as an index
     
-    os.environ.pop("MLFLOW_RUN_ID", None)  # 💣 Prevent carryover
+    # Set Python random seed
+    random.seed(seed)
+    # Set NumPy random seed
+    np.random.seed(seed)
+    # Set PyTorch random seeds
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    logger.info(f"Using seed: {seed} for SLURM ID: {slurm_id}")
+    
+    os.environ.pop("MLFLOW_RUN_ID", None)  
 
     model_params = config["model"]["parameters"]
+    training_params = config["training"]
     time_start = time.time()
 
     logger.info(f"Process ID: {os.getpid()}")
     logger.info(f"Device: {config['device']}")
+    logger.info(f"Slurm ID: {slurm_id}")
 
     mlflow.set_tracking_uri("file:/projects/group-share/MLflow/DrosoEmbedding")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
 
     with mlflow.start_run(run_name=config["run_id"], nested=False) as run:
-        try:
+        try:    
+            # logger.info("torch version: " + torch.__version__)
+      
             mlflow.set_tag("run_name", config["run_id"])  # optional, for clarity in UI
             mlflow_id = run.info.run_id
             mlflow.log_param("mlflow_run_id", mlflow_id)
@@ -50,7 +72,9 @@ def main(config, logger):
             log_params_recursive(config)
 
             # Setup output paths
-            out_root = config["paths"]["results_root"] + f"_{args.run_name}" if args.run_name else config["paths"]["results_root"]
+            # out_root = config["paths"]["results_root"] + f"_{args.run_name}" if args.run_name else config["paths"]["results_root"]
+            out_root = f'{config["paths"]["results_root"]}_{slurm_id}'
+
             logger.info(f"out root... {out_root}")
             outPath_model = f"{out_root}/models"
             out_evaluation = f"{out_root}/evaluation"
@@ -87,17 +111,17 @@ def main(config, logger):
                                         seq_length=config['data']['sequence']['seq_len'],
                                         seq_steps=config['data']['sequence']['seq_steps'],
                                         allTs_path=config["paths"]["allTs_path"],
-                                        preload_to_ram=config['training']['preload_to_ram'])
+                                        preload_to_ram=training_params['preload_to_ram'])
             val_dataset = CustomDataset(X_val, Y_val, transform=True,
                                         seq_length=config['data']['sequence']['seq_len'],
                                         seq_steps=config['data']['sequence']['seq_steps'],
                                         allTs_path=config["paths"]["allTs_path"],
-                                        preload_to_ram=config['training']['preload_to_ram'])
+                                        preload_to_ram=training_params['preload_to_ram'])
 
-            train_loader = DataLoader(train_dataset, batch_size=config["training"]["batch_size"],
-                                      shuffle=True, num_workers=4, pin_memory=True, persistent_workers=True)
-            val_loader = DataLoader(val_dataset, batch_size=config["training"]["batch_size"] * 2,
-                                    shuffle=False, num_workers=4, pin_memory=True, persistent_workers=True)
+            train_loader = DataLoader(train_dataset, batch_size=training_params["batch_size"],
+                                      shuffle=True, num_workers=training_params['num_workers'], pin_memory=True, persistent_workers=True)
+            val_loader = DataLoader(val_dataset, batch_size=training_params["batch_size"] * 2,
+                                    shuffle=False, num_workers=training_params['num_workers'], pin_memory=True, persistent_workers=True)
 
             # Load or initialize model
             Classifier, start_epoch, prev_train_loss, prev_val_loss = load_model(CNN_Transformer,
@@ -122,7 +146,7 @@ def main(config, logger):
                 logger.info("============================================================")
 
                 Classifier = CNN_Transformer(**model_params)
-                num_epochs = config['training']['epochs']
+                num_epochs = training_params['epochs']
                 start_epoch = 0
                 training_loss = []
                 validation_loss = []
@@ -132,7 +156,7 @@ def main(config, logger):
                 logger.info(f"Previous training loss:{len(prev_train_loss),prev_train_loss}")
                 logger.info(f"Previous training loss: {prev_train_loss[-1]:.4f}")
                 logger.info(f"Previous validation loss: {prev_val_loss[-1]:.4f}")
-                num_epochs = config['training']['continue_training']['until_epoch']
+                num_epochs = training_params['continue_training']['until_epoch']
                 logger.info(f"Will continue training until epoch: {num_epochs} ")
                 training_loss = prev_train_loss
                 validation_loss = prev_val_loss
@@ -144,8 +168,8 @@ def main(config, logger):
                 train_loader=train_loader,
                 val_loader=val_loader,
                 num_epochs=num_epochs,
-                lr=config['training']['learning_rate'],
-                weight_decay=config['training']['weight_decay'],
+                lr=training_params['learning_rate'],
+                weight_decay=training_params['weight_decay'],
                 start_epoch=start_epoch,
                 criterion=criterion_cls(),
                 logger=logger  
@@ -176,7 +200,7 @@ def main(config, logger):
             if os.path.exists(final_model_path):
                 mlflow.log_artifact(final_model_path)
 
-            log_file = os.path.join("logs/training", f"{config['run_id']}_{os.getenv('SLURM_JOB_ID', 'local')}.log")
+            log_file = os.path.join("logs/training", f"{config['run_id']}_{slurm_id}.log")
             if os.path.exists(log_file):
                 mlflow.log_artifact(log_file)
 
@@ -186,12 +210,12 @@ def main(config, logger):
 
 
 if __name__ == "__main__":
+
     config = load_config()
-    slurm_id = os.getenv("SLURM_ARRAY_TASK_ID")
-    if slurm_id:
-        config["run_id"] = f"{config['run_id']}_{slurm_id}"
+    slurm_id = os.getenv("SLURM_ARRAY_TASK_ID", 0)
+    config["slurm_id"] = slurm_id
+    config["run_id"] = f"{config['run_id']}_{slurm_id}"
     logger = setup_logger(task_name=config["run_id"], log_dir="logs/training")
-    
     # Save config dictionary to pickle file
     # config_file = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}_{slurm_id}.pkl"
     config_file = f'{config['paths']['root']}/results/{config['data']['task']}_{config['run_id']}/config.pkl'

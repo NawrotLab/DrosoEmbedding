@@ -14,45 +14,50 @@ def moving_average(data, window_size=50):
     return (cumsum[window_size:] - cumsum[:-window_size]) / float(window_size)
 
 # Directory containing pickle files
-dir_latent_pickles = '/rhomes/aabdel/DrosoEmbedding/results/LatentSummaryPickles'
+dir_latent_pickles = '/rhomes/aabdel/DrosoEmbedding/results/_SeedFinals'
 save_path = '/rhomes/aabdel/DrosoEmbedding/results/CombiPlots'
 
 # FILENAME_RE = re.compile(r'^(?P<task>[^_]+)_cnn(?P<cnn>\d+)_trf(?P<trf>\d+)_\d+\.pkl$')
-FILENAME_RE = re.compile(r'^(?P<task>[^_]+)_newLR_cnn(?P<cnn>\d+)_trf(?P<trf>\d+)_\d+\.pkl$')
+FILENAME_RE = re.compile(r'^SpeedSeed(?P<task>\d+)_trf(?P<trf>\d+)_(?P<runNr>\d+)_evalResults\.pkl$')
 
 # Collect results in a nested dict: {task: {cnn_dim: {trf_dim: [dicts]}}}
 results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
 
 # Load all pickle files
-for filename in os.listdir(dir_latent_pickles):
-    if filename.endswith('.pkl') or filename.endswith('.pickle'):
-        m = FILENAME_RE.match(filename)
-        if not m:
-            print(f"Skipping file: {filename}")
-            continue
+for root, dirs, files in os.walk(dir_latent_pickles):
+    for filename in files:
+        if filename.endswith('.pkl') or filename.endswith('.pickle'):
+            m = FILENAME_RE.match(filename)
+            if not m:
+                print(f"Skipping file: {filename}")
+                continue
+            # Optionally, get full path
+            full_path = os.path.join(root, filename)
+            print(f"Processing: {full_path}")
+            print(m.groupdict())
 
-        info = m.groupdict()
-        task = info['task']
-        cnn_dim = int(info['cnn'])
-        trf_dim = int(info['trf'])
+            info = m.groupdict()
+            task = info['task']
+            trf_dim = int(info['trf'])
+            runNr = int(info['runNr'])
 
-        file_path = os.path.join(dir_latent_pickles, filename)
-        with open(file_path, 'rb') as f:
-            data = pickle.load(f)
-            # Calculate accuracy from confusion matrix
-            cm = data['confusion_matrix']
-            accuracy = np.sum(np.diag(cm)) / np.sum(cm)
-            results[task][cnn_dim][trf_dim].append({
-                'accuracy': accuracy,
-                'data': data,
-                'filename': filename
-            })
+            file_path = os.path.join(root, filename)
+            with open(file_path, 'rb') as f:
+                data = pickle.load(f)
+                # Calculate accuracy from confusion matrix
+                cm = data['confusion_matrix']
+                accuracy = np.sum(np.diag(cm)) / np.sum(cm)
+                results[task][trf_dim][runNr].append({
+                    'accuracy': accuracy,
+                    'data': data,
+                    'filename': filename
+                })
 
 # Get the best run for each combination
-def get_best_run(runs):
-    if not runs:
-        return None
-    return max(runs, key=lambda x: x['accuracy'])
+# def get_best_run(runs):
+#     if not runs:
+#         return None
+#     return max(runs, key=lambda x: x['accuracy'])
 
 # Create plots for each task
 for task in results:
@@ -60,23 +65,23 @@ for task in results:
     fig, ax = plt.subplots(figsize=(10, 6))
     
     # Plot all dimension combinations
-    for cnn_dim in sorted(results[task]):
-        for trf_dim in sorted(results[task][cnn_dim]):
-            runs = results[task][cnn_dim][trf_dim]
+    for trf_dim in sorted(results[task]):
+        for runNr in sorted(results[task][trf_dim]):
+            runs = results[task][trf_dim][runNr]
             if runs:
-                best_run = get_best_run(runs)
-                if best_run:
-                    data = best_run['data']
-                    accuracy = best_run['accuracy']
+                # best_run = get_best_run(runs)
+                # if best_run:
+                data = runs[0]['data']
+                accuracy = runs[0]['accuracy']
                     
-                    # Smooth the loss curve
-                    loss = data['val_loss']
-                    smoothed_loss = moving_average(loss)
+                # Smooth the loss curve
+                loss = data['val_loss']
+                smoothed_loss = moving_average(loss)
                     
-                    # Plot the loss curves
-                    epochs = range(1, len(smoothed_loss) + 1)
-                    ax.plot(epochs, smoothed_loss, 
-                         label=f'CNN{cnn_dim} TRF{trf_dim} (Acc: {accuracy:.3f})',
+                # Plot the loss curves
+                epochs = range(1, len(smoothed_loss) + 1)
+                ax.plot(epochs, smoothed_loss, 
+                         label=f'TRF{trf_dim} (Acc: {accuracy:.3f})',
                          alpha=0.8)  # Add slight transparency for better visibility
     
     # Add labels and legend
@@ -85,10 +90,11 @@ for task in results:
     ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
     
     # Add main title
-    ax.set_title(f'{task} - Best Runs Comparison')
+    ax.set_title(f'{task} - Runs Comparison')
     
     # Save the plot
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f'{task}_latent_loss_newLR.png'))
+    plt.savefig(os.path.join(save_path, f'{task}_SeedFinals_latentLoss.png'))
     plt.close(fig)
-    print(f"Saved plot for {task}_newLR")
+    print(f"Saved plot for {task}_SeedFinals_latentLoss")
+print("Done")

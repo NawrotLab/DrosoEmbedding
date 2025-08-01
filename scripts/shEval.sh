@@ -3,9 +3,9 @@
 #SBATCH --time=10:00:00
 #SBATCH --partition=all
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
+#SBATCH --mem=16GB
 #SBATCH --gres=shard:2
-#SBATCH --mem=8GB
 #SBATCH --output=logs/slurm/%j-%x.out
 #SBATCH --error=logs/slurm/%j-%x.err
 

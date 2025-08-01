@@ -12,15 +12,11 @@ class PositionalEncodingLearnable(nn.Module):
         
         # Initialize embeddings
         nn.init.uniform_(self.position_embeddings.weight, -0.1, 0.1)
+        self.register_buffer("position_ids", torch.arange(seq_len).unsqueeze(0), persistent=False) 
         
     def forward(self, x):
-        # x shape: (batch_size, seq_len, embed_dim)
-        seq_len = x.size(1)
-        position_ids = torch.arange(seq_len, dtype=torch.long, device=x.device)
-        position_ids = position_ids.unsqueeze(0).expand(x.size(0), seq_len)
-        position_embeddings = self.position_embeddings(position_ids)
-        x = x + position_embeddings
-        return self.dropout(x)
+        pos = self.position_ids.expand(x.size(0), -1)  # no new tensor
+        return self.dropout(x + self.position_embeddings(pos))
     
 
 class CNN_Transformer(nn.Module):
@@ -56,7 +52,8 @@ class CNN_Transformer(nn.Module):
         # Transformer encoder
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=transformer_embed_dim, nhead=num_heads, 
-            dim_feedforward= 4*transformer_embed_dim, dropout=dropout)
+            # dim_feedforward= 4*transformer_embed_dim, dropout=dropout)
+            dim_feedforward= 4*transformer_embed_dim, dropout=dropout, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
         
         # Classification head

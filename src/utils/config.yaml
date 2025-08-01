@@ -1,5 +1,4 @@
-run_id: "go16_newLR_cnn16_trf16" #"go6_cnn16_trf64"
-
+run_id: "SpeedSeed16_trf8_3" #"go6_cnn16_trf64" go2_cnn16_trf4_bs64_lr001, go2_newLR_lr0001_bs64_cnn16_trf16
 
 data:
   # use one of following or define a new task name in config_loader: 
@@ -41,16 +40,16 @@ model:
   architecture: "CNN_Transformer"
   parameters:
     nr_channels: 1
-    cnn_embed_dim: 64
-    transformer_embed_dim: 16
+    cnn_embed_dim: 16
+    transformer_embed_dim: 8
     num_heads: 2
     num_layers: 1
     dropout: 0.3
 
 training:
   batch_size: 256
-  epochs: 3000
-  learning_rate: 0.001
+  epochs: 10
+  learning_rate: 0.0001
   weight_decay: 0.00001
   criterion: "CrossEntropyLoss"
   num_workers: 8
@@ -60,6 +59,8 @@ training:
   continue_training:
     resume: false
     until_epoch: 0
+
+base_seed: 777
 
 paths:
   root: "/rhomes/aabdel/DrosoEmbedding"

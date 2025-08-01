@@ -2,7 +2,7 @@ styles:
   # 2 Classes
   starved:
     color: "#FFFFFF"
-    edgecolor: "#D9D9D9"
+    edgecolor: "#595959"
     shape: "o"  # square
   fed:
     color: "#595959"

@@ -1,42 +1,93 @@
 import yaml
 from pathlib import Path
 import torch
-
+import os
+import random 
+import numpy as np
 
 def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml"):
+    """
+    Load configuration from YAML file with environment variable overrides.
+    
+    Environment variables that can be used to override config values:
+    - RUN_ID: Overrides the run_id
+    - TASK: Overrides data.task
+    - BATCH_SIZE: Overrides training.batch_size
+    - LEARNING_RATE: Overrides training.learning_rate
+    - EPOCHS: Overrides training.epochs
+    """
+    # Load base config from YAML
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
+    
+    # Apply environment variable overrides
+    apply_env_overrides(config)
+    
+    # Set up derived parameters
+    setup_derived_parameters(config)
+    
+    return config
 
-    #=== Define some vars ===
-    split = config['data']['split_strategy']
+def apply_env_overrides(config):
+    """Apply environment variable overrides to the config."""
+    env_mappings = {
+        'RUN_ID': ['run_id'],
+        'TASK': ['data', 'task'],
+        'BATCH_SIZE': ['training', 'batch_size'],
+        'LEARNING_RATE': ['training', 'learning_rate'],
+        'EPOCHS': ['training', 'epochs'],
+        'TRF_DIM': ['model', 'parameters', 'transformer_embed_dim']
+        }
+    
+    for env_var, config_path in env_mappings.items():
+        if env_var in os.environ:
+            current = config
+            for key in config_path[:-1]:
+                current = current[key]
+            
+            # Convert the value to the appropriate type
+            original_value = current[config_path[-1]]
+            if isinstance(original_value, bool):
+                current[config_path[-1]] = os.environ[env_var].lower() in ('true', '1', 't')
+            elif isinstance(original_value, int):
+                current[config_path[-1]] = int(os.environ[env_var])
+            elif isinstance(original_value, float):
+                current[config_path[-1]] = float(os.environ[env_var])
+            else:
+                current[config_path[-1]] = os.environ[env_var]
 
-
-
-
-    # === dynamically set up more parameters ===
+def setup_derived_parameters(config):
+    """Set up derived parameters based on the config."""
+    # Set device
     config["device"] = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
 
+    # Set up task-specific parameters
     task_name = config["data"]['task']
     if task_name == 'MetabolicState_2':
         config['data']['pickle_id'] = 'S_F'
         config['data']['classes'] = ["Starved", "Fed"]
     elif task_name == 'State_Modality_6':
         config['data']['pickle_id'] = 'SO_FO_ST_FT_SM_FM'
-        config['data']['classes'] = ["Odor (S)","Odor (F)", 
-                                     "Taste (S)", "Taste (F)", 
-                                     "Odor + Taste (S)", "Odor + Taste (F)"]
+        config['data']['classes'] = [
+            "Odor (S)", "Odor (F)", 
+            "Taste (S)", "Taste (F)", 
+            "Odor + Taste (S)", "Odor + Taste (F)"
+        ]
     elif task_name == 'State_Modality_Valence_16':
         config['data']['pickle_id'] = 'SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_SMCP_SMCN_FMMP_FMMN_FMCP_FMCN'
         config['data']['classes'] = [
-            #  0 -  3
+            # 0 - 3
             "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)",
-            #  4 -  7
+            # 4 - 7
             "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)",
-            #  8 - 11
+            # 8 - 11
             "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
-            # 12 - 16
-            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
-  
+            # 12 - 15
+            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"
+        ]
+    
+    # Set up neuropil-specific parameters
     neuropil = config["data"]["preprocessing"]["neuropil"]
     if neuropil == "WT":
         logT_name = "logTs"
@@ -44,7 +95,7 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
     else:
         logT_name = f"logTs_KO_{neuropil}"
         allT_name = f"allTs_KO_{neuropil}"
-     
+
     config["model"]["parameters"]["seq_len"] = int(config['data']['sequence']["seq_len"])
     config["model"]["parameters"]["seq_steps"] = int(config['data']['sequence']["seq_steps"])
     config["model"]["parameters"]["nr_classes"] = int(len(config["data"]["classes"]))
@@ -52,6 +103,7 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
 
     # === Expand dynamic paths ===
     root = Path(config["paths"]["root"])
+    split = config['data']['split_strategy']
     config["paths"]["recodings_df"] = f"{config["paths"]["data_root"]}/PaulRecordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config["paths"]["data_root"]}/imgs4DL"
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
@@ -62,5 +114,11 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
     config["paths"]["visualizations"] = f"{config['paths']['results_root']}/visualizations/"
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"
 
+    rng = np.random.default_rng(777)
+    seeds = rng.integers(0, 2**32, size=10)
+    config["seeds"] = seeds
 
-    return config
+# For backward compatibility
+if __name__ == "__main__":
+    config = load_config()
+    print("Configuration loaded successfully.")
