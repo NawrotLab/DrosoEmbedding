@@ -1,9 +1,9 @@
-run_id: "SpeedSeed16_trf8_3" #"go6_cnn16_trf64" go2_cnn16_trf4_bs64_lr001, go2_newLR_lr0001_bs64_cnn16_trf16
+run_id: "R6Seed_trf16_lr001_bs256_1" #"go6_cnn16_trf64" go2_cnn16_trf4_bs64_lr001, go2_newLR_lr0001_bs64_cnn16_trf16, Seed2lr0001_trf64_5
 
 data:
   # use one of following or define a new task name in config_loader: 
   # "MetabolicState_2", "State_Modality_6", "State_Modality_Valence_16"
-  task: "State_Modality_Valence_16" 
+  task: "State_Modality_6" 
   split_strategy: "WithinAnimal"
   cache_images: false
   sequence:

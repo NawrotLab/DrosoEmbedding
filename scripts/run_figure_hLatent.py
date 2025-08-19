@@ -6,46 +6,33 @@ for different experimental conditions and model runs.
 """
 
 import os
-from typing import Dict, List, Tuple, Any, Optional
+from typing import Dict, List, Tuple, Any, Optional, Union
 
 import numpy as np
 import matplotlib.pyplot as plt
 import yaml
 from matplotlib.gridspec import GridSpec
 from src.visualization.visualize_preformance import plot_tsne_latent
-from src.utils.helpers import load_all_results
+from src.utils.helpers import load_all_results, get_style
 
 
-def _get_group_map(task: str, class_names: List[str]) -> Dict[str, List[int]]:
-    """Return the group mapping for the given task and class names."""
-    if task == 'MetabolicState_2':
-        return {'Starved': [0], 'Fed': [1]}
+def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
+    """Set up the figure and grid layout."""
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
     
-    if task == 'State_Modality_6':
-        return {
-            'Starved': [0, 2, 4], 
-            'Fed': [1, 3, 5], 
-            'Odor': [0, 1], 
-            'Taste': [2, 3], 
-            'Odor+Taste': [4, 5]
-        }
+    # More compact figure size
+    fig = plt.figure(figsize=(16, 12))
     
-    if task == 'State_Modality_Valence_16':
-        # Build Pos/Neg based on name matching
-        pos_inds = [i for i, n in enumerate(class_names) if '+' in n and '-' not in n]
-        neg_inds = [i for i, n in enumerate(class_names) if '-' in n and '+' not in n]
-        return {
-            'Starved': [0, 1, 4, 5, 8, 9, 10, 11],
-            'Fed': [2, 3, 6, 7, 12, 13, 14, 15],
-            'Odor': [0, 1, 2, 3],
-            'Taste': [4, 5, 6, 7],
-            'Odor+Taste': [8, 9, 10, 11, 12, 13],
-            'Positive': pos_inds,
-            'Negative': neg_inds,
-            'Valence-Combi': [10, 11, 14, 15]
-        }
+    # Adjust grid spec with less space between columns
+    gs = GridSpec(3, 4, figure=fig, 
+                     left=0.08, right=0.98,  # Use more of the figure width
+                     bottom=0.15, top=0.92,  # Adjust vertical spacing
+                     wspace=0.15, hspace=0.25,  # Reduce space between subplots
+                     width_ratios=[1, 1, 1, 0.8])
     
-    return {}
+    return fig, gs
+
 
 def plot_centroid_vectors(
     latent: np.ndarray, 
@@ -71,14 +58,16 @@ def plot_centroid_vectors(
     styles = styles 
     group_map = _get_group_map(task, class_names)
     
-    color_Starved = styles['starved']['edgecolor']
+    color_Starved = styles['starved']['arrow_color']
     color_Fed = styles['fed']['color']
-    color_Odor = styles['fed_odor']['color']
-    color_Taste = styles['fed_taste']['color']
-    color_Odor_Taste = styles['fed_odor_taste']['color']
-    color_Positive = '#000000'
-    color_Negative = '#000000'
-    color_Valence_Combi = '#000000'
+
+    color_Odor = styles['odor']['color']
+    color_Taste = styles['taste']['color']
+    color_Odor_Taste = styles['odor_taste']['color']
+    
+    color_Positive = styles['positive']['color']
+    color_Negative = styles['negative']['color']
+    color_Valence_Combi = styles['positive_negative']['color']
 
     for name, inds in group_map.items():
         mask = np.isin(labels, inds)
@@ -86,34 +75,56 @@ def plot_centroid_vectors(
             continue
         centroid = latent[mask].mean(axis=0)
         # choose color group
-        if name == 'Starved':
+        # if name == 'Starved':
+        #     col = color_Starved
+        # elif name == 'Fed':
+        #     col = color_Fed
+        # elif name == 'Odor':
+        #     col = color_Odor
+        # elif name == 'Taste':
+        #     col = color_Taste
+        # elif name == 'Odor+Taste':
+        #     col = color_Odor_Taste
+        # elif name == 'Positive':
+        #     col = color_Positive
+        # elif name == 'Negative':
+        #     col = color_Negative
+        # elif name == 'Valence-Combi':
+        #     col = color_Valence_Combi
+
+
+        if name == 'S':
             col = color_Starved
-        elif name == 'Fed':
+        elif name == 'F':
             col = color_Fed
-        elif name == 'Odor':
+        elif name == 'O':
             col = color_Odor
-        elif name == 'Taste':
+        elif name == 'T':
             col = color_Taste
-        elif name == 'Odor+Taste':
+        elif name == 'O/T':
             col = color_Odor_Taste
-        elif name == 'Positive':
+        elif name == '+':
             col = color_Positive
-        elif name == 'Negative':
+        elif name == '-':
             col = color_Negative
-        elif name == 'Valence-Combi':
+        elif name == '+/-':
             col = color_Valence_Combi
+        
+        
         x0 = 0
         y0 = 0
         xC = centroid[0]
         yC = centroid[1]
-        ax.arrow(x0, y0, dx=xC, dy=yC, head_width=4, head_length=4,color=col)
+        ax.arrow(x0, y0, dx=xC, dy=yC, head_width=6, head_length=6, linewidth=2, color=col, alpha = 0.7)
         #ax.annotate('', xy=(centroid[0], centroid[1]), xytext=(0,0),arrowprops=dict(arrowstyle='->', linewidth=1, color=col))
-        offset = 10
+        offset = 8
         if plot_labels:
+            mid_x = x0 + xC / 2
+            mid_y = y0 + yC / 2
             ax.text(
-                xC + offset*np.sign(xC), yC + offset*np.sign(yC), name,
+                mid_x, mid_y + offset, name,
                 fontsize=14, ha='center', va='center', color=col
-            )
+            )  # offset*np.sign(yC)
 
     # Axes and formatting: show only central lines, no box or titles, fixed limits
     for spine in ax.spines.values():
@@ -125,57 +136,59 @@ def plot_centroid_vectors(
     ax.set_xticks([])
     ax.set_yticks([])
 
-def _setup_figure(include_dim_plot: bool = False) -> Tuple[plt.Figure, GridSpec]:
-    """Set up the figure and grid layout.
-    
-    Args:
-        include_dim_plot: Whether to include a fourth column for dimension plots
-    """
-    plt.rc('xtick', labelsize=8)
-    plt.rc('ytick', labelsize=8)
-    
-    # More compact figure size
-    width = 16 if include_dim_plot else 14
-    fig = plt.figure(figsize=(width, 12))
-    
-    # Adjust grid spec with less space between columns
-    if include_dim_plot:
-        gs = GridSpec(3, 4, figure=fig, 
-                     left=0.08, right=0.98,  # Use more of the figure width
-                     bottom=0.15, top=0.92,  # Adjust vertical spacing
-                     wspace=0.15, hspace=0.25,  # Reduce space between subplots
-                     width_ratios=[1, 1, 1, 0.8])
-    else:
-        gs = GridSpec(3, 3, figure=fig,
-                     left=0.08, right=0.98,
-                     bottom=0.15, top=0.92,
-                     wspace=0.15, hspace=0.25)
-    
-    return fig, gs
 
-def _add_column_titles(fig: plt.Figure, include_dim_plot: bool = False) -> None:
-    """Add column titles to the figure.
+def _get_group_map(task: str, class_names: List[str]) -> Dict[str, List[int]]:
+    """Return the group mapping for the given task and class names."""
+    if task == 'MetabolicState_2':
+        # return {'Starved': [0], 'Fed': [1]}
+        return {
+            'S': [0], 
+            'F': [1]
+        }
     
-    Args:
-        fig: Figure to add titles to
-        include_dim_plot: Whether to include title for the dimension plot column
-    """
-    # Define column titles and their x-positions
-    titles = ['Control t-SNE', 'Best Run t-SNE', 'Centroids']
-    x_positions = [0.2, 0.5, 0.8]  # Normalized figure coordinates
+    if task == 'State_Modality_6':
+        # return {
+        #     'Starved': [0, 2, 4], 
+        #     'Fed': [1, 3, 5], 
+        #     'Odor': [0, 1], 
+        #     'Taste': [2, 3], 
+        #     'Odor+Taste': [4, 5]
+        # }
+        return {
+            'S': [0, 2, 4], 
+            'F': [1, 3, 5], 
+            'O': [0, 1], 
+            'T': [2, 3], 
+            'O/T': [4, 5]
+        }
     
-    if include_dim_plot:
-        titles.append('Accuracy')
-        x_positions = [0.15, 0.4, 0.65, 0.9]  # Adjusted for 4 columns
+    if task == 'State_Modality_Valence_16':
+        # Build Pos/Neg based on name matching
+        pos_inds = [i for i, n in enumerate(class_names) if '+' in n and '-' not in n]
+        neg_inds = [i for i, n in enumerate(class_names) if '-' in n and '+' not in n]
+        # return {
+        #     'Starved': [0, 1, 4, 5, 8, 9, 10, 11],
+        #     'Fed': [2, 3, 6, 7, 12, 13, 14, 15],
+        #     'Odor': [0, 1, 2, 3],
+        #     'Taste': [4, 5, 6, 7],
+        #     'Odor+Taste': [8, 9, 10, 11, 12, 13],
+        #     'Positive': pos_inds,
+        #     'Negative': neg_inds,
+        #     'Valence-Combi': [10, 11, 14, 15]
+        # }
+        return {
+            'S': [0, 1, 4, 5, 8, 9, 10, 11],
+            'F': [2, 3, 6, 7, 12, 13, 14, 15],
+            'O': [0, 1, 2, 3],
+            'T': [4, 5, 6, 7],
+            'O/T': [8, 9, 10, 11, 12, 13],
+            '+': pos_inds,
+            '-': neg_inds,
+            '+/-': [10, 11, 14, 15]
+        }
     
-    for x, title in zip(x_positions, titles):
-        fig.text(x, 0.95, title, 
-                ha='center', va='center', fontsize=12, weight='bold')
-    
-    # # Add x-axis label for the dimension plot
-    # if include_dim_plot:
-    #     fig.text(x_positions[-1], 0.05, 'Latent Dimension', 
-    #             ha='center', va='center', fontsize=10)
+    return {}
+
 
 def _plot_accuracy_vs_dimension(ax: plt.Axes, task_results: Dict, task_name: str, color: str, row: int = 0) -> None:
     """Plot accuracy vs. latent dimension as a bar plot.
@@ -239,28 +252,27 @@ def _plot_accuracy_vs_dimension(ax: plt.Axes, task_results: Dict, task_name: str
     # Add error bars
     ax.errorbar(x_pos, means, yerr=stds, fmt='none', ecolor='k', 
                capsize=5, capthick=1.5, elinewidth=1.5, alpha=0.7)
-    
-    # Add value labels next to points
-    for i, (mean, std, n) in enumerate(zip(means, stds, ns)):
-        ax.text(i, mean + 5, f'{mean:.1f}±{std:.1f}\nn={n}', 
-                ha='center', va='bottom', fontsize=8, color='k')
-    
+
     # Set chance levels based on task name
-    if 'MetabolicState_2' in task_name:
+    if task_name == 'State':
         chance_level = 50.0
-    elif 'State_Modality_6' in task_name:
+    elif task_name == 'State, Modality':
         chance_level = 100/6  # ~16.67%
-    elif 'State_Modality_Valence_16' in task_name:  # 16 class
+    elif task_name == 'State, Modality, Valence':  # 16 class
         chance_level = 100/16  # 6.25%
     else: 
         chance_level = 0  # 6.25%
     
+    # Add value labels next to points
+    for i, (mean, std, n) in enumerate(zip(means, stds, ns)):
+        ax.text(i, mean - std - 2, f'{mean:.1f}±{std:.1f}\nn={n}', 
+                ha='left', va='top', fontsize=7, color='k')
     # Calculate y-axis limits
-    y_min = min(min(means) - 5, chance_level)  # At least show chance level
-    y_max = min(max(means) + 10, 100)  # Cap at 100%
+    y_min = min(min(means) - 10, chance_level)  # At least show chance level
+    y_max = min(max(means) + max(stds), 100)  # Cap at 100%
+        
     
-    # Set axis limits
-    ax.set_ylim(max(0, y_min), y_max)
+
     
     # Customize the plot
     ax.set_xticks(x_pos)
@@ -273,6 +285,10 @@ def _plot_accuracy_vs_dimension(ax: plt.Axes, task_results: Dict, task_name: str
     ax.axhline(y=chance_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
     ax.text(0.02, chance_level + 1, f'Chance: {chance_level:.1f}%', 
             transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=8)
+
+    ax.set_ylim(y_min, y_max)
+    y_spine_min = np.floor((min(means) - 10)/10)*10
+    y_spine_max = np.ceil(y_max/10)*10
     
     # Adjust spines to only show between data ranges
     ax.spines['left'].set_bounds(y_min, y_max)
@@ -283,7 +299,11 @@ def _plot_accuracy_vs_dimension(ax: plt.Axes, task_results: Dict, task_name: str
     ax.spines['right'].set_visible(False)
     
     # Set y-ticks at every 10% starting from chance level
-    y_ticks = np.arange(np.ceil(chance_level/10)*10, min(101, np.ceil(y_max/10)*10 + 1), 10, dtype=int)
+    y_ticks = np.arange(np.ceil(chance_level/10)*10, min(101, np.floor(y_max/10)*10 + 1), 10, dtype=int)
+    # Set axis limits
+    
+    
+    
     ax.yaxis.set_ticks(y_ticks)
     
     # Set x-ticks at each dimension value
@@ -344,104 +364,87 @@ def _add_l_shaped_axis(ax: plt.Axes, axis_length: float = 20.0, show_labels: boo
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
 
-def _plot_control_tsne(fig: plt.Figure, gs: GridSpec, row: int, 
-                     run_dict: Dict, class_names: List[str], 
-                     colors: Dict, edges: Dict, shapes: Dict,
-                     use_l_axis: bool = False) -> plt.Axes:
-    """Plot the control t-SNE visualization.
+def _plot_tsne(
+    fig: plt.Figure,
+    gs: GridSpec,
+    row: int,
+    col: int,
+    run_dict: Dict,
+    class_names: List[str],
+    colors: Dict,
+    edges: Dict,
+    shapes: Dict,
+    styles: Dict = None,
+    use_l_axis: bool = False,
+    is_control: bool = False,
+    plot_centroids: bool = False,
+    task: str = None
+) -> None:
+    """Plot t-SNE visualization with optional centroids.
     
     Args:
-        use_l_axis: If True, use L-shaped corner axis instead of standard axes
+        fig: Figure to plot on
+        gs: GridSpec for layout
+        row: Grid row
+        col: Grid column
+        run_dict: Data for plotting
+        class_names: List of class names
+        colors: Color mapping
+        edges: Edge colors
+        shapes: Marker shapes
+        styles: Style dictionary for centroids
+        use_l_axis: Use L-shaped axis
+        is_control: If control plot
+        plot_centroids: Add centroid vectors
+        task: Task name for centroids
     """
-    # ctrl = 'ControlRun' if 'ControlRun' in run_dict else \
-    #        next(k for k in run_dict if k not in ('__class_names__', 'embed16_BestRun'))
-
-    ctrl = 'ControlRun'
+    # Get data
+    data_key = 'ControlRun' if is_control else \
+              next((k for k in ['embed16_BestRun', 'control'] if k in run_dict),
+                  next(k for k in run_dict if k != '__class_names__'))
+    data = run_dict[data_key]
     
-    ax = fig.add_subplot(gs[row, 0])
-    plot_tsne_latent(
-        latent_2d=run_dict[ctrl]['tsne_2d'], 
-        labels_np=run_dict[ctrl]['latent_labels'],
-        class_names=class_names, 
-        ax=ax,
-        colors=colors, 
-        shapes=shapes, 
-        edgecolors=edges,
-        legend=False, 
-        draw_axis=not use_l_axis,  # Don't draw axis if using L-shape
-        draw_title=False
-    )
+    # Create subplot
+    ax = fig.add_subplot(gs[row, col])
     
+    # Only plot t-SNE if not in centroids column (col != 2)
+    if not plot_centroids:
+        plot_tsne_latent(
+            latent_2d=data['tsne_2d'],
+            labels_np=data['latent_labels'],
+            class_names=class_names,
+            ax=ax,
+            xlim=[-115, 125] if not use_l_axis and not is_control else None,
+            ylim=[-115, 125] if not use_l_axis and not is_control else None,
+            colors=colors,
+            shapes=shapes,
+            edgecolors=edges,
+            legend=False,
+            draw_axis=not use_l_axis,
+            draw_title=False
+        )
+    
+    # Add centroids if requested
+    if plot_centroids and styles and task:
+        plot_centroid_vectors(
+            latent=data['tsne_2d'],
+            labels=data['latent_labels'],
+            class_names=class_names,
+            task=task,
+            ax=ax,
+            plot_labels=False,
+            styles=styles
+        )
+        ax.plot(0, 0, 'ko', markersize=3, zorder=10)
+        ax.set_xlim(-50, 67)
+        ax.set_ylim(-65, 65)
+    
+    # Style axes
     if use_l_axis:
-        # Only show labels for first row, first column
-        _add_l_shaped_axis(ax, show_labels=(row == 0))
-    
-    # No y-label for any row in the first column
-    ax.set_ylabel('')
-    return ax
+        _add_l_shaped_axis(ax, show_labels=(is_control and row == 0))
+    if is_control:
+        ax.set_ylabel('')
 
-def _plot_best_tsne(fig: plt.Figure, gs: GridSpec, row: int, 
-                  run_dict: Dict, class_names: List[str], 
-                  colors: Dict, edges: Dict, shapes: Dict,
-                  use_l_axis: bool = False) -> Tuple[np.ndarray, np.ndarray]:
-    """Plot the best run t-SNE visualization and return the data.
-    
-    Args:
-        use_l_axis: If True, use L-shaped corner axis instead of standard axes
-    """
-    best = 'embed16_BestRun' if 'embed16_BestRun' in run_dict else \
-           'control' if 'control' in run_dict else \
-           next(k for k in run_dict if k != '__class_names__')
-    
-    best_data = run_dict[best]
-    ax = fig.add_subplot(gs[row, 1])
-    plot_tsne_latent(
-        latent_2d=best_data['tsne_2d'], 
-        labels_np=best_data['latent_labels'],
-        class_names=class_names, 
-        ax=ax,
-        xlim=[-115, 125] if not use_l_axis else None, 
-        ylim=[-115, 125] if not use_l_axis else None,
-        colors=colors, 
-        shapes=shapes, 
-        edgecolors=edges,
-        legend=False, 
-        draw_axis=not use_l_axis,  # Don't draw axis if using L-shape
-        draw_title=False
-    )
-    
-    if use_l_axis:
-        _add_l_shaped_axis(ax, show_labels=False)
-    
-    return best_data['tsne_2d'], best_data['latent_labels']
-
-def _plot_centroids(fig: plt.Figure, gs: GridSpec, row: int, 
-                   best_tsne: np.ndarray, best_labels: np.ndarray, 
-                   class_names: List[str], task: str, styles: Dict) -> None:
-    """Plot the centroid vectors for the best run with L-shaped corner axis."""
-    ax = fig.add_subplot(gs[row, 2])
-    
-    # Plot centroid vectors
-    plot_centroid_vectors(
-        latent=best_tsne,
-        labels=best_labels,
-        class_names=class_names,
-        task=task,
-        ax=ax,
-        plot_labels=True,
-        styles=styles
-    )
-    
-    # Add a black dot at (0,0)
-    ax.plot(0, 0, 'ko', markersize=3, zorder=10)
-    
-    # Set axis limits (assuming -70 to 70 as in the original code)
-    ax.set_xlim(-65, 65)
-    ax.set_ylim(-65, 65)
-    
-    # Add L-shaped corner axis with labels only for the first row
-    _add_l_shaped_axis(ax, show_labels=False)
-    
 def plot_figure_latent(
     results_dict: Dict,
     styles: Dict,
@@ -449,172 +452,61 @@ def plot_figure_latent(
     edges: Dict,
     shapes: Dict,
     out_path: str = 'results/CombiPlots/fig_latent_styleD.png',
-    use_l_axis: bool = True,
-    include_dim_plot: bool = True) -> None:
-    """Generate a figure with t-SNE visualizations, centroid vectors, and accuracy vs dimension plots.
+    use_l_axis: bool = True
+) -> None:
+   
+    """Generate the complete figure with t-SNE plots and accuracy vs dimension."""
+    # Setup
+    fig, gs = _setup_figure()
     
-    Args:
-        results_dict: Dictionary containing all results data
-        styles: Dictionary of plot styles
-        colors: Dictionary of colors for each task
-        edges: Dictionary of edge colors for each task
-        shapes: Dictionary of marker shapes for each task
-        out_path: Output path for the figure
-        use_l_axis: If True, use L-shaped corner axis for all plots
-        include_dim_plot: If True, include accuracy vs dimension plot as a fourth column
-    """
-    # Set up figure with or without fourth column
-    fig, gs = _setup_figure(include_dim_plot=include_dim_plot)
-    
-    # Add column titles
-    _add_column_titles(fig, include_dim_plot=include_dim_plot)
-    
-    # Get tasks (first three tasks)
     tasks = list(results_dict.keys())[:3]
+    task_names = ['State', 'State, Modality', 'State, Modality, Valence']
+    task_y_pos = [0.8, 0.54, 0.26]
     
-    # Calculate row centers using relative positions within the figure
-    n_rows = 3
-    # Get the total height of all rows combined (sum of height ratios)
-    total_ratio = sum(gs.get_height_ratios())
-    # Calculate the relative position of each row's center
-    row_centers = []
-    current_pos = 0.0
-    
-    for i in range(n_rows):
-        # Calculate the center of this row (0-1 from bottom to top of figure)
-        row_center = 1.0 - (current_pos + (gs.get_height_ratios()[i] / (2 * total_ratio)))
-        row_centers.append(row_center)
-        current_pos += gs.get_height_ratios()[i] / total_ratio
-    
-    for row, task in enumerate(tasks):
-        if row == 0:
-            taskName = 'State [2 Cls]'
-        elif row == 1:
-            taskName = 'State, Modality [6 Cls]'
-        elif row == 2:
-            taskName = 'State, Modality, Valence [16 Cls]'
+    column_titles = ['Control t-SNE', 'Model t-SNE', 'Centroids', 'Accuracy']
+    column_positions = [0.2, 0.44, 0.66, 0.9] 
 
+    for x, title in zip(column_positions, column_titles):
+        fig.text(x, 0.95, title, ha='center', va='center', fontsize=12, weight='bold')
+    
+    # Plot each task
+    for row, (task, task_name) in enumerate(zip(tasks, task_names)):
         run_dict = results_dict[task]
         class_names = run_dict.get('__class_names__', [f'Class {i}' for i in range(6)])
         
-        # Add row label (task name) at the calculated position
-        # Position text at 5% from the left edge, centered vertically in the row
-        fig.text(0.05, row_centers[row], taskName, 
-                ha='left', va='center', fontsize=10, rotation=90,
-                transform=fig.transFigure)
+        # Add row label
+        fig.text(0.05, task_y_pos[row], task_name, ha='left', va='center', fontsize=12, rotation=90, weight='bold', transform=fig.transFigure)
         
-        # Plot control t-SNE with L-shaped axis if enabled
-        _plot_control_tsne(fig, gs, row, run_dict, class_names, 
-                          colors[task], edges[task], shapes[task],
-                          use_l_axis=use_l_axis)
+        # Plot control t-SNE (first column)
+        _plot_tsne(fig, gs, row, 0, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis, is_control=True)
         
-        # Plot best t-SNE with L-shaped axis if enabled
-        best_tsne, best_labels = _plot_best_tsne(
-            fig, gs, row, run_dict, class_names, 
-            colors[task], edges[task], shapes[task],
-            use_l_axis=use_l_axis)
+        # Plot best t-SNE (second column)
+        _plot_tsne(fig, gs, row, 1, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis)
         
-        # Plot centroids (always uses L-shaped axis)
-        _plot_centroids(fig, gs, row, best_tsne, best_labels, 
-                       class_names, task, styles)
+        # Plot centroids (third column)
+        _plot_tsne(fig, gs, row, 2, run_dict, class_names, colors[task], edges[task], shapes[task], styles=styles, use_l_axis=use_l_axis, plot_centroids=True, task=task)
         
-        # Add accuracy vs dimension plot in fourth column if enabled
-        if include_dim_plot:
-            ax = fig.add_subplot(gs[row, 3])
-            _plot_accuracy_vs_dimension(ax, run_dict, task, colors[task], row=row)
+        # Plot accuracy vs dimension for each task
+        ax = fig.add_subplot(gs[row, 3])
+        _plot_accuracy_vs_dimension(ax, run_dict, task_name, list(colors.values())[row], row=row)
     
-    # Save the figure
+    # Save figure
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    fig.savefig(out_path, dpi=300, bbox_inches='tight')
-    plt.close(fig)
+    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.close()
     print(f"Figure saved to {out_path}")
 
-def get_style(style = "stylesD"):
-    
-    with open(f'src/visualization/{style}.yaml', "r") as f:
-        styles = yaml.safe_load(f)["styles"]
-
-    # Task-specific class names
-    TASK_CLASS_NAMES = {
-        'MetabolicState_2': ["Starved", "Fed"],
-        'State_Modality_6': [ "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)", "Odor + Taste (S)", "Odor + Taste (F)"],
-        'State_Modality_Valence_16': [
-            "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)", 
-            "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)", 
-            "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)", 
-            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
-    }
-    TASK_COLORS = {
-        'MetabolicState_2': [styles['starved']['color'], styles['fed']['color']],
-        'State_Modality_6': [
-            styles['starved_odor']['color'], styles['fed_odor']['color'],
-            styles['starved_taste']['color'], styles['fed_taste']['color'],
-            styles['starved_odor_taste']['color'], styles['fed_odor_taste']['color']],
-
-        'State_Modality_Valence_16': [
-            styles['starved_odor_positive']['color'], styles['starved_odor_negative']['color'],
-            styles['starved_taste_positive']['color'], styles['starved_taste_negative']['color'],
-            styles['starved_odor_pos_taste_pos']['color'], styles['starved_odor_neg_taste_neg']['color'],
-            styles['starved_odor_neg_taste_pos']['color'], styles['starved_odor_pos_taste_neg']['color'],
-            styles['fed_odor_positive']['color'], styles['fed_odor_negative']['color'],
-            styles['fed_taste_positive']['color'], styles['fed_taste_negative']['color'],
-            styles['fed_odor_pos_taste_pos']['color'], styles['fed_odor_neg_taste_neg']['color'],
-            styles['fed_odor_neg_taste_pos']['color'], styles['fed_odor_pos_taste_neg']['color']]
-    }
-
-    TASK_EDGECOLORS = {
-        'MetabolicState_2': [styles['starved']['edgecolor'], styles['fed']['edgecolor']],
-        'State_Modality_6': [
-            styles['starved_odor']['edgecolor'], styles['fed_odor']['edgecolor'],
-            styles['starved_taste']['edgecolor'], styles['fed_taste']['edgecolor'],
-            styles['starved_odor_taste']['edgecolor'], styles['fed_odor_taste']['edgecolor']],
-
-        'State_Modality_Valence_16': [
-            styles['starved_odor_positive']['edgecolor'], styles['starved_odor_negative']['edgecolor'],
-            styles['starved_taste_positive']['edgecolor'], styles['starved_taste_negative']['edgecolor'],
-            styles['starved_odor_pos_taste_pos']['edgecolor'], styles['starved_odor_neg_taste_neg']['edgecolor'],
-            styles['starved_odor_neg_taste_pos']['edgecolor'], styles['starved_odor_pos_taste_neg']['edgecolor'],
-            styles['fed_odor_positive']['edgecolor'], styles['fed_odor_negative']['edgecolor'],
-            styles['fed_taste_positive']['edgecolor'], styles['fed_taste_negative']['edgecolor'],
-            styles['fed_odor_pos_taste_pos']['edgecolor'], styles['fed_odor_neg_taste_neg']['edgecolor'],
-            styles['fed_odor_neg_taste_pos']['edgecolor'], styles['fed_odor_pos_taste_neg']['edgecolor']
-        ]
-    }
-
-    TASK_SHAPES = {
-        'MetabolicState_2': [styles['starved']['shape'], styles['fed']['shape']],
-        'State_Modality_6': [
-            styles['starved_odor']['shape'], styles['starved_taste']['shape'],
-            styles['starved_odor_taste']['shape'], styles['fed_odor']['shape'],
-            styles['fed_taste']['shape'], styles['fed_odor_taste']['shape']
-        ],
-        'State_Modality_Valence_16': [
-            styles['starved_odor_positive']['shape'], styles['starved_odor_negative']['shape'],
-            styles['starved_taste_positive']['shape'], styles['starved_taste_negative']['shape'],
-            styles['starved_odor_pos_taste_pos']['shape'], styles['starved_odor_neg_taste_neg']['shape'],
-            styles['starved_odor_neg_taste_pos']['shape'], styles['starved_odor_pos_taste_neg']['shape'],
-            styles['fed_odor_positive']['shape'], styles['fed_odor_negative']['shape'],
-            styles['fed_taste_positive']['shape'], styles['fed_taste_negative']['shape'],
-            styles['fed_odor_pos_taste_pos']['shape'], styles['fed_odor_neg_taste_neg']['shape'],
-            styles['fed_odor_neg_taste_pos']['shape'], styles['fed_odor_pos_taste_neg']['shape']
-        ]
-    }
-
-    return styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES
 
 
 def main():
 
-    # Base results directory
     BASE_RESULTS_DIR = os.path.join('results', '_SeedFinals')
-    # Columns to plot
-    ROWS = ['tsne_ctrl', 'tsne_best', 'embedding_vectors', 'embedding_dimension']
-    
-    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES = get_style()
+       
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES = get_style(style = "stylesE")
 
     results_dict = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES)
 
-    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES,out_path='results/CombiPlots/fig_hLatent_styleD_v3.png')
+    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, out_path='results/CombiPlots/fig_hLatent_styleE_v4.png')
 
 if __name__ == '__main__':
     main()

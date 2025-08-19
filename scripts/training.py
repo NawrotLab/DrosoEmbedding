@@ -124,7 +124,7 @@ def main(config, logger):
                                     shuffle=False, num_workers=training_params['num_workers'], pin_memory=True, persistent_workers=True)
 
             # Load or initialize model
-            Classifier, start_epoch, prev_train_loss, prev_val_loss = load_model(CNN_Transformer,
+            Classifier, start_epoch, prev_train_loss, prev_val_loss, prev_train_acc, prev_val_acc = load_model(CNN_Transformer,
                                                                                   model_params,
                                                                                   outPath_model,
                                                                                   config["device"])
@@ -150,6 +150,8 @@ def main(config, logger):
                 start_epoch = 0
                 training_loss = []
                 validation_loss = []
+                train_acc = []
+                val_acc = []
             else:
                 # Continue training existing model
                 logger.info(f"Continuing training from epoch {start_epoch}...")
@@ -160,9 +162,10 @@ def main(config, logger):
                 logger.info(f"Will continue training until epoch: {num_epochs} ")
                 training_loss = prev_train_loss
                 validation_loss = prev_val_loss
-
+                train_acc = prev_train_acc
+                val_acc = prev_val_acc
             # Train model
-            Classifier, new_training_loss, new_validation_loss = train_seq_seq_Classifier(
+            Classifier, new_training_loss, new_validation_loss, new_train_acc, new_val_acc = train_seq_seq_Classifier(
                 model=Classifier,
                 device=config["device"],
                 train_loader=train_loader,
@@ -177,6 +180,8 @@ def main(config, logger):
             # Combine previous and new losses
             training_loss.extend(new_training_loss)
             validation_loss.extend(new_validation_loss)
+            train_acc.extend(new_train_acc)
+            val_acc.extend(new_val_acc)
 
             # Save model
             final_epoch = start_epoch + num_epochs
@@ -186,7 +191,9 @@ def main(config, logger):
                        params=model_params,
                        output_path=outPath_model,
                        train_loss=training_loss,
-                       val_loss=validation_loss)
+                       val_loss=validation_loss, 
+                       train_acc=train_acc,
+                       val_acc=val_acc)
 
             # Timing and logging
             time_end = time.time() - time_start

@@ -14,6 +14,8 @@ def save_model(
         output_path: str = '',
         train_loss: Optional[List[float]] = None,
         val_loss: Optional[List[float]] = None,
+        train_acc: Optional[List[float]] = None,
+        val_acc: Optional[List[float]] = None,
 ) -> None:
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -30,6 +32,8 @@ def save_model(
         'params': params,  # Model parameters for reconstruction
         'train_loss': [] if train_loss is None else list(train_loss),  # Ensure we always save a list
         'val_loss': [] if val_loss is None else list(val_loss),  # Ensure we always save a list
+        'train_acc': [] if train_acc is None else list(train_acc),  # Ensure we always save a list
+        'val_acc': [] if val_acc is None else list(val_acc),  # Ensure we always save a list
     }
 
     try:
@@ -71,12 +75,14 @@ def load_model(
             # Extract other metadata
             train_loss = checkpoint.get('train_loss', [])
             val_loss = checkpoint.get('val_loss', [])
+            train_acc = checkpoint.get('train_acc', [])
+            val_acc = checkpoint.get('val_acc', [])
             start_epoch = len(train_loss)
             logging.info(f"Model loaded from {model_save_path}, starting from epoch {start_epoch}")
-            return model, start_epoch, train_loss, val_loss
+            return model, start_epoch, train_loss, val_loss, train_acc, val_acc
         except Exception as e:
             logging.error(f"Failed to load model: {e}")
-            return None, 0, [], []
+            return None, 0, [], [], [], []
     else:
         logging.info(f"Model file not found at {model_save_path}")
-        return None, 0, [], []
+        return None, 0, [], [], [], []

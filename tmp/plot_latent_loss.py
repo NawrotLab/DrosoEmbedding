@@ -18,7 +18,7 @@ dir_latent_pickles = '/rhomes/aabdel/DrosoEmbedding/results/_SeedFinals'
 save_path = '/rhomes/aabdel/DrosoEmbedding/results/CombiPlots'
 
 # FILENAME_RE = re.compile(r'^(?P<task>[^_]+)_cnn(?P<cnn>\d+)_trf(?P<trf>\d+)_\d+\.pkl$')
-FILENAME_RE = re.compile(r'^SpeedSeed(?P<task>\d+)_trf(?P<trf>\d+)_(?P<runNr>\d+)_evalResults\.pkl$')
+FILENAME_RE = re.compile(r'^(?P<task>.+?)_trf(?P<trf>\d+)_(?P<runNr>\d+)_evalResults\.pkl$')
 
 # Collect results in a nested dict: {task: {cnn_dim: {trf_dim: [dicts]}}}
 results = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
@@ -94,7 +94,7 @@ for task in results:
     
     # Save the plot
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, f'{task}_SeedFinals_latentLoss.png'))
+    plt.savefig(os.path.join(save_path, f'{task}_SeedFinals_latentLoss_v2.png'))
     plt.close(fig)
-    print(f"Saved plot for {task}_SeedFinals_latentLoss")
+    print(f"Saved plot for {task}_SeedFinals_latentLoss_v2")
 print("Done")

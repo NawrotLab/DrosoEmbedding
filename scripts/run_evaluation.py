@@ -54,7 +54,7 @@ def evaluate_model(run_id, config_path, logger) -> dict:
     logger.info(f"Locating Model at {paths['models']}")
     logger.info(f"Loading Model with parameters: {model_params} in {config['device']}.")
     # Load model
-    classifier, _, train_loss, val_loss = load_model(
+    classifier, _, train_loss, val_loss, train_acc, val_acc = load_model(
         CNN_Transformer, model_params, paths['models'], config['device']
     )
     if classifier is None:
@@ -92,6 +92,8 @@ def evaluate_model(run_id, config_path, logger) -> dict:
     results = {
         'train_loss': train_loss,
         'val_loss': val_loss,
+        'train_acc': train_acc,
+        'val_acc': val_acc,
         
         'y_pred': y_pred, 
         'y_true': y_true,

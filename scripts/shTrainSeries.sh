@@ -15,23 +15,53 @@ mkdir -p "$BATCH_DIR"
 Define your experiment configurations
 Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS TRF_DIM
 CONFIGURATIONS=(
-    "Seed2lr0001_trf4 MetabolicState_2 256 0.0001 1000 4"
-    "Seed2lr0001_trf8 MetabolicState_2 256 0.0001 1000 8"
-    "Seed2lr0001_trf16 MetabolicState_2 256 0.0001 1000 16"
-    "Seed2lr0001_trf32 MetabolicState_2 256 0.0001 1000 32"
-    "Seed2lr0001_trf64 MetabolicState_2 256 0.0001 1000 64"
+    # "SeedMetab2_trf4 MetabolicState_2 256 0.0005 1000 4"
+    # "SpeedSeed2_trf8 MetabolicState_2 256 0.0005 1000 8"
+    # "SpeedSeed2_trf16 MetabolicState_2 256 0.0005 1000 16"
+    # "SpeedSeed2_trf32 MetabolicState_2 256 0.0005 1000 32"
+    # "SpeedSeed2_trf64 MetabolicState_2 256 0.0005 1000 64"
 
-    "SpeedSeed6_trf4 State_Modality_6 256 0.001 2000 4"
-    "SpeedSeed6_trf8 State_Modality_6 256 0.001 2000 8"
-    "SpeedSeed6_trf16 State_Modality_6 256 0.001 2000 16"
-    "SpeedSeed6_trf32 State_Modality_6 256 0.001 2000 32"
-    "SpeedSeed6_trf64 State_Modality_6 256 0.001 2000 64"
+    # "SpeedSeed6_trf4 State_Modality_6 256 0.001 2000 4"
+    # "SpeedSeed6_trf8 State_Modality_6 256 0.001 2000 8"
+    # "SpeedSeed6_trf16 State_Modality_6 256 0.001 2000 16"
+    # "SpeedSeed6_trf32 State_Modality_6 256 0.001 2000 32"
+    # "SpeedSeed6_trf64 State_Modality_6 256 0.001 2000 64"
 
-    "SpeedSeed16_trf4 State_Modality_Valence_16 256 0.001 3000 4"
-    "SpeedSeed16_trf8 State_Modality_Valence_16 256 0.001 3000 8"
-    "SpeedSeed16_trf16 State_Modality_Valence_16 256 0.001 3000 16"
-    "SpeedSeed16_trf32 State_Modality_Valence_16 256 0.001 3000 32"
-    "SpeedSeed16_trf64 State_Modality_Valence_16 256 0.001 3000 64"
+    # "SpeedSeed16_trf4 State_Modality_Valence_16 256 0.001 3000 4"
+    # "SpeedSeed16_trf8 State_Modality_Valence_16 256 0.001 3000 8"
+    # "SpeedSeed16_trf16 State_Modality_Valence_16 256 0.001 3000 16"
+    # "SpeedSeed16_trf32 State_Modality_Valence_16 256 0.001 3000 32"
+    # "SpeedSeed16_trf64 State_Modality_Valence_16 256 0.001 3000 64"
+
+    #----------------------------------------------------------------
+
+    # "R2Seed_trf4 MetabolicState_2 256 0.0005 1000 4"
+    # "R2Seed_trf8 MetabolicState_2 256 0.0005 1000 8"
+    # "R2Seed_trf16 MetabolicState_2 256 0.0005 1000 16"
+    # "R2Seed_trf32 MetabolicState_2 256 0.0005 1000 32"
+    # "R2Seed_trf64 MetabolicState_2 256 0.0005 1000 64"
+
+    "R6Seed_trf4 State_Modality_6 256 0.001 2000 4"
+    "R6Seed_trf8 State_Modality_6 256 0.001 2000 8"
+    "R6Seed_trf16 State_Modality_6 256 0.001 2000 16"
+    "R6Seed_trf32 State_Modality_6 256 0.001 2000 32"
+    "R6Seed_trf64 State_Modality_6 256 0.001 2000 64"
+
+    "R16Seed_trf4 State_Modality_Valence_16 256 0.001 3000 4"
+    "R16Seed_trf8 State_Modality_Valence_16 256 0.001 3000 8"
+    "R16Seed_trf16 State_Modality_Valence_16 256 0.001 3000 16"
+    "R16Seed_trf32 State_Modality_Valence_16 256 0.001 3000 32"
+    "R16Seed_trf64 State_Modality_Valence_16 256 0.001 3000 64"
+
+    # "R2Try_trf16_lr0005_bs256 MetabolicState_2 256 0.0005 20 16"
+
+
+    # "R16Seed_trf16_lr001_bs256 State_Modality_Valence_16 256 0.001 3000 16"
+    # "R6Seed_trf16_lr001_bs256 State_Modality_6 256 0.001 2000 16"
+    # "R2Seed_trf16_lr0005_bs256 MetabolicState_2 256 0.0005 1000 16"
+    # "R2Seed_trf16_lr001_bs256 MetabolicState_2 256 0.001 1000 16"
+    # "R2Seed_trf16_lr0005_bs128 MetabolicState_2 128 0.0005 1000 16"
+
 )
 
 
@@ -52,10 +82,10 @@ for config in "${CONFIGURATIONS[@]}"; do
 #SBATCH --output=${BATCH_DIR}/${JOB_NAME}_%j.out
 #SBATCH --error=${BATCH_DIR}/${JOB_NAME}_%j.err
 #SBATCH --time=3-00:00:00
-#SBATCH --mem=16G
-#SBATCH --cpus-per-task=12
+#SBATCH --mem=20G
+#SBATCH --cpus-per-task=16
 #SBATCH --gres=shard:10
-#SBATCH --array=1-2
+#SBATCH --array=11-20
 #SBATCH --partition=all
 
 # Environment variables

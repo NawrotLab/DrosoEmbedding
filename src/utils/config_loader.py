@@ -115,7 +115,7 @@ def setup_derived_parameters(config):
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"
 
     rng = np.random.default_rng(777)
-    seeds = rng.integers(0, 2**32, size=10)
+    seeds = rng.integers(0, 2**32, size=100)
     config["seeds"] = seeds
 
 # For backward compatibility

@@ -4,6 +4,7 @@ import torch
 import os
 import pickle
 from sklearn.manifold import TSNE
+import yaml
 # import umap
 
 def log_params_recursive(d):
@@ -129,3 +130,84 @@ def load_all_results(base_dir, TASK_CLASS_NAMES):
             results[task]['__class_names__'] = TASK_CLASS_NAMES[task]
             
     return results
+
+def get_style(style = "stylesD"):
+    
+    with open(f'src/visualization/{style}.yaml', "r") as f:
+        styles = yaml.safe_load(f)["styles"]
+
+    # Task-specific class names
+    TASK_CLASS_NAMES = {
+        'MetabolicState_2': ["Starved", "Fed"],
+        'State_Modality_6': [ "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)", "Odor + Taste (S)", "Odor + Taste (F)"],
+        'State_Modality_Valence_16': [
+            "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)", 
+            "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)", 
+            "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)", 
+            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
+    }
+    TASK_COLORS = {
+        'MetabolicState_2': [styles['starved']['color'], styles['fed']['color']],
+        'State_Modality_6': [
+            styles['starved_odor']['color'], styles['fed_odor']['color'],
+            styles['starved_taste']['color'], styles['fed_taste']['color'],
+            styles['starved_odor_taste']['color'], styles['fed_odor_taste']['color']],
+
+        'State_Modality_Valence_16': [
+            styles['starved_odor_positive']['color'], styles['starved_odor_negative']['color'],
+            styles['fed_odor_positive']['color'], styles['fed_odor_negative']['color'],
+
+            styles['starved_taste_positive']['color'], styles['starved_taste_negative']['color'],
+            styles['fed_taste_positive']['color'], styles['fed_taste_negative']['color'],
+
+            styles['starved_odor_pos_taste_pos']['color'], styles['starved_odor_neg_taste_neg']['color'],
+            styles['starved_odor_neg_taste_pos']['color'], styles['starved_odor_pos_taste_neg']['color'],
+
+            styles['fed_odor_pos_taste_pos']['color'], styles['fed_odor_neg_taste_neg']['color'],
+            styles['fed_odor_neg_taste_pos']['color'], styles['fed_odor_pos_taste_neg']['color']]
+    }
+
+    TASK_EDGECOLORS = {
+        'MetabolicState_2': [styles['starved']['edgecolor'], styles['fed']['edgecolor']],
+        'State_Modality_6': [
+            styles['starved_odor']['edgecolor'], styles['fed_odor']['edgecolor'],
+            styles['starved_taste']['edgecolor'], styles['fed_taste']['edgecolor'],
+            styles['starved_odor_taste']['edgecolor'], styles['fed_odor_taste']['edgecolor']],
+
+        'State_Modality_Valence_16': [
+            styles['starved_odor_positive']['edgecolor'], styles['starved_odor_negative']['edgecolor'],
+            styles['fed_odor_positive']['edgecolor'], styles['fed_odor_negative']['edgecolor'],
+
+            styles['starved_taste_positive']['edgecolor'], styles['starved_taste_negative']['edgecolor'],
+            styles['fed_taste_positive']['edgecolor'], styles['fed_taste_negative']['edgecolor'],
+
+            styles['starved_odor_pos_taste_pos']['edgecolor'], styles['starved_odor_neg_taste_neg']['edgecolor'],
+            styles['starved_odor_neg_taste_pos']['edgecolor'], styles['starved_odor_pos_taste_neg']['edgecolor'],
+
+            styles['fed_odor_pos_taste_pos']['edgecolor'], styles['fed_odor_neg_taste_neg']['edgecolor'],
+            styles['fed_odor_neg_taste_pos']['edgecolor'], styles['fed_odor_pos_taste_neg']['edgecolor']
+        ]
+    }
+
+    TASK_SHAPES = {
+        'MetabolicState_2': [styles['starved']['shape'], styles['fed']['shape']],
+        'State_Modality_6': [
+            styles['starved_odor']['shape'], styles['starved_taste']['shape'],
+            styles['starved_odor_taste']['shape'], styles['fed_odor']['shape'],
+            styles['fed_taste']['shape'], styles['fed_odor_taste']['shape']
+        ],
+        'State_Modality_Valence_16': [
+            styles['starved_odor_positive']['shape'], styles['starved_odor_negative']['shape'],
+            styles['fed_odor_positive']['shape'], styles['fed_odor_negative']['shape'],
+
+            styles['starved_taste_positive']['shape'], styles['starved_taste_negative']['shape'],
+            styles['fed_taste_positive']['shape'], styles['fed_taste_negative']['shape'],
+
+            styles['starved_odor_pos_taste_pos']['shape'], styles['starved_odor_neg_taste_neg']['shape'],
+            styles['starved_odor_neg_taste_pos']['shape'], styles['starved_odor_pos_taste_neg']['shape'],
+            styles['fed_odor_pos_taste_pos']['shape'], styles['fed_odor_neg_taste_neg']['shape'],
+            styles['fed_odor_neg_taste_pos']['shape'], styles['fed_odor_pos_taste_neg']['shape']
+        ]
+    }
+
+    return styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES

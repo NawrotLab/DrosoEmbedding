@@ -38,16 +38,34 @@ def plot_all(results: dict, config: dict, logger) -> None:
     ss            = results['silhouette_score']
     class_names   = config['data']['classes']
 
-    # 1. Training/validation loss
+    # 1. Training/validation loss (loss only)
     plot_train_val_loss(
-        ts, vs,
+        training_loss=ts,
+        validation_loss=vs,
         dataID='',
         model_name=config['model']['architecture'],
         batch_size=config['training']['batch_size'],
         learning_rate=config['training']['learning_rate'],
         output_path=viz_dir,
-        ylim=None
+        ylim=None,
+        training_acc=None,  # This will create loss-only plot
+        validation_acc=None
     )
+    
+    # 2. Training/validation loss with accuracy (dual y-axis)
+    if 'train_acc' in results and 'val_acc' in results:
+        plot_train_val_loss(
+            training_loss=ts,
+            validation_loss=vs,
+            dataID='',
+            model_name=config['model']['architecture'],
+            batch_size=config['training']['batch_size'],
+            learning_rate=config['training']['learning_rate'],
+            output_path=viz_dir,
+            ylim=None,
+            training_acc=results['train_acc'],
+            validation_acc=results['val_acc']
+        )
 
     # 2. Classification summary
     plot_weighted_avg(rd, viz_dir)
