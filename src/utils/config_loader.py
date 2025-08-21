@@ -67,6 +67,7 @@ def setup_derived_parameters(config):
     if task_name == 'MetabolicState_2':
         config['data']['pickle_id'] = 'S_F'
         config['data']['classes'] = ["Starved", "Fed"]
+        config['training']['label_smoothing'] = 0.05
     elif task_name == 'State_Modality_6':
         config['data']['pickle_id'] = 'SO_FO_ST_FT_SM_FM'
         config['data']['classes'] = [
@@ -74,6 +75,7 @@ def setup_derived_parameters(config):
             "Taste (S)", "Taste (F)", 
             "Odor + Taste (S)", "Odor + Taste (F)"
         ]
+        config['training']['label_smoothing'] = 0.1
     elif task_name == 'State_Modality_Valence_16':
         config['data']['pickle_id'] = 'SOP_SON_FOP_FON_STP_STN_FTP_FTN_SMMP_SMMN_SMCP_SMCN_FMMP_FMMN_FMCP_FMCN'
         config['data']['classes'] = [
@@ -86,7 +88,7 @@ def setup_derived_parameters(config):
             # 12 - 15
             "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"
         ]
-    
+        config['training']['label_smoothing'] = 0.1
     # Set up neuropil-specific parameters
     neuropil = config["data"]["preprocessing"]["neuropil"]
     if neuropil == "WT":

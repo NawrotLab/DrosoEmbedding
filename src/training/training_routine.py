@@ -31,8 +31,8 @@ def train_seq_seq_Classifier(model: torch.nn.Module,
         logger.setLevel(logging.INFO)
 
     model.to(device)
-    torch.compile(model) # VR: torch compile is supposed to speed up the training
-    optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    torch.compile(model) 
+    optimizer = optim.AdamW(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     train_loss = []
     val_loss = []

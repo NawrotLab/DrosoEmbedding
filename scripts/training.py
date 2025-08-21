@@ -129,6 +129,7 @@ def main(config, logger):
                                                                                   outPath_model,
                                                                                   config["device"])
             criterion_name = config["training"]["criterion"]
+            label_smoothing = config["training"]["label_smoothing"]
             criterion_cls = getattr(nn, criterion_name)
 
             if Classifier is None:
@@ -164,7 +165,14 @@ def main(config, logger):
                 validation_loss = prev_val_loss
                 train_acc = prev_train_acc
                 val_acc = prev_val_acc
-            # Train model
+
+
+            LossClass = getattr(nn, criterion_name)
+            if criterion_name == "CrossEntropyLoss" and float(label_smoothing) > 0.0:
+                criterion = LossClass(label_smoothing=float(label_smoothing))
+            else:
+                criterion = LossClass()
+
             Classifier, new_training_loss, new_validation_loss, new_train_acc, new_val_acc = train_seq_seq_Classifier(
                 model=Classifier,
                 device=config["device"],
@@ -174,7 +182,7 @@ def main(config, logger):
                 lr=training_params['learning_rate'],
                 weight_decay=training_params['weight_decay'],
                 start_epoch=start_epoch,
-                criterion=criterion_cls(),
+                criterion=criterion,
                 logger=logger  
             )
             # Combine previous and new losses
@@ -201,6 +209,9 @@ def main(config, logger):
 
             mlflow.log_metric("final_train_loss", training_loss[-1])
             mlflow.log_metric("final_val_loss", validation_loss[-1])
+            mlflow.log_metric("final_train_acc", train_acc[-1])
+            mlflow.log_metric("final_val_acc", val_acc[-1])
+            
             mlflow.log_metric("training_time_sec", time_end)
 
             final_model_path = os.path.join(outPath_model, "final_model.pt")
