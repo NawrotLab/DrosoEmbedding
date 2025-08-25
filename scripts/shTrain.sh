@@ -7,9 +7,9 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=32GB
 #SBATCH --gres=shard:8
-#SBATCH --array=1
-#SBATCH --output=/dev/null
-#SBATCH --error=/dev/null
+#SBATCH --array=1-2
+#SBATCH --output=logs/training/%j-%x.out
+#SBATCH --error=logs/training/%j-%x.err
 
 
 source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate

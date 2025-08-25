@@ -203,7 +203,7 @@ c16_variants = {
 
 def plot_task_row(ax, variants: dict, title: str,
                   xlim=(1, 200), loss_ylim=None, acc_ylim=None,
-                  acc_window=20):
+                  acc_window=20, plot_Train = True):
     """Plot one row: train vs val for loss (left) and accuracy (right)."""
     ax_r = ax.twinx()
     for prefix, color in variants.items():
@@ -211,29 +211,24 @@ def plot_task_row(ax, variants: dict, title: str,
         for run in runs:
             epochs = range(1, len(run["train_loss"]) + 1)
 
-            # Train loss (dark color, solid)
-            ax.plot(epochs,
-                    moving_average(run["train_loss"]),
-                    "-", color=color, alpha=0.5, linewidth=2,
-                    label=f"{prefix} train loss")
-
             # Val loss (light color, solid)
-            ax.plot(epochs,
-                    moving_average(run["val_loss"]),
-                    "-", color=color, alpha=1, linewidth=2,
-                    label=f"{prefix} val loss")
-
-            # Train acc (dark color, dashed)
-            ax_r.plot(epochs,
-                      moving_average(run["train_acc"], acc_window),
-                      "--", color=color, alpha=0.5, linewidth=2,
-                      label=f"{prefix} train acc")
+            ax.plot(epochs, moving_average(run["val_loss"]), "-", color=color, alpha=1, linewidth=2, label=f"{prefix} val loss")
 
             # Val acc (light color, dashed)
-            ax_r.plot(epochs,
-                      moving_average(run["val_acc"], acc_window),
-                      "--", color=color, alpha=1, linewidth=2,
-                      label=f"{prefix} val acc")
+            ax_r.plot(epochs, moving_average(run["val_acc"], acc_window), "--", color=color, alpha=1, linewidth=2, label=f"{prefix} val acc")
+
+            if plot_Train:
+                # Train loss (dark color, solid)
+                ax.plot(epochs,
+                        moving_average(run["train_loss"]),
+                        "-", color=color, alpha=0.5, linewidth=2,
+                        label=f"{prefix} train loss")
+
+                # Train acc (dark color, dashed)
+                ax_r.plot(epochs,
+                        moving_average(run["train_acc"], acc_window),
+                        "--", color=color, alpha=0.5, linewidth=2,
+                        label=f"{prefix} train acc")
 
     ax.set_xlim(*xlim)
     if loss_ylim: ax.set_ylim(*loss_ylim)
@@ -292,4 +287,136 @@ fig3.legend(handles, [h.get_label() for h in handles],
 plt.subplots_adjust(bottom=0.2)
 
 plt.savefig("results/CombiPlots/variants_dropout.png", dpi=400, bbox_inches="tight")
+print("Saved C2/C6/C16 variants vs dropout figure..")
+
+
+
+# Build figure 4 (3 rows, 1 col)
+c2_variants = {
+    "C2_1K_AdamW0001_SL_do3": "blue",
+    "C2_lrScheduler_EarlyStopping": "orange",
+}
+c6_variants = {
+    "C6_1K_AdamW0001_SL_do3": "blue",
+    "C6_lrScheduler_EarlyStopping": "orange",
+}
+c16_variants = {
+    "C16_1K_AdamW0001_SL_do3": "blue",
+    "C16_lrScheduler_EarlyStopping": "orange",
+}
+
+
+fig4, (ax_c2, ax_c6, ax_c16) = plt.subplots(nrows=3, ncols=1, figsize=(12, 10), constrained_layout=True)
+
+# Per-row plotting (adjust y-lims to your scales; comment/remove if you prefer autoscale)
+plot_task_row(ax_c2, c2_variants, "C2",
+              xlim=(1, 1000),
+              loss_ylim=(0.1, 1),   # your earlier note for C2-ish scale
+              acc_ylim=(70, 102))          # set e.g. (0.85, 0.94) if your acc is 0–1; or (85,94) if in %
+plot_task_row(ax_c6, c6_variants, "C6",
+              xlim=(1, 1000),
+              loss_ylim=(0.3, 1.6),
+              acc_ylim=(70, 102))
+plot_task_row(ax_c16, c16_variants, "C16",
+              xlim=(1, 1000),
+              loss_ylim=(0.4, 3.0),
+              acc_ylim=(20, 102))
+
+# One shared legend (use C2 keys for short labels)
+# handles = [plt.Line2D([], [], color=col, lw=2) for col in c2_variants.values()]
+# labels  = [k.replace("C2_", "") for k in c2_variants.keys()]
+# fig3.legend(handles, labels, loc="lower center", ncol=2, frameon=False, bbox_to_anchor=(0.5, -0.03))
+
+# Create custom legend entries
+handles = []
+
+# For each variant color
+for prefix, color in c2_variants.items():
+    # Train loss (dark solid)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.9,
+                                 label=f"{prefix.replace('C2_', '')} train loss"))
+    # Val loss (light solid)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.5,
+                                 label=f"{prefix.replace('C2_', '')} val loss"))
+    # Train acc (dark dashed)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.9,
+                                 label=f"{prefix.replace('C2_', '')} train acc"))
+    # Val acc (light dashed)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.5,
+                                 label=f"{prefix.replace('C2_', '')} val acc"))
+
+fig3.legend(handles, [h.get_label() for h in handles],
+            loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.05))
+fig3.tight_layout(rect=[0, 0.05, 1, 1])  # leave 5% margin at bottom
+
+
+
+plt.subplots_adjust(bottom=0.2)
+
+plt.savefig("results/CombiPlots/lrScheduler_EarlyStopping.png", dpi=400, bbox_inches="tight")
+print("Saved C2/C6/C16 variants vs lrScheduler_EarlyStopping figure..")
+
+
+
+# Build figure 5 (3 rows, 1 col)
+c2_variants = {
+    "C2_AdamW0001_SmoothLabel_lr001_do1": "blue",
+    "C2_1K_AdamW0001_SL_do3": "green",
+    "C2_AdW0001_LS_Lr001_do6": "red",
+}
+c6_variants = {
+    "C6_AdamW0001_SmoothLabel_lr001_do1": "blue",
+    "C6_1K_AdamW0001_SL_do3": "green",
+    "C6_AdW0001_LS_Lr001_do6": "red",
+}
+c16_variants = {
+    "C16_AdamW0001_SmoothLabel_lr001_do1": "blue",
+    "C16_1K_AdamW0001_SL_do3": "green",
+    "C16_AdW0001_LS_Lr001_do6": "red",
+}
+
+
+fig5, (c2, c6, c16) = plt.subplots(nrows=3, ncols=1, figsize=(12, 10), constrained_layout=True)
+
+# Per-row plotting (adjust y-lims to your scales; comment/remove if you prefer autoscale)
+plot_task_row(c2, c2_variants, "C2",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+plot_task_row(c6, c6_variants, "C6",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+plot_task_row(c16, c16_variants, "C16",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+
+
+
+# Create custom legend entries
+handles = []
+
+# For each variant color
+for prefix, color in c2_variants.items():
+    # Train loss (dark solid)
+    # handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.9,
+    #                              label=f"{prefix.replace('C2_', '')} train loss"))
+    # Val loss (light solid)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.4,
+                                 label=f"{prefix.replace('C2_', '')} val loss"))
+    # Train acc (dark dashed)
+    # handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.9,
+    #                              label=f"{prefix.replace('C2_', '')} train acc"))
+    # Val acc (light dashed)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.4,
+                                 label=f"{prefix.replace('C2_', '')} val acc"))
+
+fig5.legend(handles, [h.get_label() for h in handles],
+            loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.05))
+fig5.tight_layout(rect=[0, 0.05, 1, 1])  # leave 5% margin at bottom
+
+plt.subplots_adjust(bottom=0.15)
+
+plt.savefig("results/CombiPlots/dropout_comparisons.png", dpi=400, bbox_inches="tight")
 print("Saved C2/C6/C16 variants vs dropout figure..")

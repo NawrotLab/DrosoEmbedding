@@ -39,7 +39,13 @@ def main(config, logger):
     np.random.seed(seed)
     # Set PyTorch random seeds
     torch.manual_seed(seed)
+    logger.info(f"PyTorch version: {torch.__version__}")
+
     if torch.cuda.is_available():
+        logger.info(f"CUDA available: {torch.cuda.is_available()}")
+        logger.info(f"CUDA version: {torch.version.cuda}")
+        logger.info(f"cuDNN version: {torch.backends.cudnn.version()}")
+        logger.info(f"GPU device: {torch.cuda.get_device_name(0)}")
         torch.cuda.manual_seed_all(seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
@@ -145,6 +151,19 @@ def main(config, logger):
                 for k, v in config["training"].items():
                     logger.info(f"{k}: {v}")
                 logger.info("============================================================")
+
+
+                # --- shape smoke test ---
+                if len(train_loader) > 0:
+                    Classifier_tmp = CNN_Transformer(**model_params).to(config["device"])
+                    Classifier_tmp.eval()
+                    xb, yb = next(iter(train_loader))  # expects (B, C, H, W) or (B, S, C, H, W)
+                    xb = xb.to(config["device"])
+                    with torch.no_grad():
+                        _ = Classifier_tmp(xb, debug_shapes=True)  # prints shapes at each step
+
+
+                # -----------------------------------------------
 
                 Classifier = CNN_Transformer(**model_params)
                 num_epochs = training_params['epochs']
