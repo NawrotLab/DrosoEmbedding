@@ -220,7 +220,9 @@ def main(config, logger):
                        train_loss=training_loss,
                        val_loss=validation_loss, 
                        train_acc=train_acc,
-                       val_acc=val_acc)
+                       val_acc=val_acc, 
+                       logger=logger)
+            
 
             # Timing and logging
             time_end = time.time() - time_start
