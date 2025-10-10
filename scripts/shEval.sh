@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=eval_model
 #SBATCH --time=10:00:00
-#SBATCH --partition=all
+#SBATCH --partition=interactive
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=16GB

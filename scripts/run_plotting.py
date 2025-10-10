@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_metric_distribution, plot_similarity_matrix
+from src.visualization.visualize_preformance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_metric_distribution, plot_similarity_matrix, plot_mean_cams
 from src.utils.helpers import compute_tsne
 
 def plot_all(results: dict, config: dict, logger) -> None:
@@ -37,6 +37,22 @@ def plot_all(results: dict, config: dict, logger) -> None:
     el            = results['euclidean_inter_labels']
     ss            = results['silhouette_score']
     class_names   = config['data']['classes']
+    mean_cams     = results['mean_cams']
+
+    # plot_classes_cam(
+    #     model=classifier,
+    #     device=config['device'],
+    #     dataloader=test_loader,
+    #     class_names=class_names,
+    #     output_path=viz_dir,
+    #     cam_method=GradCAM,
+    #     classifier_target_layer=3,
+    #     reshape=True
+    # )
+
+    logger.info("Mean CAMs shape: {}".format(mean_cams.shape))
+    plot_mean_cams(mean_cams, cols=4, figsize=(10, 8), suptitle="Mean Grad-CAM (Layer 3)", add_colorbar=True, save_path=viz_dir)
+    logger.info("Mean Grad-CAM (Layer 3) saved to {}".format(viz_dir))
 
     # 1. Training/validation loss (loss only)
     plot_train_val_loss(
@@ -66,6 +82,8 @@ def plot_all(results: dict, config: dict, logger) -> None:
             training_acc=results['train_acc'],
             validation_acc=results['val_acc']
         )
+        # 4. Class Activation Maps
+    
 
     # 2. Classification summary
     plot_weighted_avg(rd, viz_dir)
@@ -82,7 +100,12 @@ def plot_all(results: dict, config: dict, logger) -> None:
 
     # 4. Latent-space 2D projections for both CNN and Transformer
     # CNN Latent Space
-    tsne_2d_cnn = compute_tsne(cnn_latent)
+    logger.info(f"CNN Latent shape: {cnn_latent.shape}")
+    cnn_latent_2d = np.mean(cnn_latent, axis=1)
+    logger.info(f"CNN Latent 2D shape: {cnn_latent_2d.shape}")
+    tsne_2d_cnn = compute_tsne(cnn_latent_2d)
+    # logger.info(f"TSNE 2D shape: {tsne_2d_cnn.shape}")
+    
     
     plot_tsne_latent(
         latent_2d=tsne_2d_cnn,
@@ -102,6 +125,8 @@ def plot_all(results: dict, config: dict, logger) -> None:
         filename=f"{len(class_names)}Cls_Transformer_TSNE2.png",
         title="t-SNE Projection (Transformer Latent Space)"
     )
+
+
 
     # 5. Similarity analyses
     # Cosine
@@ -156,6 +181,9 @@ def main():
 
     with open(eval_path, 'rb') as f:
         results = pickle.load(f)
+        # logger.info(results)
+    
+    logger.info(f"Loaded evaluation results from {eval_path}")
 
     # Generate plots
     plot_all(results, config, logger)

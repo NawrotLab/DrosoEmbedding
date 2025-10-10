@@ -19,9 +19,13 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style
+from src.utils.helpers import load_all_results, get_style
+
 
 # Base results directory
-BASE_RESULTS_DIR = os.path.join('results', 'finals')
+# BASE_RESULTS_DIR = os.path.join('results', 'finals')
+BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
+
 
 # Task configurations
 TASK_CLASS_NAMES = {
@@ -38,22 +42,22 @@ TASK_CLASS_NAMES = {
     ]
 }
 
-def load_all_results(base_dir):
-    """Load all results from the base directory."""
-    results = {}
-    for task in sorted(os.listdir(base_dir)):
-        task_path = os.path.join(base_dir, task)
-        if not os.path.isdir(task_path):
-            continue
-        results[task] = {}
-        for run_name in sorted(os.listdir(task_path)):
-            pkl = os.path.join(task_path, run_name, 'evaluation_results.pkl')
-            if os.path.isfile(pkl):
-                with open(pkl, 'rb') as f:
-                    results[task][run_name] = pickle.load(f)
-        if task in TASK_CLASS_NAMES:
-            results[task]['__class_names__'] = TASK_CLASS_NAMES[task]
-    return results
+# def load_all_results(base_dir):
+#     """Load all results from the base directory."""
+#     results = {}
+#     for task in sorted(os.listdir(base_dir)):
+#         task_path = os.path.join(base_dir, task)
+#         if not os.path.isdir(task_path):
+#             continue
+#         results[task] = {}
+#         for run_name in sorted(os.listdir(task_path)):
+#             pkl = os.path.join(task_path, run_name, '.pkl')
+#             if os.path.isfile(pkl):
+#                 with open(pkl, 'rb') as f:
+#                     results[task][run_name] = pickle.load(f)
+#         if task in TASK_CLASS_NAMES:
+#             results[task]['__class_names__'] = TASK_CLASS_NAMES[task]
+#     return results
 
 def load_styles():
     """Load styles from the stylesE.yaml file."""
@@ -62,7 +66,7 @@ def load_styles():
         styles = yaml.safe_load(f)['styles']
     return styles
 
-def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_horizontal_v5.png', use_class_symbols=True):
+def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_horizontal_chkpt_v2.png', use_class_symbols=True):
     """Main plotting function for the horizontal accuracy figure."""
     # Set up figure with styles
     plt.rc('xtick', labelsize=8)
@@ -114,7 +118,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         row_y = [0.75, 0.45, 0.16]
         fig.text(0.05, row_y[row_idx], row_titles[task], 
                 ha='left', va='center', fontsize=16, #weight='bold', 
-                transform=fig.transFigure, rotation=90)
+                transform=fig.transFigure, rotation=90, weight='bold')
         # Inner grid for each task row with 3 columns
         inner = GridSpecFromSubplotSpec(1, 3, 
             subplot_spec=outer[row_idx],
@@ -126,7 +130,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         ax_ctrl = fig.add_subplot(inner[0])
         plot_confusion_matrix(
             cl_name=f"Control {task}",
-            cm=result['ControlRun']['confusion_matrix'],
+            cm=result['control']['confusion_matrix'],
             class_names=result['__class_names__'],
             output_path=None,
             dataID=task,
@@ -142,7 +146,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         ax_best = fig.add_subplot(inner[1])
         plot_confusion_matrix(
             cl_name=f"Best {task}",
-            cm=result['embed16_BestRun']['confusion_matrix'],
+            cm=result['best']['confusion_matrix'],
             class_names=result['__class_names__'],
             output_path=None,
             dataID=task,
@@ -171,8 +175,8 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         # Plot F1 comparison (top)
         plot_f1_comparison(
             ax_f1, 
-            result['ControlRun']['classification_report_dict'], 
-            result['embed16_BestRun']['classification_report_dict'],
+            result['control']['classification_report_dict'], 
+            result['best']['classification_report_dict'],
             result['__class_names__'],
             show_legend=False,
             use_class_symbols=use_class_symbols,
@@ -182,7 +186,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         # Plot precision/recall comparison (bottom)
         plot_precision_recall_comparison(
             ax_pr,
-            result['embed16_BestRun']['classification_report_dict'],
+            result['best']['classification_report_dict'],
             result['__class_names__'],
             show_legend=False, 
             use_class_symbols=use_class_symbols,
@@ -214,7 +218,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
             # Add legend to the new subplot
             legend = legend_ax.legend(handles, labels, 
                                    loc='center', 
-                                   ncol=len(labels),
+                                    ncol=len(labels),
                                    fontsize=13, 
                                    frameon=False)
             legend.set_in_layout(False)  # Prevent layout adjustments
@@ -231,7 +235,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
 def main():
     """Main function to load results and generate the figure."""
     # Load results
-    results = load_all_results(BASE_RESULTS_DIR)
+    results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES)
     
     # Generate and save the figure
     plot_figure_accuracy(results)

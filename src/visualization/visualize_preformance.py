@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import torch
 import numpy as np 
 from sklearn.manifold import TSNE
-from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 import seaborn as sns
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 import os
@@ -11,6 +10,20 @@ import textwrap
 import pandas as pd
 from matplotlib.colors import ListedColormap, BoundaryNorm
 
+# evaluation/cam_utils.py
+from typing import Dict, List, Optional, Tuple
+import torch
+import numpy as np
+
+# If you're using jacobgil/pytorch-grad-cam (recommended):
+from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+# visualization/cam_plots.py
+from typing import Dict, Optional
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.colors import Normalize
+Tensor = torch.Tensor
 
 # def get_class_style(class_name, styles):
 #     """Get style properties for a given class name.
@@ -507,6 +520,7 @@ def plot_tsne_latent(latent_2d,
                    label=f"{class_names[int(cls)]} ({idx.sum()})",
                    alpha=0.8, s=6,
                    color=colors[int(cls)], edgecolors=edgecolors[int(cls)], linewidth=0.5, marker=shapes[int(cls)])
+    ax.plot(0, 0, 'ko', markersize=3)
 
     if xlim:
         xmin, xmax = xlim
@@ -586,97 +600,285 @@ def plot_umap_latent(latent_2d,
     return ax
 
 
-def reshape_transform4Cam(tensor):
-    # Handle tensors with 5 dimensions (e.g., from 3D models)
-    # print(f"Original tensor shape: {tensor.shape}")  # Debugging
+# def reshape_transform4Cam(tensor):
+#     # Handle tensors with 5 dimensions (e.g., from 3D models)
+#     # print(f"Original tensor shape: {tensor.shape}")  # Debugging
 
-    if tensor.dim() == 5:  # Example shape: [B, C, D, H, W]
-        # Collapse depth dimension (D), returning to [B, C, H, W]
-        tensor = tensor.mean(dim=2)  # Take mean across the depth dimension
-    # print(f"Transformed tensor shape: {tensor.shape}")  # Debugging
+#     if tensor.dim() == 5:  # Example shape: [B, C, D, H, W]
+#         # Collapse depth dimension (D), returning to [B, C, H, W]
+#         tensor = tensor.mean(dim=2)  # Take mean across the depth dimension
+#     # print(f"Transformed tensor shape: {tensor.shape}")  # Debugging
 
-    # Ensure tensor is 4D: [N, C, H, W]
-    return tensor
-
-
-
-def plot_classes_cam(model, device, dataloader, class_names, output_path, cam_method = GradCAM, classifier_target_layer = 3, reshape = True):
+#     # Ensure tensor is 4D: [N, C, H, W]
+#     return tensor
 
 
-    # 1. Convert dataloader into dictionary with respective classes
-    data_by_class = dataloader2dictionary(dataloader, class_names)
 
-    # 2. Plot Input Tensors.
-    plot_InputTensors(data_by_class, output_path, 'Mean_InputTensors')
-    print(f'Mean Input Tensors saved: {output_path}')
+# def plot_classes_cam(model, device, dataloader, class_names, output_path, cam_method = GradCAM, classifier_target_layer = 3, reshape = True):
 
-    # 3. Set Model up for Evaluation and initiate cam
+
+#     # 1. Convert dataloader into dictionary with respective classes
+#     data_by_class = dataloader2dictionary(dataloader, class_names)
+
+#     # 2. Plot Input Tensors.
+#     plot_InputTensors(data_by_class, output_path, 'Mean_InputTensors')
+#     print(f'Mean Input Tensors saved: {output_path}')
+
+#     # 3. Set Model up for Evaluation and initiate cam
+#     model.eval()
+#     target_layer =  model.cnn[classifier_target_layer]
+#     if reshape:
+#         cam = cam_method(model=model, target_layers=[target_layer], reshape_transform=reshape_transform4Cam)
+#     else:
+#         cam = cam_method(model=model, target_layers=[target_layer])
+
+#     # 4. Get all heatmaps and sort in a dictionary
+#     heatmaps = {class_name: [] for class_name in class_names}
+#     for class_idx, (class_label, class_tensor) in enumerate(data_by_class.items()):
+#         for image in class_tensor: #Shape: 5,1,128,128
+#             if len(image.shape) == 3:
+#                 image = image.unsqueeze(0).float().to(device)  # Shape: 1,1,128,128
+#                 # image = image.unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
+#             else:
+#                 image = image[0:1].float().to(device)  # Shape: 1,1,128,128
+
+#                 # image = image[0, :, :, :].unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
+#             heatmap = cam(input_tensor=image, targets=[ClassifierOutputTarget(class_idx)]) # class_label
+#             heatmap_2D = heatmap[0]
+#             heatmaps[class_label].append(heatmap_2D) #result_img
+
+#     # 5. Calculate mean Grad-CAM heatmap for each class
+#     # Median and Max Cams dont work as well.
+#     mean_class_heatmaps = {}
+#     for class_label, heatmap_list in heatmaps.items():
+#         mean_class_heatmaps[class_label] = np.mean(heatmap_list, axis =0)
+
+#     # 6. plot the mean heatmaps
+#     plot_MeanCam(mean_class_heatmaps, output_path, f'Mean_{cam_method.__name__}_L{classifier_target_layer}')
+
+#     return mean_class_heatmaps
+
+
+# def plot_MeanCam(mean_cam_dictionary, output_path, output_name = 'Mean Cam', plot_title = 'Mean Cam', figsize=(10,8)):
+#     """
+#     Plots a grid of mean arrays from a dictionary containing arrays of shape (128, 128).
+#     """
+
+#     num_classes = len(mean_cam_dictionary)
+#     cols = 4  # Fixed columns
+#     rows = (num_classes + cols - 1) // cols  # Compute required rows
+
+#     fig, axes = plt.subplots(rows, cols, figsize=figsize)
+#     axes = axes.flatten()
+
+#     for idx, (title, array) in enumerate(mean_cam_dictionary.items()):
+#         if idx < len(axes):  # Avoid IndexError if there are more arrays than axes
+#             ax = axes[idx]
+#             ax.imshow(array, cmap='viridis')
+#             ax.set_title(title)
+#             ax.axis("off")
+
+#     # Turn off any remaining empty subplots
+#     for idx in range(len(mean_cam_dictionary), len(axes)):
+#         axes[idx].axis("off")
+
+
+#     plt.tight_layout()
+#     # plt.suptitle(plot_title, fontsize=18)
+#     # plt.colorbar(im, ax=axes, location='right', shrink=0.7, aspect=20)  # Add a shared colorbar
+
+#     out_name = f'{output_path}{output_name}.png'
+#     plt.savefig(out_name)
+
+
+def reshape_transform_for_cam(t: Tensor) -> Tensor:
+    # [N,C,D,H,W] -> mean over D
+    if t.dim() == 5:
+        t = t.mean(dim=2)
+    return t
+
+def _group_by_class_from_dataloader(
+    dataloader,
+    class_names: List[str],
+    max_items_per_class: Optional[int],
+    device: torch.device,
+) -> Dict[str, List[Tensor]]:
+    buckets = {name: [] for name in class_names}
+    counts = {name: 0 for name in class_names}
+    cap = {name: max_items_per_class for name in class_names} if max_items_per_class else None
+
+    for batch in dataloader:
+        if not (isinstance(batch, (list, tuple)) and len(batch) >= 2):
+            raise ValueError("Dataloader must yield (inputs, targets[, ...]).")
+        x, y = batch[0], batch[1]
+
+        # normalize to [B,C,H,W]
+        if x.dim() == 3:
+            x = x.unsqueeze(0)
+        x = x.to(device)
+        y = y.to(device)
+
+        for i in range(x.size(0)):
+            cls_idx = int(y[i].item())
+            name = class_names[cls_idx]
+            if cap and counts[name] >= cap[name]:
+                continue
+            # keep grad-eligible tensor (don’t detach)
+            buckets[name].append(x[i])
+            counts[name] += 1
+
+        if cap and all(counts[n] >= cap[n] for n in class_names):
+            break
+    return buckets
+
+def compute_class_mean_cams(
+    model: torch.nn.Module,
+    dataloader,
+    class_names: List[str],
+    device: torch.device,
+    *,
+    cam_method=GradCAM,
+    target_layer: Optional[torch.nn.Module] = None,  # <- prefer passing a layer object
+    target_layer_index: int = 3,                     # fallback: model.cnn[index]
+    use_reshape_transform: bool = True,
+    max_items_per_class: Optional[int] = 32,
+    return_all: bool = False,
+    disable_autocast: bool = True,
+) -> Tuple[Dict[str, np.ndarray], Optional[Dict[str, List[np.ndarray]]]]:
+    """
+    Compute per-class mean CAMs. Compatible with pytorch-grad-cam >= 1.5 (no 'use_cuda' kwarg).
+    """
     model.eval()
-    target_layer =  model.cnn[classifier_target_layer]
-    if reshape:
-        cam = cam_method(model=model, target_layers=[target_layer], reshape_transform=reshape_transform4Cam)
-    else:
-        cam = cam_method(model=model, target_layers=[target_layer])
+    model = model.to(device)
 
-    # 4. Get all heatmaps and sort in a dictionary
-    heatmaps = {class_name: [] for class_name in class_names}
-    for class_idx, (class_label, class_tensor) in enumerate(data_by_class.items()):
-        for image in class_tensor: #Shape: 5,1,128,128
-            if len(image.shape) == 3:
-                image = image.unsqueeze(0).float().to(device)  # Shape: 1,1,128,128
-                # image = image.unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
-            else:
-                image = image[0:1].float().to(device)  # Shape: 1,1,128,128
+    # Resolve target layer
+    if target_layer is None:
+        try:
+            target_layer = model.cnn[target_layer_index]
+        except Exception as e:
+            raise ValueError(
+                "Provide a valid `target_layer` (module) or ensure `model.cnn[target_layer_index]` exists."
+            ) from e
 
-                # image = image[0, :, :, :].unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
-            heatmap = cam(input_tensor=image, targets=[ClassifierOutputTarget(class_idx)]) # class_label
-            heatmap_2D = heatmap[0]
-            heatmaps[class_label].append(heatmap_2D) #result_img
+    cam_kwargs = {"model": model, "target_layers": [target_layer]}
+    if use_reshape_transform:
+        cam_kwargs["reshape_transform"] = reshape_transform_for_cam
 
-    # 5. Calculate mean Grad-CAM heatmap for each class
-    # Median and Max Cams dont work as well.
-    mean_class_heatmaps = {}
-    for class_label, heatmap_list in heatmaps.items():
-        mean_class_heatmaps[class_label] = np.mean(heatmap_list, axis =0)
+    # IMPORTANT: Do NOT pass 'use_cuda' — removed in newer versions.
+    cam = cam_method(**cam_kwargs)
 
-    # 6. plot the mean heatmaps
-    plot_MeanCam(mean_class_heatmaps, output_path, f'Mean_{cam_method.__name__}_L{classifier_target_layer}')
+    # Collect a few samples per class
+    buckets = _group_by_class_from_dataloader(
+        dataloader, class_names, max_items_per_class, device
+    )
 
-    return mean_class_heatmaps
+    all_cams: Dict[str, List[np.ndarray]] = {name: [] for name in class_names}
+
+    # Ensure grads are enabled; keep fp32 unless you know AMP works for CAM
+    torch.set_grad_enabled(True)
+    autocast_ctx = (
+        torch.cuda.amp.autocast(enabled=False)
+        if disable_autocast and device.type == "cuda"
+        else torch.cuda.amp.autocast(enabled=False)
+    )
+
+    with autocast_ctx:
+        for cls_idx, cls_name in enumerate(class_names):
+            for img in buckets[cls_name]:
+                if img.dim() == 3:        # [C,H,W] -> [1,C,H,W]
+                    img_b = img.unsqueeze(0).float()
+                elif img.dim() == 4:      # [B,C,H,W] -> take first
+                    img_b = img[:1].float()
+                else:
+                    raise ValueError(f"Unexpected input shape for CAM: {tuple(img.shape)}")
+                # Make sure tensors live on same device as model
+                img_b = img_b.to(device)
+
+                model.zero_grad(set_to_none=True)
+                heatmap = cam(input_tensor=img_b, targets=[ClassifierOutputTarget(cls_idx)])
+                all_cams[cls_name].append(heatmap[0])  # [H,W] float np array in [0,1]
+
+    # Aggregate means (fallback to zeros if a class bucket is empty)
+    fallback = next((m for v in all_cams.values() for m in v), None)
+    if fallback is None:
+        raise RuntimeError("No CAMs were computed; check dataloader contents and class_names mapping.")
+
+    mean_cams: Dict[str, np.ndarray] = {}
+    for name, maps in all_cams.items():
+        if not maps:
+            mean_cams[name] = np.zeros_like(fallback, dtype=np.float32)
+        else:
+            mean_cams[name] = np.mean(np.stack(maps, axis=0), axis=0)
+
+    return (mean_cams, all_cams) if return_all else (mean_cams, None)
 
 
-def plot_MeanCam(mean_cam_dictionary, output_path, output_name = 'Mean Cam', plot_title = 'Mean Cam', figsize=(10,8)):
+
+def plot_mean_cams(
+    mean_cams: Dict[str, np.ndarray],
+    cols: int = 4,
+    figsize=(10, 8),
+    cmap: str = "viridis",
+    suptitle: Optional[str] = None,
+    add_colorbar: bool = False,
+    save_path: Optional[str] = None,
+    dpi: int = 200,
+    tight: bool = True,
+):
     """
-    Plots a grid of mean arrays from a dictionary containing arrays of shape (128, 128).
-    """
+    Plot a grid of per-class mean CAM arrays (HxW).
 
-    num_classes = len(mean_cam_dictionary)
-    cols = 4  # Fixed columns
-    rows = (num_classes + cols - 1) // cols  # Compute required rows
+    Parameters
+    ----------
+    mean_cams : Dict[str, np.ndarray]
+        Mapping from class name -> HxW CAM (float).
+    cols : int
+        Number of columns in the grid.
+    cmap : str
+        Matplotlib colormap name.
+    add_colorbar : bool
+        If True, add a single shared colorbar.
+    save_path : Optional[str]
+        If provided, saves the figure (e.g., ".../Mean_GradCAM_L3.png").
+    """
+    names = list(mean_cams.keys())
+    n = len(names)
+    rows = (n + cols - 1) // cols
+
+    # Use a shared normalization so colors are comparable across classes
+    vmin = min(float(np.min(arr)) for arr in mean_cams.values())
+    vmax = max(float(np.max(arr)) for arr in mean_cams.values())
+    norm = Normalize(vmin=vmin, vmax=vmax)
 
     fig, axes = plt.subplots(rows, cols, figsize=figsize)
-    axes = axes.flatten()
+    axes = np.atleast_1d(axes).ravel()
 
-    for idx, (title, array) in enumerate(mean_cam_dictionary.items()):
-        if idx < len(axes):  # Avoid IndexError if there are more arrays than axes
-            ax = axes[idx]
-            ax.imshow(array, cmap='viridis')
-            ax.set_title(title)
-            ax.axis("off")
+    mappables = []
+    for i, name in enumerate(names):
+        ax = axes[i]
+        im = ax.imshow(mean_cams[name], cmap=cmap, norm=norm)
+        ax.set_title(str(name))
+        ax.axis("off")
+        mappables.append(im)
 
-    # Turn off any remaining empty subplots
-    for idx in range(len(mean_cam_dictionary), len(axes)):
-        axes[idx].axis("off")
+    # Turn off unused axes
+    for j in range(n, rows * cols):
+        axes[j].axis("off")
 
+    if suptitle:
+        fig.suptitle(suptitle)
 
-    plt.tight_layout()
-    # plt.suptitle(plot_title, fontsize=18)
-    # plt.colorbar(im, ax=axes, location='right', shrink=0.7, aspect=20)  # Add a shared colorbar
+    if add_colorbar and mappables:
+        # Shared colorbar using the last image mappable
+        fig.colorbar(mappables[-1], ax=axes[:n], fraction=0.025, pad=0.02)
 
-    out_name = f'{output_path}{output_name}.png'
-    plt.savefig(out_name)
+    if tight:
+        plt.tight_layout()
 
+    save_path = os.path.join(save_path, "Mean_GradCAM_L3.png")
+    fig.savefig(save_path, dpi=dpi, bbox_inches="tight")
 
+    # return fig
 
 def plot_InputTensors(data_dict, output_path, output_name, plot_title = 'Raw Mean Signal of TestSet',  figsize=(10, 4)):
     """

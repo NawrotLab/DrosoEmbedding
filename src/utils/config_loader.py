@@ -36,6 +36,7 @@ def apply_env_overrides(config):
         'BATCH_SIZE': ['training', 'batch_size'],
         'LEARNING_RATE': ['training', 'learning_rate'],
         'EPOCHS': ['training', 'epochs'],
+        'CNN_DIM': ['model', 'parameters', 'cnn_embed_dim'],
         'TRF_DIM': ['model', 'parameters', 'transformer_embed_dim']
         }
     

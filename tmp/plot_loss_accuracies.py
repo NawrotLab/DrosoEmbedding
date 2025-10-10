@@ -30,7 +30,7 @@ def moving_average(x, w=5):
 
 def load_runs(prefix: str):
     runs = []
-    for i in (1, 2):
+    for i in (1, 2,3,4):
         f = RESULTS_DIR / f"{prefix}_{i}.pkl"
         if f.exists():
             with open(f, "rb") as fh:
@@ -363,16 +363,19 @@ c2_variants = {
     "C2_AdamW0001_SmoothLabel_lr001_do1": "blue",
     "C2_1K_AdamW0001_SL_do3": "green",
     "C2_AdW0001_LS_Lr001_do6": "red",
+    "C2_AdW0001_LS_Lr001_do9": "purple", 
 }
 c6_variants = {
     "C6_AdamW0001_SmoothLabel_lr001_do1": "blue",
     "C6_1K_AdamW0001_SL_do3": "green",
     "C6_AdW0001_LS_Lr001_do6": "red",
+    "C6_AdW0001_LS_Lr001_do9": "purple", 
 }
 c16_variants = {
     "C16_AdamW0001_SmoothLabel_lr001_do1": "blue",
     "C16_1K_AdamW0001_SL_do3": "green",
     "C16_AdW0001_LS_Lr001_do6": "red",
+    "C16_AdW0001_LS_Lr001_do9": "purple", 
 }
 
 
@@ -418,5 +421,69 @@ fig5.tight_layout(rect=[0, 0.05, 1, 1])  # leave 5% margin at bottom
 
 plt.subplots_adjust(bottom=0.15)
 
-plt.savefig("results/CombiPlots/dropout_comparisons.png", dpi=400, bbox_inches="tight")
+plt.savefig("results/CombiPlots/dropout_comparisons_1-9.png", dpi=400, bbox_inches="tight")
+print("Saved C2/C6/C16 variants vs dropout figure..")
+
+
+
+
+
+# Build figure 6 (3 rows, 1 col)
+c2_variants = {
+    "C2_E16_lr01": "blue",
+    "C2_E16_lr001": "green",
+}
+c6_variants = {
+    "C6_E16_lr01": "blue",
+    "C6_E16_lr001": "green",
+}
+c16_variants = {
+    "C16_E16_lr01": "blue",
+    "C16_E16_lr001": "green",
+}
+
+
+fig6, (c2, c6, c16) = plt.subplots(nrows=3, ncols=1, figsize=(12, 10), constrained_layout=True)
+
+# Per-row plotting (adjust y-lims to your scales; comment/remove if you prefer autoscale)
+plot_task_row(c2, c2_variants, "C2",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+plot_task_row(c6, c6_variants, "C6",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+plot_task_row(c16, c16_variants, "C16",
+              xlim=(1, 200),
+              loss_ylim=None,
+              acc_ylim=None, plot_Train=False)
+
+
+
+# Create custom legend entries
+handles = []
+
+# For each variant color
+for prefix, color in c2_variants.items():
+    # Train loss (dark solid)
+    # handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.9,
+    #                              label=f"{prefix.replace('C2_', '')} train loss"))
+    # Val loss (light solid)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='-', lw=2, alpha=0.4,
+                                 label=f"{prefix.replace('C2_', '')} val loss"))
+    # Train acc (dark dashed)
+    # handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.9,
+    #                              label=f"{prefix.replace('C2_', '')} train acc"))
+    # Val acc (light dashed)
+    handles.append(mlines.Line2D([], [], color=color, linestyle='--', lw=2, alpha=0.4,
+                                 label=f"{prefix.replace('C2_', '')} val acc"))
+
+fig6.legend(handles, [h.get_label() for h in handles],
+            loc="lower center", ncol=3, frameon=False, bbox_to_anchor=(0.5, -0.05))
+fig6.tight_layout(rect=[0, 0.05, 1, 1])  # leave 5% margin at bottom
+
+plt.subplots_adjust(bottom=0.15)
+
+plt.savefig("results/CombiPlots/lr_comparisons.png", dpi=400, bbox_inches="tight")
 print("Saved C2/C6/C16 variants vs dropout figure..")

@@ -62,7 +62,7 @@ def main(config, logger):
     logger.info(f"Device: {config['device']}")
     logger.info(f"Slurm ID: {slurm_id}")
 
-    mlflow.set_tracking_uri("file:/projects/group-share/MLflow/DrosoEmbedding")
+    mlflow.set_tracking_uri("file:/rhomes/aabdel/DrosoEmbedding/mlflow")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
 
@@ -84,6 +84,8 @@ def main(config, logger):
             logger.info(f"out root... {out_root}")
             outPath_model = f"{out_root}/models"
             out_evaluation = f"{out_root}/evaluation"
+            best_dir = os.path.join(outPath_model, "best")
+            os.makedirs(best_dir, exist_ok=True)
             os.makedirs(outPath_model, exist_ok=True)
             os.makedirs(out_evaluation, exist_ok=True)
 
@@ -172,6 +174,7 @@ def main(config, logger):
                 validation_loss = []
                 train_acc = []
                 val_acc = []
+
             else:
                 # Continue training existing model
                 logger.info(f"Continuing training from epoch {start_epoch}...")
@@ -192,6 +195,9 @@ def main(config, logger):
             else:
                 criterion = LossClass()
 
+            params_total = sum(p.numel() for p in Classifier.parameters() if p.requires_grad)
+            logger.info(f"Trainable parameters: {params_total:,}")
+
             Classifier, new_training_loss, new_validation_loss, new_train_acc, new_val_acc = train_seq_seq_Classifier(
                 model=Classifier,
                 device=config["device"],
@@ -202,8 +208,19 @@ def main(config, logger):
                 weight_decay=training_params['weight_decay'],
                 start_epoch=start_epoch,
                 criterion=criterion,
-                logger=logger  
+                logger=logger,  
+
+                # --- NEW ---
+                save_best_from=training_params.get('save_best_from'),  # warmup before tracking
+                best_output_path=best_dir,
+                model_class=CNN_Transformer,
+                params=model_params,
+                monitor=training_params.get('monitor', 'val_acc'),          # 'val_acc' or 'val_loss'
+                mode=training_params.get('mode', 'max'),                    # 'max' for acc, 'min' for loss
             )
+
+
+
             # Combine previous and new losses
             training_loss.extend(new_training_loss)
             validation_loss.extend(new_validation_loss)
