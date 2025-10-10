@@ -30,3 +30,5 @@ __pycache__/
 
 # Source images
 src/src_imgs/
+
+mlflow/
