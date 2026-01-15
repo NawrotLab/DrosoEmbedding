@@ -7,7 +7,46 @@ import numpy as np
 import torch
 from sklearn.manifold import TSNE
 import yaml
+from pathlib import Path
 # import umap
+
+# Shared configuration constants
+BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
+
+
+def paths2neuropilpaths(X, config):
+    prep = config["data"]["preprocessing"]
+    base = "meanZ_logTs"
+
+    # sanity check
+    if prep["isolate_neuropil"] and prep["remove_neuropil"]:
+        raise ValueError(
+            "Both isolate_neuropil and remove_neuropil are True. Choose only one."
+        )
+
+    # decide new folder name
+    if prep["isolate_neuropil"]:
+        new_base = f"{base}_{prep['neuropil']}"
+    elif prep["remove_neuropil"]:
+        new_base = f"{base}_KO_{prep['neuropil']}"
+    else:
+        return X  # nothing to do
+
+    X_new = []
+    for p in X:
+        p = Path(p)
+        parts = list(p.parts)
+
+        try:
+            idx = parts.index(base)
+        except ValueError:
+            raise ValueError(f"Expected '{base}' in path but got:\n{p}")
+
+        parts[idx] = new_base
+        X_new.append(str(Path(*parts)))
+
+    return X_new
+
 
 def log_params_recursive(d):
     for k, v in d.items():
@@ -359,12 +398,16 @@ def get_style(style = "stylesD"):
     # Task-specific class names
     TASK_CLASS_NAMES = {
         'MetabolicState_2': ["Starved", "Fed"],
-        'State_Modality_6': [ "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)", "Odor + Taste (S)", "Odor + Taste (F)"],
+        'State_Modality_6': [
+            "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)",
+            "Odor + Taste (S)", "Odor + Taste (F)"
+        ],
         'State_Modality_Valence_16': [
-            "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)", 
-            "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)", 
-            "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)", 
-            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"]
+            "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)",
+            "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)",
+            "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
+            "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"
+        ]
     }
     TASK_COLORS = {
         'MetabolicState_2': [styles['starved']['color'], styles['fed']['color']],

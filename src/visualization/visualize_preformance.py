@@ -9,6 +9,7 @@ import textwrap
 
 import pandas as pd
 from matplotlib.colors import ListedColormap, BoundaryNorm
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
 # evaluation/cam_utils.py
 from typing import Dict, List, Optional, Tuple
@@ -949,7 +950,98 @@ def plot_centroid_vectors():
     return ''
 
 
-
+def plot_model_stats(ax, rpt_ctrl, rpt_best, class_names, show_legend=False, use_class_symbols=False, styles=None):
+    """
+    Plot mean F1, precision, and recall for control and model with per-class scatter dots.
+    Bars are grouped side by side for each metric.
+    
+    Args:
+        ax: Matplotlib axis to plot on
+        rpt_ctrl: Control report dictionary with per-class metrics
+        rpt_best: Model report dictionary with per-class metrics
+        class_names: List of class names
+        show_legend: Whether to show legend
+        use_class_symbols: If True, use styled symbols for scatter dots
+        styles: Dictionary mapping class names to style properties
+    """
+    # Calculate mean metrics
+    f1_ctrl = [rpt_ctrl[name]['f1-score'] for name in class_names]
+    f1_best = [rpt_best[name]['f1-score'] for name in class_names]
+    prec_ctrl = [rpt_ctrl[name]['precision'] for name in class_names]
+    prec_best = [rpt_best[name]['precision'] for name in class_names]
+    rec_ctrl = [rpt_ctrl[name]['recall'] for name in class_names]
+    rec_best = [rpt_best[name]['recall'] for name in class_names]
+    
+    mean_f1_ctrl = np.mean(f1_ctrl)
+    mean_f1_best = np.mean(f1_best)
+    mean_prec_ctrl = np.mean(prec_ctrl)
+    mean_prec_best = np.mean(prec_best)
+    mean_rec_ctrl = np.mean(rec_ctrl)
+    mean_rec_best = np.mean(rec_best)
+    
+    # X-axis positions for 3 groups (F1, Precision, Recall)
+    x = np.arange(3)
+    width = 0.35
+    
+    # Plot outlined bars (no fill, just edge) - grouped side by side
+    ax.bar(x - width/2, [mean_f1_ctrl, mean_prec_ctrl, mean_rec_ctrl], width, 
+           edgecolor='#b7bec4', facecolor='none', linewidth=2, label='Control')
+    ax.bar(x + width/2, [mean_f1_best, mean_prec_best, mean_rec_best], width,
+           edgecolor='#094c80', facecolor='none', linewidth=2, label='Model')
+    
+    # Add scatter dots for per-class performance
+    # Position scatter dots slightly offset from bar centers to avoid overlap
+    scatter_offset = 0.2
+    
+    # Define data for each bar: (x_bar_center, values_list, default_color)
+    scatter_data = [
+        (x[0] - width/2, f1_ctrl, '#b7bec4'),      # F1 control
+        (x[0] + width/2, f1_best, '#094c80'),      # F1 model
+        (x[1] - width/2, prec_ctrl, '#b7bec4'),    # Precision control
+        (x[1] + width/2, prec_best, '#094c80'),    # Precision model
+        (x[2] - width/2, rec_ctrl, '#b7bec4'),      # Recall control
+        (x[2] + width/2, rec_best, '#094c80')       # Recall model
+    ]
+    
+    # Plot scatter dots for each metric
+    for x_bar, values, default_color in scatter_data:
+        for i, class_name in enumerate(class_names):
+            x_scatter = x_bar + (i - len(class_names)/2 + 0.5) * scatter_offset / len(class_names)
+            y_scatter = values[i]
+            
+            if use_class_symbols and styles:
+                style = get_class_style(class_name, styles)
+                if style:
+                    ax.scatter(x_scatter, y_scatter,
+                              marker=style.get('shape', 'o'),
+                              s=50,
+                              facecolor=style.get('color', 'gray'),
+                              edgecolor=style.get('edgecolor', 'black'),
+                              linewidth=1,
+                              alpha=0.7,
+                              zorder=5)
+                else:
+                    ax.scatter(x_scatter, y_scatter, s=30, color=default_color, alpha=0.7, zorder=5)
+            else:
+                ax.scatter(x_scatter, y_scatter, s=30, color=default_color, alpha=0.7, zorder=5)
+    
+    # Set labels and formatting - only at bottom
+    ax.set_xticks(x)
+    ax.set_xticklabels(['F1', 'Precision', 'Recall'], fontsize=15)
+    ax.set_ylabel('Score', fontsize=10)
+    ax.set_ylim(0, 1)
+    
+    # Hide the right and top spines
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    
+    if show_legend:
+        # Create legend handles for control and model
+        from matplotlib.patches import Rectangle
+        ctrl_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#b7bec4', linewidth=2)
+        model_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#094c80', linewidth=2)
+        ax.legend([ctrl_handle, model_handle], ['Control', 'Model'], loc='upper right')
+    
 
 def plot_f1_comparison(ax, rpt_ctrl, rpt_best, class_names, show_legend=False, use_class_symbols=False, styles=None):
     """
@@ -1002,6 +1094,134 @@ def plot_f1_comparison(ax, rpt_ctrl, rpt_best, class_names, show_legend=False, u
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
 
+
+# Common figure utilities
+def setup_figure_matplotlib():
+    """Set up common matplotlib parameters for figure generation."""
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+
+
+def create_shared_legend(fig, handles, labels, position=(0.66, 0.84, 0.3, 0.1), 
+                        ncol=None, fontsize=13):
+    """
+    Create a shared legend for the figure.
+    
+    Args:
+        fig: Matplotlib figure
+        handles: Legend handles
+        labels: Legend labels
+        position: (left, bottom, width, height) in figure coordinates
+        ncol: Number of columns (if None, uses len(labels))
+        fontsize: Font size for legend
+    """
+    if ncol is None:
+        ncol = len(labels)
+    
+    # Create a new subplot for the legend
+    legend_ax = fig.add_axes(position)
+    legend_ax.axis('off')
+    
+    # Add legend to the new subplot
+    legend = legend_ax.legend(handles, labels, 
+                             loc='center', 
+                             ncol=ncol,
+                             fontsize=fontsize, 
+                             frameon=False)
+    legend.set_in_layout(False)
+    return legend
+
+
+def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True):
+    """
+    Add L-shaped corner axis to the plot with consistent length.
+    
+    Args:
+        ax: Matplotlib axis to modify
+        axis_length: Length of the L-shape in data coordinates
+        show_labels: Whether to show the axis labels
+    """
+    # Get current axis limits from the plot
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    
+    # Calculate the offset for labels (5% of the axis range)
+    x_offset = (xmax - xmin) * 0.05
+    y_offset = (ymax - ymin) * 0.05
+    
+    # Remove all spines
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Add L-shaped corner axis with consistent length
+    # Horizontal line
+    ax.axhline(y=ymin, xmin=0, xmax=axis_length/(xmax-xmin), 
+               color='black', linewidth=1, clip_on=False)
+    # Vertical line
+    ax.axvline(x=xmin, ymin=0, ymax=axis_length/(ymax-ymin), 
+               color='black', linewidth=1, clip_on=False)
+    
+    # Add axis labels at the ends of the L if show_labels is True
+    if show_labels:
+        ax.text(xmin, ymin - y_offset, 't-SNE 1', 
+                ha='left', va='top', fontsize=10)
+        ax.text(xmin - x_offset, ymin, 't-SNE 2', 
+                ha='right', va='bottom', fontsize=10, rotation=90)
+    
+    # Hide default ticks and labels
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    
+    # Make sure the axis limits stay the same
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
+
+def get_group_map(task, class_names):
+    """
+    Return the group mapping for the given task and class names.
+    
+    Args:
+        task: Task name
+        class_names: List of class names
+        
+    Returns:
+        Dictionary mapping group names to class indices
+    """
+    if task == 'MetabolicState_2':
+        return {
+            'S': [0], 
+            'F': [1]
+        }
+    
+    if task == 'State_Modality_6':
+        return {
+            'S': [0, 2, 4], 
+            'F': [1, 3, 5], 
+            'O': [0, 1], 
+            'T': [2, 3], 
+            'O/T': [4, 5]
+        }
+    
+    if task == 'State_Modality_Valence_16':
+        # Build Pos/Neg based on name matching
+        pos_inds = [i for i, n in enumerate(class_names) if '+' in n and '-' not in n]
+        neg_inds = [i for i, n in enumerate(class_names) if '-' in n and '+' not in n]
+        return {
+            'S': [0, 1, 4, 5, 8, 9, 10, 11],
+            'F': [2, 3, 6, 7, 12, 13, 14, 15],
+            'O': [0, 1, 2, 3],
+            'T': [4, 5, 6, 7],
+            'O/T': [8, 9, 10, 11, 12, 13],
+            '+': pos_inds,
+            '-': neg_inds,
+            '+/-': [10, 11, 14, 15]
+        }
+    
+    return {}
+
         
 def plot_precision_recall_comparison(ax, rpt_best, class_names, show_legend=False, use_class_symbols=False, styles=None):
     """
@@ -1049,3 +1269,131 @@ def plot_precision_recall_comparison(ax, rpt_best, class_names, show_legend=Fals
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
+
+
+# Common figure utilities
+def setup_figure_matplotlib():
+    """Set up common matplotlib parameters for figure generation."""
+    plt.rc('xtick', labelsize=8)
+    plt.rc('ytick', labelsize=8)
+
+
+def create_shared_legend(fig, handles, labels, position=(0.66, 0.84, 0.3, 0.1), 
+                        ncol=None, fontsize=13):
+    """
+    Create a shared legend for the figure.
+    
+    Args:
+        fig: Matplotlib figure
+        handles: Legend handles
+        labels: Legend labels
+        position: (left, bottom, width, height) in figure coordinates
+        ncol: Number of columns (if None, uses len(labels))
+        fontsize: Font size for legend
+    """
+    if ncol is None:
+        ncol = len(labels)
+    
+    # Create a new subplot for the legend
+    legend_ax = fig.add_axes(position)
+    legend_ax.axis('off')
+    
+    # Add legend to the new subplot
+    legend = legend_ax.legend(handles, labels, 
+                             loc='center', 
+                             ncol=ncol,
+                             fontsize=fontsize, 
+                             frameon=False)
+    legend.set_in_layout(False)
+    return legend
+
+
+def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True):
+    """
+    Add L-shaped corner axis to the plot with consistent length.
+    
+    Args:
+        ax: Matplotlib axis to modify
+        axis_length: Length of the L-shape in data coordinates
+        show_labels: Whether to show the axis labels
+    """
+    # Get current axis limits from the plot
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    
+    # Calculate the offset for labels (5% of the axis range)
+    x_offset = (xmax - xmin) * 0.05
+    y_offset = (ymax - ymin) * 0.05
+    
+    # Remove all spines
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    # Add L-shaped corner axis with consistent length
+    # Horizontal line
+    ax.axhline(y=ymin, xmin=0, xmax=axis_length/(xmax-xmin), 
+               color='black', linewidth=1, clip_on=False)
+    # Vertical line
+    ax.axvline(x=xmin, ymin=0, ymax=axis_length/(ymax-ymin), 
+               color='black', linewidth=1, clip_on=False)
+    
+    # Add axis labels at the ends of the L if show_labels is True
+    if show_labels:
+        ax.text(xmin, ymin - y_offset, 't-SNE 1', 
+                ha='left', va='top', fontsize=10)
+        ax.text(xmin - x_offset, ymin, 't-SNE 2', 
+                ha='right', va='bottom', fontsize=10, rotation=90)
+    
+    # Hide default ticks and labels
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    
+    # Make sure the axis limits stay the same
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+
+
+def get_group_map(task, class_names):
+    """
+    Return the group mapping for the given task and class names.
+    
+    Args:
+        task: Task name
+        class_names: List of class names
+        
+    Returns:
+        Dictionary mapping group names to class indices
+    """
+    if task == 'MetabolicState_2':
+        return {
+            'S': [0], 
+            'F': [1]
+        }
+    
+    if task == 'State_Modality_6':
+        return {
+            'S': [0, 2, 4], 
+            'F': [1, 3, 5], 
+            'O': [0, 1], 
+            'T': [2, 3], 
+            'O/T': [4, 5]
+        }
+    
+    if task == 'State_Modality_Valence_16':
+        # Build Pos/Neg based on name matching
+        pos_inds = [i for i, n in enumerate(class_names) if '+' in n and '-' not in n]
+        neg_inds = [i for i, n in enumerate(class_names) if '-' in n and '+' not in n]
+        return {
+            'S': [0, 1, 4, 5, 8, 9, 10, 11],
+            'F': [2, 3, 6, 7, 12, 13, 14, 15],
+            'O': [0, 1, 2, 3],
+            'T': [4, 5, 6, 7],
+            'O/T': [8, 9, 10, 11, 12, 13],
+            '+': pos_inds,
+            '-': neg_inds,
+            '+/-': [10, 11, 14, 15]
+        }
+    
+    return {}

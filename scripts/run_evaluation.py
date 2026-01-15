@@ -19,38 +19,44 @@ from src.utils.analysis import (
 )
 from src.visualization.visualize_preformance import plot_mean_cams, compute_class_mean_cams
 from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from src.utils.helpers import paths2neuropilpaths
 
 
-
-def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
+def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> dict:
     # Load config from pickle file
     with open(config_path, 'rb') as f:
-        config = pickle.load(f)
+        config_train = pickle.load(f)
+    if config_test is None:
+        config_test = config_train
    
     # Load parameters and paths
-    model_params = config["model"]["parameters"]
-    training_params = config["training"]
-    paths = config["paths"]
+    model_params = config_train["model"]["parameters"]
+    training_params = config_train["training"]
+    paths = config_train["paths"]
     eval_dir = paths["evaluation"]
     
 
     # Load test data
     with open(paths["pickle_path"], 'rb') as f:
         _, X_val, X_test, _, Y_val, Y_test = pickle.load(f)
+    
+    X_val  = paths2neuropilpaths(X_val, config_test)
+    X_test = paths2neuropilpaths(X_test, config_test)
+
 
     # DataLoader
     test_dataset = CustomDataset(
         X_test, Y_test, transform=True,
         seq_length=model_params['seq_len'],
         seq_steps=model_params['seq_steps'],
-        allTs_path=paths['allTs_path']
+        allTs_path=config_test['paths']['allTs_path']
     )
 
     val_dataset = CustomDataset(
         X_val, Y_val, transform=True,
         seq_length=model_params['seq_len'],
         seq_steps=model_params['seq_steps'],
-        allTs_path=paths['allTs_path']
+        allTs_path=config_test['paths']['allTs_path']
     )
 
     test_loader = DataLoader(test_dataset,
@@ -59,39 +65,41 @@ def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
     val_loader = DataLoader(val_dataset,
                             batch_size=training_params['batch_size'],
                             shuffle=False, num_workers=4, pin_memory=True)
+    logger.info(f"Test loader: {len(test_loader)}, Val loader: {len(val_loader)}")
+    logger.info(f"Test example path: {X_test[0]}")
     # temporary and dirty
-    paths['models'] = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/models/best/"
-    paths['evaluation'] = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/"
+    paths['models'] = f"{config_train['paths']['root']}/results/{config_train['data']['task']}_{run_id}/models/best/"
+    paths['evaluation'] = f"{config_train['paths']['root']}/results/{config_train['data']['task']}_{run_id}/evaluation/"
     eval_dir = paths["evaluation"]
 
     os.makedirs(eval_dir, exist_ok=True)
 
     logger.info(f"Locating Model at {paths['models']}")
-    logger.info(f"Loading Model with parameters: {model_params} in {config['device']}.")
+    logger.info(f"Loading Model with parameters: {model_params} in {config_train['device']}.")
     # Load model
     classifier, _, train_loss, val_loss, train_acc, val_acc = load_model(
-        CNN_Transformer, model_params, paths['models'], config['device'], logger
+        CNN_Transformer, model_params, paths['models'], config_train['device'], logger
     )
     if classifier is None:
         raise FileNotFoundError("Trained model not found.")
 
     # Inference
     # Get both latent spaces
-    cnn_latent_space, latent_labels = get_latent_space(classifier, test_loader, config['device'], return_cnn_latent=True)
+    cnn_latent_space, latent_labels = get_latent_space(classifier, test_loader, config_test['device'], return_cnn_latent=True)
     logger.info(f"CNN Latent Space shape: {cnn_latent_space.shape}")
     # logger.info(f"CNN Latent Space range: {np.max(cnn_latent_space), np.min(cnn_latent_space)}")
-    transformer_latent_space, latent_labels = get_latent_space(classifier, test_loader, config['device'], return_cnn_latent=False)
+    transformer_latent_space, latent_labels = get_latent_space(classifier, test_loader, config_test['device'], return_cnn_latent=False)
     logger.info(f"Transformer Latent Space shape: {transformer_latent_space.shape}")
     # logger.info(f"Transformer Latent Space range: {np.max(transformer_latent_space), np.min(transformer_latent_space)}")
-    y_pred, y_true = get_predictions(classifier, test_loader, config['device'])
-    Y_pred_VAL, Y_true_VAL = get_predictions(classifier, val_loader, config['device'])
+    y_pred, y_true = get_predictions(classifier, test_loader, config_test['device'])
+    Y_pred_VAL, Y_true_VAL = get_predictions(classifier, val_loader, config_test['device'])
 
     # CAMs
     mean_cams, _ = compute_class_mean_cams(
     classifier,
     test_loader,                 # your labeled eval loader
-    config['data']['classes'],
-    config['device'],
+    config_test['data']['classes'],
+    config_test['device'],
     cam_method=GradCAM,         # or other CAM method from the lib
     target_layer_index=3,       # adapt to your model.cnn depth
     use_reshape_transform=True, # True if you might have 5D features
@@ -109,9 +117,9 @@ def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
     accuracy = accuracy_score(y_true, y_pred)
     cm = confusion_matrix(y_true, y_pred)
     cm_val = confusion_matrix(Y_true_VAL, Y_pred_VAL)
-    report_dict = classification_report(y_true, y_pred, target_names=config['data']['classes'], output_dict=True)
-    report = classification_report(y_true, y_pred, target_names=config['data']['classes'])
-    report_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config['data']['classes'])
+    report_dict = classification_report(y_true, y_pred, target_names=config_test['data']['classes'], output_dict=True)
+    report = classification_report(y_true, y_pred, target_names=config_test['data']['classes'])
+    report_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config_test['data']['classes'])
     with open(os.path.join(eval_dir, "ClassificationReport.txt"), 'w') as f:
         f.write(report)
     with open(os.path.join(eval_dir, "ClassificationReport_VAL.txt"), 'w') as f:
@@ -133,8 +141,8 @@ def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
         payload = compute_centroid_tsne_payload(
             features_hd = transformer_latent_space,          # (N, D)
             labels      = latent_labels,                     # (N,)
-            task_name   = config['data']['task'],            # 'MetabolicState_2' / 'State_Modality_6' / 'State_Modality_Valence_16'
-            class_names = config['data']['classes'],         # list[str] aligned to labels
+            task_name   = config_test['data']['task'],            # 'MetabolicState_2' / 'State_Modality_6' / 'State_Modality_Valence_16'
+            class_names = config_test['data']['classes'],         # list[str] aligned to labels
             # random_state=30  # optional override
         )
         centroid_names = payload['centroid_group_names']
@@ -148,7 +156,7 @@ def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
 
     
     # after latent_space, latent_labels have been computed…
-    tsne_2d = compute_tsne(transformer_latent_space, perplexity=500)
+    tsne_2d = compute_tsne(transformer_latent_space, perplexity=30)
     logger.info(f"TSNE 2D shape: {tsne_2d.shape}")
     logger.info(f"TSNE 2D range: {np.max(tsne_2d), np.min(tsne_2d)}")
     
@@ -174,15 +182,15 @@ def evaluate_model(run_id, config_path, logger, out_dir) -> dict:
         'centroid_group_names': centroid_names,   # None if failed
         'centroid_tsne2d': centroid_Z,            # None if failed
 
-        'mean_cams': mean_cams,
+        'mean_cams': mean_cams
 
-        'cosine_intra': cos_intra,
-        'cosine_inter': cos_inter,
-        'cosine_inter_labels': cos_labels,
-        'euclidean_intra': euc_intra,
-        'euclidean_inter': euc_inter,
-        'euclidean_inter_labels': euc_labels,
-        'silhouette_score': sil_score
+        # 'cosine_intra': cos_intra,
+        # 'cosine_inter': cos_inter,
+        # 'cosine_inter_labels': cos_labels,
+        # 'euclidean_intra': euc_intra,
+        # 'euclidean_inter': euc_inter,
+        # 'euclidean_inter_labels': euc_labels,
+        # 'silhouette_score': sil_score
     }
 
     # logger.info(f"results {results}")
@@ -204,10 +212,14 @@ def main():
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found at {config_path}. Make sure to train the model first.")  
     logger = setup_logger(task_name=config['run_id'], log_dir=os.path.join('logs/evaluation'))
-    eval_dir = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/{run_id}_tsnep500_evalResults.pkl"
+    eval_dir = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/{run_id}_evalResults.pkl"
     if not os.path.exists(eval_dir):
-        evaluate_model(run_id, config_path, logger, eval_dir)
-        logger.info(f"Saved evaluation results to {eval_dir}")
+        if config['test_config']['train_test_varying']:
+            config_test = load_config()
+            evaluate_model(run_id, config_path, logger, eval_dir, config_test)
+        else:
+            evaluate_model(run_id, config_path, logger, eval_dir)
+            logger.info(f"Saved evaluation results to {eval_dir}")
     else:
         logger.info(f"Evaluation results already exist at {eval_dir}")
 

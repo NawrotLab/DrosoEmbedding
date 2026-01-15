@@ -30,7 +30,6 @@ CONFIGURATIONS=(
     # "C6_E16_H32 State_Modality_6 256 0.001 1000 16 32"
     # "C6_E16_H64 State_Modality_6 256 0.001 1000 16 64"
 
-
     # "C16_E16_H2 State_Modality_Valence_16 256 0.001 1000 16 2"
     # "C16_E16_H4 State_Modality_Valence_16 256 0.001 1000 16 4"
     # "C16_E16_H8 State_Modality_Valence_16 256 0.001 1000 16 8"
@@ -60,13 +59,6 @@ CONFIGURATIONS=(
     # "C16_E32_H16 State_Modality_Valence_16 256 0.001 1000 32 16"
     # "C16_E64_H16 State_Modality_Valence_16 256 0.001 1000 64 16"
     
-    # "C16_E2_H16 State_Modality_Valence_16 256 0.001 1000 2 16"
-    # "C16_E16_H2 State_Modality_Valence_16 256 0.001 1000 16 2"
-
-
-
-    # "C6_E16_H2 State_Modality_6 256 0.001 1000 16 2"
-    # "C6_E2_H16 State_Modality_6 256 0.001 1000 2 16"    
 )
 
 
@@ -87,10 +79,10 @@ for config in "${CONFIGURATIONS[@]}"; do
 #SBATCH --output=${BATCH_DIR}/${JOB_NAME}_%j.out
 #SBATCH --error=${BATCH_DIR}/${JOB_NAME}_%j.err
 #SBATCH --time=10:00:00
-#SBATCH --mem=20G
-#SBATCH --cpus-per-task=16
-#SBATCH --gres=gpu:a6000:1 
-#SBATCH --array=15-20
+#SBATCH --mem=15G
+#SBATCH --cpus-per-task=4
+#SBATCH --gres=gpu:a6000:1
+#SBATCH --array=34-37
 #SBATCH --partition=gpu
 
 # Environment variables

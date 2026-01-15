@@ -1,5 +1,5 @@
 """
-Accuracy Figure Script (Horizontal Layout)
+Accuracy Figure Script 
 
 This script generates a figure with confusion matrices and performance metrics
 for different experimental conditions and model runs, with tasks arranged in rows.
@@ -15,10 +15,11 @@ import os
 import yaml
 import pickle
 import numpy as np
+import sys
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style
+from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats
 from src.utils.helpers import load_all_results, get_style
 
 
@@ -42,22 +43,6 @@ TASK_CLASS_NAMES = {
     ]
 }
 
-# def load_all_results(base_dir):
-#     """Load all results from the base directory."""
-#     results = {}
-#     for task in sorted(os.listdir(base_dir)):
-#         task_path = os.path.join(base_dir, task)
-#         if not os.path.isdir(task_path):
-#             continue
-#         results[task] = {}
-#         for run_name in sorted(os.listdir(task_path)):
-#             pkl = os.path.join(task_path, run_name, '.pkl')
-#             if os.path.isfile(pkl):
-#                 with open(pkl, 'rb') as f:
-#                     results[task][run_name] = pickle.load(f)
-#         if task in TASK_CLASS_NAMES:
-#             results[task]['__class_names__'] = TASK_CLASS_NAMES[task]
-#     return results
 
 def load_styles():
     """Load styles from the stylesE.yaml file."""
@@ -66,7 +51,7 @@ def load_styles():
         styles = yaml.safe_load(f)['styles']
     return styles
 
-def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_horizontal_chkpt_v2.png', use_class_symbols=True):
+def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_horizontal_chkpt_v4.png', use_class_symbols=True):
     """Main plotting function for the horizontal accuracy figure."""
     # Set up figure with styles
     plt.rc('xtick', labelsize=8)
@@ -83,10 +68,10 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     outer = GridSpec(3, 1, hspace=0.1, height_ratios=[1, 1, 1], top=0.85, bottom=0.05)
 
     # Add column titles at the top
-    column_titles = ['(a) Control', '(b) Model', '(c) F1, Precision, Recall']
+    column_titles = ['a Control', 'b Model', 'c F1, Precision, Recall']
     col_positions = [0.2, 0.5, 0.8]  # X-positions for each column
     for col_pos, title in zip(col_positions, column_titles):
-        fig.text(col_pos, 0.93, title, ha='center', va='center', fontsize=16, #weight='bold', 
+        fig.text(col_pos, 0.93, title, ha='center', va='center', fontsize=16, weight='bold', 
         transform=fig.transFigure)
     
     # Add colorbar below the titles
@@ -100,8 +85,23 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     cbar = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal')
     cbar.set_label('Prediction Percentage', labelpad=10, fontsize=10)
     cbar.ax.xaxis.set_label_position('top')
+    cbar.ax.xaxis.label.set_ha('right')
+    cbar.ax.xaxis.label.set_x(1.0)  # still in [0,1] axes coords
     cbar.set_ticks([0, 25, 50, 75, 100])  # Explicitly set ticks at 25% intervals
-    
+
+    # --- Add vertical lines & labels ---
+    # positions = [100/2, 100/6, 100/16] 
+    positions = [1/2, 1/6, 1/16] 
+    labels = ['i', 'ii', 'iii']
+
+    trans = cbar.ax.get_xaxis_transform()
+
+    for v, lab in zip(positions, labels):
+        v = v*100
+        cbar.ax.axvline(v, color='black', linestyle='--', linewidth=1)
+        cbar.ax.text(v, 1.2, lab, transform=trans, ha='center', va='bottom',
+                    fontsize=9, fontweight='bold')
+        
     # Add row names on the left
     row_titles = {
         'MetabolicState_2': 'i. State',
@@ -110,6 +110,9 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     }
     
     # Styles are already loaded at the beginning of the function
+    
+    # Store reference to first ax_stats for sharing x-axis
+    first_ax_stats = None
     
     # For each task (now in rows)
     for row_idx, (task, result) in enumerate(results_dict.items()):
@@ -159,69 +162,46 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         )
         # ax_best.set_title('Best Run', fontsize=10)
         
-        # Third column: Split into F1 and PR
-        inner_right = GridSpecFromSubplotSpec(2, 1, 
-            subplot_spec=inner[2],
-            hspace=0.07
-        )
+        # Third column: Model stats plot
+        # Share x-axis with first row if it exists
+        if first_ax_stats is None:
+            ax_stats = fig.add_subplot(inner[2])
+            first_ax_stats = ax_stats
+        else:
+            ax_stats = fig.add_subplot(inner[2], sharex=first_ax_stats)
         
-        # Create shared axes for F1 and PR plots
-        ax_f1 = fig.add_subplot(inner_right[0])
-        ax_pr = fig.add_subplot(inner_right[1], sharex=ax_f1)
-        
-        # Turn off x-tick labels for the top plot (F1)
-        plt.setp(ax_f1.get_xticklabels(), visible=False)
-        
-        # Plot F1 comparison (top)
-        plot_f1_comparison(
-            ax_f1, 
-            result['control']['classification_report_dict'], 
+        # Plot model stats (F1, Precision, Recall for both control and model)
+        plot_model_stats(
+            ax_stats,
+            result['control']['classification_report_dict'],
             result['best']['classification_report_dict'],
             result['__class_names__'],
-            show_legend=False,
-            use_class_symbols=use_class_symbols,
-            styles=None
-        )
-        
-        # Plot precision/recall comparison (bottom)
-        plot_precision_recall_comparison(
-            ax_pr,
-            result['best']['classification_report_dict'],
-            result['__class_names__'],
-            show_legend=False, 
+            show_legend=False,  # Legend will be added separately at the top
             use_class_symbols=use_class_symbols,
             styles=styles
         )
-        # ax_pr.set_title('Precision & Recall', fontsize=10)
         
-        # Add class names only to the bottom plot with rotation for better readability
-        # ax_pr.set_xticklabels(result['__class_names__'], rotation=45, ha='right')
-        
-            # Adjust spacing between subplots
-        # plt.subplots_adjust(hspace=0.01)
-        
-        # Move legend to the last column for better visibility
-        if row_idx == 0:  # Only add legend to the first row's plots
-            # Get handles and labels from both F1 and PR plots
-            handles_f1, labels_f1 = ax_f1.get_legend_handles_labels()
-            handles_pr, labels_pr = ax_pr.get_legend_handles_labels()
-            
-            # Combine handles and labels, removing duplicates
-            handles = handles_f1 + [h for h in handles_pr if h not in handles_f1]
-            labels = labels_f1 + [l for l in labels_pr if l not in labels_f1]
-            
-            # Create a new subplot for the legend using figure coordinates
-            # Convert figure coordinates to axes coordinates
-            legend_ax = fig.add_axes([0.66, 0.84, 0.3, 0.1])  # [left, bottom, width, height] in figure coordinates
-            legend_ax.axis('off')  # Hide the axes
-            
-            # Add legend to the new subplot
-            legend = legend_ax.legend(handles, labels, 
-                                   loc='center', 
-                                    ncol=len(labels),
-                                   fontsize=13, 
-                                   frameon=False)
-            legend.set_in_layout(False)  # Prevent layout adjustments
+        # Hide x-axis labels for top two rows, only show on bottom row
+        if row_idx < 2:  # Top two rows
+            plt.setp(ax_stats.get_xticklabels(), visible=False)
+    
+    # Add legend at the top, aligned with colorbar
+    # Create legend handles manually (matching plot_model_stats style)
+    from matplotlib.patches import Rectangle
+    ctrl_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#b7bec4', linewidth=2)
+    model_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#094c80', linewidth=2)
+    handles = [ctrl_handle, model_handle]
+    labels = ['Control', 'Model']
+    
+    legend_gs = GridSpec(1, 1, top=0.9, bottom=0.88, left=0.6, right=0.98)
+    legend_ax = fig.add_subplot(legend_gs[0])
+    legend_ax.axis('off')
+    legend = legend_ax.legend(handles, labels, 
+                             loc='center', 
+                             ncol=len(labels),
+                             fontsize=15, 
+                             frameon=False)
+    legend.set_in_layout(False)
     
     # Adjust layout to accommodate the colorbar and legends
     plt.subplots_adjust(left=0.1, right=0.98, top=0.88, bottom=0.1)
@@ -233,6 +213,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     print(f"Figure saved to {out_path}")
 
 def main():
+    print(f"Python: {sys.executable}")
     """Main function to load results and generate the figure."""
     # Load results
     results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES)

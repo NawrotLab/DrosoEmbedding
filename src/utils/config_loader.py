@@ -37,7 +37,10 @@ def apply_env_overrides(config):
         'LEARNING_RATE': ['training', 'learning_rate'],
         'EPOCHS': ['training', 'epochs'],
         'CNN_DIM': ['model', 'parameters', 'cnn_embed_dim'],
-        'TRF_DIM': ['model', 'parameters', 'transformer_embed_dim']
+        'TRF_DIM': ['model', 'parameters', 'transformer_embed_dim'],
+        'METHOD_CH': ['data', 'preprocessing', 'method_ch'],
+        'TIMES': ['data', 'preprocessing', 'times'],
+        'NEUROPIL': ['data', 'preprocessing', 'neuropil']
         }
     
     for env_var, config_path in env_mappings.items():
@@ -92,12 +95,23 @@ def setup_derived_parameters(config):
         config['training']['label_smoothing'] = 0.1
     # Set up neuropil-specific parameters
     neuropil = config["data"]["preprocessing"]["neuropil"]
-    if neuropil == "WT":
-        logT_name = "logTs"
-        allT_name = "allTs"
-    else:
+    isolate  = config["data"]["preprocessing"]["isolate_neuropil"]
+    remove   = config["data"]["preprocessing"]["remove_neuropil"]
+    use_aligned_template = config["data"]["preprocessing"]["use_aligned_neuropil_template"]
+    if isolate:
+        if use_aligned_template:
+            logT_name = f"logTs_{neuropil}-template"
+            allT_name = f"allTs_{neuropil}-template"
+        else:
+            logT_name = f"logTs_{neuropil}"
+            allT_name = f"allTs_{neuropil}"
+    elif remove:
         logT_name = f"logTs_KO_{neuropil}"
         allT_name = f"allTs_KO_{neuropil}"
+    else:
+        logT_name = "logTs"
+        allT_name = "allTs"
+
 
     config["model"]["parameters"]["seq_len"] = int(config['data']['sequence']["seq_len"])
     config["model"]["parameters"]["seq_steps"] = int(config['data']['sequence']["seq_steps"])
@@ -109,7 +123,7 @@ def setup_derived_parameters(config):
     split = config['data']['split_strategy']
     config["paths"]["recodings_df"] = f"{config["paths"]["data_root"]}/PaulRecordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config["paths"]["data_root"]}/imgs4DL"
-    config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
+    config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
     config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / split / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'
     config["paths"]["results_root"] = str(root / "results" / f"{config['data']['task']}_{config['run_id']}")

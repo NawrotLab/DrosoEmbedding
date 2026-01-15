@@ -97,6 +97,7 @@ def main(config, logger):
             with open(config["paths"]["pickle_path"], 'rb') as file:
                 X_train, X_val, X_test, Y_train, Y_val, Y_test = pickle.load(file)
             logger.info(f"Loaded pickle: {config['data']['pickle_id']}, Sizes — Train: {len(Y_train)}, Val: {len(Y_val)}, Test: {len(Y_test)}")
+            logger.info(f"example train: {X_train[0]}, {Y_train[0]}")
             if config["training"]["shuffle_labels_naive"]:
                 random.shuffle(Y_train)
                 logger.warning("Shuffled Y_train — naive label shuffling baseline enabled.")
@@ -125,7 +126,6 @@ def main(config, logger):
                                         seq_steps=config['data']['sequence']['seq_steps'],
                                         allTs_path=config["paths"]["allTs_path"],
                                         preload_to_ram=training_params['preload_to_ram'])
-
             train_loader = DataLoader(train_dataset, batch_size=training_params["batch_size"],
                                       shuffle=True, num_workers=training_params['num_workers'], pin_memory=True, persistent_workers=True)
             val_loader = DataLoader(val_dataset, batch_size=training_params["batch_size"] * 2,

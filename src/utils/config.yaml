@@ -14,10 +14,11 @@ data:
     num_augmentations: 5
   preprocessing:
     method_ch: 'meanZ'
-    times: 'logTs'
-    neuropil: 'WT'
+    times: 'logTs'  #'logTs'
+    neuropil: 'VMMP'
     remove_neuropil: false
-    isolate_neuropil: false
+    isolate_neuropil: true
+    use_aligned_neuropil_template: false
     
 
     # splitting 
@@ -41,7 +42,7 @@ model:
   parameters:
     nr_channels: 1
     cnn_embed_dim: 16
-    transformer_embed_dim: 16
+    transformer_embed_dim: 32
     max_seq_len: 10         # >= longest sequence you’ll feed
     num_heads: 2
     num_layers: 1
@@ -49,7 +50,7 @@ model:
 
 training:
   batch_size: 256
-  epochs: 10
+  epochs: 1000
   save_best_from: 100
   learning_rate: 0.001
   weight_decay: 0.0001 #0.0001 #0.00001
@@ -61,6 +62,9 @@ training:
   continue_training:
     resume: false
     until_epoch: 0
+
+test_config:
+  train_test_varying: false
 
 base_seed: 777
 
