@@ -252,10 +252,10 @@ for spine in ax_pipeline.spines.values():
     spine.set_visible(False)
 fig.text(0.07, 0.925, 'a', ha='left', fontsize=16, fontweight='bold')
 fig.text(0.30, 0.925, 'b', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.76, 0.925, 'c', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.7, 0.925, 'c', ha='left', fontsize=16, fontweight='bold')
 fig.text(0.07, 0.48, 'd', ha='left', fontsize=16, fontweight='bold')
 fig.text(0.30, 0.48, 'e', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.76, 0.48, 'f', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.7, 0.48, 'f', ha='left', fontsize=16, fontweight='bold')
 
 # add_panel_label(fig, ax_pipeline, 'a')
 
@@ -340,8 +340,8 @@ logger.info(f"Saved PNG : {png_path}")
 plt.savefig(svg_path, format='svg', bbox_inches='tight')
 logger.info(f"Saved SVG : {svg_path}")
 
-plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
-logger.info(f"Saved PDF : {pdf_path}")
+# plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
+# logger.info(f"Saved PDF : {pdf_path}")
 
 plt.close()
 logger.info("Done.")

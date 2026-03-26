@@ -10,6 +10,50 @@ import yaml
 from pathlib import Path
 import gc
 # import umap
+from matplotlib.path import Path as MplPath
+
+# ── Bicolor half-circle markers ──────────────────────────────────────
+def _make_half_circle(side='left'):
+    """Create a half-circle marker Path for bicolor split-circle rendering."""
+    if side == 'left':
+        theta = np.linspace(np.pi / 2, 3 * np.pi / 2, 50)
+    else:
+        theta = np.linspace(-np.pi / 2, np.pi / 2, 50)
+    verts = np.column_stack([np.cos(theta), np.sin(theta)])
+    verts = np.vstack([[0, 0], verts, [0, 0]])
+    codes = [MplPath.MOVETO] + [MplPath.LINETO] * len(theta) + [MplPath.CLOSEPOLY]
+    return MplPath(verts, codes)
+
+HALF_CIRCLE_LEFT = _make_half_circle('left')
+HALF_CIRCLE_RIGHT = _make_half_circle('right')
+
+
+def scatter_bicolor(ax, x, y, style, s=120, linewidth=0.5, zorder=3, **kwargs):
+    """
+    Draw a bicolor split-circle at (x, y).
+    `style` must be a dict with keys: left_color, right_color,
+    left_edgecolor, right_edgecolor.
+    Falls back to a regular scatter if bicolor info is missing.
+    """
+    ax.scatter(x, y, marker=HALF_CIRCLE_LEFT,
+               c=[style['left_color']], edgecolors=[style['left_edgecolor']],
+               s=s, linewidth=linewidth, zorder=zorder, **kwargs)
+    ax.scatter(x, y, marker=HALF_CIRCLE_RIGHT,
+               c=[style['right_color']], edgecolors=[style['right_edgecolor']],
+               s=s, linewidth=linewidth, zorder=zorder, **kwargs)
+
+
+def scatter_bicolor_cloud(ax, xs, ys, style, s=6, alpha=0.8, linewidth=0.3, zorder=1):
+    """
+    Draw a cloud of bicolor split-circle points (e.g. for t-SNE).
+    """
+    ax.scatter(xs, ys, marker=HALF_CIRCLE_LEFT,
+               c=style['left_color'], edgecolors=style['left_edgecolor'],
+               s=s, alpha=alpha, linewidth=linewidth, zorder=zorder)
+    ax.scatter(xs, ys, marker=HALF_CIRCLE_RIGHT,
+               c=style['right_color'], edgecolors=style['right_edgecolor'],
+               s=s, alpha=alpha, linewidth=linewidth, zorder=zorder)
+
 
 # Shared configuration constants
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
@@ -534,7 +578,46 @@ def get_style(style = "stylesD"):
         ]
     }
 
-    return styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES
+    # ── Bicolor info for split-circle rendering ──
+    # Maps task → { class_index: { left_color, right_color, left_edgecolor, right_edgecolor } }
+    def _bicolor_entry(style_key):
+        s = styles[style_key]
+        if not s.get('bicolor', False):
+            return None
+        return {k: s[k] for k in ('left_color', 'right_color', 'left_edgecolor', 'right_edgecolor')}
+
+    # 16-class list order matches TASK_COLORS ordering above:
+    #  0: starved_odor_positive        8:  starved_odor_pos_taste_pos
+    #  1: starved_odor_negative        9:  starved_odor_neg_taste_neg
+    #  2: fed_odor_positive            10: starved_odor_neg_taste_pos  ← bicolor
+    #  3: fed_odor_negative            11: starved_odor_pos_taste_neg  ← bicolor
+    #  4: starved_taste_positive       12: fed_odor_pos_taste_pos
+    #  5: starved_taste_negative       13: fed_odor_neg_taste_neg
+    #  6: fed_taste_positive           14: fed_odor_neg_taste_pos      ← bicolor
+    #  7: fed_taste_negative           15: fed_odor_pos_taste_neg      ← bicolor
+    _keys_16 = [
+        'starved_odor_positive', 'starved_odor_negative',
+        'fed_odor_positive', 'fed_odor_negative',
+        'starved_taste_positive', 'starved_taste_negative',
+        'fed_taste_positive', 'fed_taste_negative',
+        'starved_odor_pos_taste_pos', 'starved_odor_neg_taste_neg',
+        'starved_odor_neg_taste_pos', 'starved_odor_pos_taste_neg',
+        'fed_odor_pos_taste_pos', 'fed_odor_neg_taste_neg',
+        'fed_odor_neg_taste_pos', 'fed_odor_pos_taste_neg',
+    ]
+    bicolor_16 = {}
+    for idx, key in enumerate(_keys_16):
+        entry = _bicolor_entry(key)
+        if entry is not None:
+            bicolor_16[idx] = entry
+
+    TASK_BICOLOR_INFO = {
+        'MetabolicState_2': {},
+        'State_Modality_6': {},
+        'State_Modality_Valence_16': bicolor_16,
+    }
+
+    return styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO
 
 
 
@@ -546,6 +629,7 @@ def load_all_results(
     task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
     fixed_trf_for_E: int = 16,   # H must equal this to populate E* groups
     fixed_cnn_for_H: int = 16,   # E must equal this to populate H* groups
+    only_cnn_dim: Optional[int] = None,  # if set, skip runs where cnn_dim != this value
     logger=None,
 ) -> Dict[str, Dict[str, Any]]:
     """
@@ -677,6 +761,10 @@ def load_all_results(
                 try:
                     classes, cnn_dim, trf_dim, run = parse_filename(p.name)
                 except Exception:
+                    continue
+
+                # Skip files not matching required CNN dimension
+                if only_cnn_dim is not None and cnn_dim != only_cnn_dim:
                     continue
 
                 # load only accuracy for run pickles

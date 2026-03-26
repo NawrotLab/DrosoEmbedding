@@ -1,0 +1,180 @@
+styles:
+  # 2 Classes
+  starved:
+    arrow_color: "#969393"
+    class_name: Starved
+    color: "#FFFFFF"
+    edgecolor: "#595959"
+    shape: "o"  # circle
+  fed:
+    class_name: Fed
+    color: "#595959"
+    edgecolor: "#595959"
+    shape: "o"  # circle
+  odor:  
+    color: "#D35F2A"
+  taste: 
+    color: "#3382BE"
+  odor_taste: 
+    color: "#7B4278"
+  positive:
+    color: "#32a852"
+  negative:
+    color: "#d40f0f"
+  positive_negative:
+    color: "#824405"
+  
+  # 6 Classes
+  starved_odor:
+    class_name: Odor (S)
+    color: "#FFFFFF"
+    edgecolor: "#D35F2A"
+    shape: "o"  
+  starved_taste:
+    class_name: Taste (S)
+    color: "#FFFFFF"
+    edgecolor: "#3382BE"
+    shape: "o"
+  starved_odor_taste:
+    class_name: Odor + Taste (S)
+    color: "#FFFFFF"
+    edgecolor: "#7B4278"
+    shape: "o"
+  fed_odor:
+    class_name: Odor (F)
+    color: "#D35F2A"
+    edgecolor: "#D35F2A"
+    shape: "o"
+  fed_taste:
+    class_name: Taste (F)
+    color: "#3382BE"
+    edgecolor: "#3382BE"
+    shape: "o"
+  fed_odor_taste:
+    class_name: Odor + Taste (F)
+    color: "#7B4278"
+    edgecolor: "#7B4278"
+    shape: "o"
+  
+  # 16 Classes
+  # --- Pure odor ---
+  starved_odor_positive:
+    class_name: O$^{+}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#D35F2A"
+    shape: "o"
+  starved_odor_negative:
+    class_name: O$^{-}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#F4B87E"
+    shape: "o"
+  fed_odor_positive:
+    class_name: O$^{+}$ (F)
+    color: "#D35F2A"
+    edgecolor: "#D35F2A"
+    shape: "o"
+  fed_odor_negative:
+    class_name: O$^{-}$ (F)
+    color: "#F4B87E"
+    edgecolor: "#F4B87E"
+    shape: "o"
+
+  # --- Pure taste ---
+  starved_taste_positive:
+    class_name: T$^{+}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#3382BE"
+    shape: "o"
+  starved_taste_negative:
+    class_name: T$^{-}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#B0C7EB"
+    shape: "o"
+  fed_taste_positive:
+    class_name: T$^{+}$ (F)
+    color: "#3382BE"
+    edgecolor: "#3382BE"
+    shape: "o"
+  fed_taste_negative:
+    class_name: T$^{-}$ (F)
+    color: "#B0C7EB"
+    edgecolor: "#B0C7EB"
+    shape: "o"
+
+  # --- Congruent O+T (same valence → single purple) ---
+  starved_odor_pos_taste_pos:
+    class_name: O$^{+}$+T$^{+}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#7B4278"
+    shape: "o"
+  starved_odor_neg_taste_neg:
+    class_name: O$^{-}$+T$^{-}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#E59ADC"
+    shape: "o"
+  fed_odor_pos_taste_pos:
+    class_name: O$^{+}$+T$^{+}$ (F)
+    color: "#7B4278"
+    edgecolor: "#7B4278"
+    shape: "o"
+  fed_odor_neg_taste_neg:
+    class_name: O$^{-}$+T$^{-}$ (F)
+    color: "#E59ADC"
+    edgecolor: "#E59ADC"
+    shape: "o"
+
+  # --- Conflicting O+T (bicolor split: LEFT=taste valence, RIGHT=odor valence, both in purple) ---
+  # O+T-  fed: left = taste aversive (light pink), right = odor appetitive (dark purple)
+  fed_odor_pos_taste_neg:
+    class_name: O$^{+}$T$^{-}$ (F)
+    color: "#7B4278"
+    edgecolor: "#7B4278"
+    bicolor: true
+    left_color: "#E59ADC"
+    right_color: "#7B4278"
+    left_edgecolor: "#E59ADC"
+    right_edgecolor: "#7B4278"
+    shape: "o"
+  # O-T+  fed: left = taste appetitive (dark purple), right = odor aversive (light pink)
+  fed_odor_neg_taste_pos:
+    class_name: O$^{-}$T$^{+}$ (F)
+    color: "#7B4278"
+    edgecolor: "#7B4278"
+    bicolor: true
+    left_color: "#7B4278"
+    right_color: "#E59ADC"
+    left_edgecolor: "#7B4278"
+    right_edgecolor: "#E59ADC"
+    shape: "o"
+  # O+T-  starved: white fill, bicolor purple edge
+  starved_odor_pos_taste_neg:
+    class_name: O$^{+}$T$^{-}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#E59ADC"
+    bicolor: true
+    left_color: "#FFFFFF"
+    right_color: "#FFFFFF"
+    left_edgecolor: "#E59ADC"
+    right_edgecolor: "#7B4278"
+    shape: "o"
+  # O-T+  starved: white fill, bicolor purple edge
+  starved_odor_neg_taste_pos:
+    class_name: O$^{-}$T$^{+}$ (S)
+    color: "#FFFFFF"
+    edgecolor: "#7B4278"
+    bicolor: true
+    left_color: "#FFFFFF"
+    right_color: "#FFFFFF"
+    left_edgecolor: "#7B4278"
+    right_edgecolor: "#E59ADC"
+    shape: "o"
+
+
+      
+  # other shapes: 
+  # "P" plus (filled)
+  # "p" plus (open)
+  #"D" diamond (filled)
+  #"d" diamond (open)
+  # "v" triangle_down
+  # .....

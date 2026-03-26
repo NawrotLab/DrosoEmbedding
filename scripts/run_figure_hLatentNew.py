@@ -14,7 +14,7 @@ import yaml
 from matplotlib.gridspec import GridSpec
 from mpl_toolkits.mplot3d import Axes3D
 from src.visualization.visualize_preformance import plot_tsne_latent
-from src.utils.helpers import load_all_results, get_style, _color_for_group
+from src.utils.helpers import load_all_results, get_style, _color_for_group, scatter_bicolor, HALF_CIRCLE_LEFT, HALF_CIRCLE_RIGHT
 from src.utils.logger import setup_logger
 
 
@@ -160,6 +160,7 @@ def plot_biological_axes_panel(
     task: str,
     colors: Dict,
     edges: Dict,
+    bicolor_info: Dict = None,
     fig: plt.Figure = None,
     gs: 'GridSpec' = None,
     row: int = 0,
@@ -171,6 +172,8 @@ def plot_biological_axes_panel(
     
     All three rows use 2D axes (16-class uses oblique projection).
     """
+    if bicolor_info is None:
+        bicolor_info = {}
     projections, axes_dict, displacements = _compute_biological_axes(X, labels, task, class_names)
     n_classes = len(np.unique(labels))
 
@@ -199,8 +202,12 @@ def plot_biological_axes_panel(
         # Centroids (no labels)
         for i in range(n_classes):
             is_starved = '(S)' in class_names[i] or class_names[i] == 'Starved'
-            ax.scatter(proj_s[i], 0, c=colors[i], edgecolors=edges[i],
-                       linewidth=2.0 if is_starved else 0.5, s=200, zorder=3)
+            lw = 2.0 if is_starved else 0.5
+            if i in bicolor_info:
+                scatter_bicolor(ax, proj_s[i], 0, bicolor_info[i], s=200, linewidth=lw, zorder=3)
+            else:
+                ax.scatter(proj_s[i], 0, c=colors[i], edgecolors=edges[i],
+                           linewidth=lw, s=200, zorder=3)
 
         # Endpoint text labels — placed beyond the line ends for clearance
         ax.text(-xlim * 1.15, 0, 'Starved', ha='right', va='center', fontsize=10)
@@ -235,8 +242,12 @@ def plot_biological_axes_panel(
         # Centroids (no labels)
         for i in range(n_classes):
             is_starved = '(S)' in class_names[i]
-            ax.scatter(proj_s[i], proj_m[i], c=colors[i], edgecolors=edges[i],
-                       linewidth=2.0 if is_starved else 0.5, s=180, zorder=3)
+            lw = 2.0 if is_starved else 0.5
+            if i in bicolor_info:
+                scatter_bicolor(ax, proj_s[i], proj_m[i], bicolor_info[i], s=180, linewidth=lw, zorder=3)
+            else:
+                ax.scatter(proj_s[i], proj_m[i], c=colors[i], edgecolors=edges[i],
+                           linewidth=lw, s=180, zorder=3)
 
         # Endpoint text labels
         ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
@@ -295,8 +306,12 @@ def plot_biological_axes_panel(
         # Centroids (no labels)
         for i in range(n_classes):
             is_starved = '(S)' in class_names[i]
-            ax.scatter(x_pts[i], y_pts[i], c=colors[i], edgecolors=edges[i],
-                       linewidth=2.0 if is_starved else 0.5, s=120, zorder=3)
+            lw = 2.0 if is_starved else 0.5
+            if i in bicolor_info:
+                scatter_bicolor(ax, x_pts[i], y_pts[i], bicolor_info[i], s=120, linewidth=lw, zorder=3)
+            else:
+                ax.scatter(x_pts[i], y_pts[i], c=colors[i], edgecolors=edges[i],
+                           linewidth=lw, s=120, zorder=3)
 
         # Endpoint text labels
         ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
@@ -318,17 +333,123 @@ def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     plt.rc('xtick', labelsize=8)
     plt.rc('ytick', labelsize=8)
     
-    # More compact figure size
-    fig = plt.figure(figsize=(16, 12))
+    fig = plt.figure(figsize=(16, 15))
     
-    # Adjust grid spec with less space between columns
     gs = GridSpec(3, 4, figure=fig, 
-                     left=0.08, right=0.98,  # Use more of the figure width
-                     bottom=0.15, top=0.92,  # Adjust vertical spacing
-                     wspace=0.15, hspace=0.25,  # Reduce space between subplots
+                     left=0.08, right=0.98,
+                     bottom=0.17, top=0.93,
+                     wspace=0.15, hspace=0.25,
                      width_ratios=[1, 1, 1, 0.8])
     
     return fig, gs
+
+
+def _draw_legend_panel(fig, styles):
+    """
+    Draw a horizontal legend panel at the bottom of the figure.
+    
+    Layout:  All 4 rows (header, Fed, Starved, footer) span the full figure width.
+    8 symbol columns evenly distributed, footer centered below.
+    """
+    # ── Separator line ──
+    line_y = 0.13
+    fig.add_artist(plt.Line2D([0.05, 0.97], [line_y, line_y],
+                              transform=fig.transFigure, color='0.75',
+                              linewidth=0.8, alpha=0.5, zorder=0))
+
+    # Legend axes: full width, sits well below separator
+    ax = fig.add_axes([0.03, 0.02, 0.95, 0.095])  # [left, bottom, width, height]
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis('off')
+
+    # ── Column definitions ──
+    columns = [
+        ('T app',   'fed_taste_positive',       'starved_taste_positive'),
+        ('T avr',   'fed_taste_negative',        'starved_taste_negative'),
+        ('O app',   'fed_odor_positive',         'starved_odor_positive'),
+        ('O avr',   'fed_odor_negative',         'starved_odor_negative'),
+        ('OT app',  'fed_odor_pos_taste_pos',    'starved_odor_pos_taste_pos'),
+        ('T$^{+}$O$^{-}$', 'fed_odor_neg_taste_pos', 'starved_odor_neg_taste_pos'),
+        ('T$^{-}$O$^{+}$', 'fed_odor_pos_taste_neg', 'starved_odor_pos_taste_neg'),
+        ('OT avr',  'fed_odor_neg_taste_neg',    'starved_odor_neg_taste_neg'),
+    ]
+
+    ncols = len(columns)
+    # Full-width span for all 8 symbol columns
+    x_start, x_end = 0.08, 0.92
+    xs = np.linspace(x_start, x_end, ncols)
+
+    # y positions — packed tight
+    y_header = 0.95
+    y_fed    = 0.65
+    y_stv    = 0.35
+    y_footer = 0.05
+    ms = 14
+
+    # Row labels (left of first column)
+    ax.text(x_start - 0.045, y_fed, 'Fed', ha='right', va='center', fontsize=9, weight='bold')
+    ax.text(x_start - 0.045, y_stv, 'Stv', ha='right', va='center', fontsize=9, weight='bold')
+
+    for i, (header, fed_key, stv_key) in enumerate(columns):
+        x = xs[i]
+
+        # Header — bold, dark
+        ax.text(x, y_header, header, ha='center', va='center',
+                fontsize=9, weight='bold', color='0.2')
+
+        fed_s = styles[fed_key]
+        stv_s = styles[stv_key]
+
+        # ── Draw Fed symbol ──
+        if fed_s.get('bicolor', False):
+            ax.plot(x, y_fed, marker=HALF_CIRCLE_LEFT, ms=ms,
+                    markerfacecolor=fed_s['left_color'], markeredgecolor=fed_s['left_edgecolor'],
+                    markeredgewidth=1.2, clip_on=False, zorder=5)
+            ax.plot(x, y_fed, marker=HALF_CIRCLE_RIGHT, ms=ms,
+                    markerfacecolor=fed_s['right_color'], markeredgecolor=fed_s['right_edgecolor'],
+                    markeredgewidth=1.2, clip_on=False, zorder=5)
+        else:
+            ax.plot(x, y_fed, 'o', ms=ms,
+                    markerfacecolor=fed_s['color'], markeredgecolor=fed_s['edgecolor'],
+                    markeredgewidth=1.2, clip_on=False, zorder=5)
+
+        # ── Draw Starved symbol — thicker edges ──
+        stv_ew = 2.5
+        if stv_s.get('bicolor', False):
+            ax.plot(x, y_stv, marker=HALF_CIRCLE_LEFT, ms=ms,
+                    markerfacecolor=stv_s['left_color'], markeredgecolor=stv_s['left_edgecolor'],
+                    markeredgewidth=stv_ew, clip_on=False, zorder=5)
+            ax.plot(x, y_stv, marker=HALF_CIRCLE_RIGHT, ms=ms,
+                    markerfacecolor=stv_s['right_color'], markeredgecolor=stv_s['right_edgecolor'],
+                    markeredgewidth=stv_ew, clip_on=False, zorder=5)
+        else:
+            ax.plot(x, y_stv, 'o', ms=ms,
+                    markerfacecolor=stv_s['color'], markeredgecolor=stv_s['edgecolor'],
+                    markeredgewidth=stv_ew, clip_on=False, zorder=5)
+
+    # ── Footer row: encoding rules + modality swatches, evenly spaced across full width ──
+    footer_parts = [
+        ('text',   dict(s=u'\u25cf  Filled = Fed',       color='0.4')),
+        ('text',   dict(s=u'\u25cb  Open = Starved',     color='0.4')),
+        ('text',   dict(s=u'\u25d1  Split = Conflict',   color='0.4')),
+        ('swatch', dict(fc=styles['taste']['color'],      label='Taste')),
+        ('swatch', dict(fc=styles['odor']['color'],       label='Odor')),
+        ('swatch', dict(fc=styles['odor_taste']['color'], label='O+T')),
+    ]
+    n_footer = len(footer_parts)
+    fxs = np.linspace(x_start, x_end, n_footer)
+
+    for fx, (ftype, fkw) in zip(fxs, footer_parts):
+        if ftype == 'text':
+            ax.text(fx, y_footer, fkw['s'], ha='center', va='center',
+                    fontsize=8.5, color=fkw['color'])
+        elif ftype == 'swatch':
+            ax.plot(fx - 0.015, y_footer, 's', ms=10, markerfacecolor=fkw['fc'],
+                    markeredgecolor=fkw['fc'], clip_on=False)
+            ax.text(fx + 0.01, y_footer, fkw['label'], ha='left', va='center',
+                    fontsize=8.5, color='0.3')
+
 
 def _get_group_map(task: str, class_names: List[str]) -> Dict[str, List[int]]:
     """Return the group mapping for the given task and class names."""
@@ -704,6 +825,7 @@ def _plot_tsne(
     edges: Dict,
     shapes: Dict,
     styles: Dict = None,
+    bicolor_info: Dict = None,
     use_l_axis: bool = False,
     is_control: bool = False,
     plot_centroids: bool = False,
@@ -724,6 +846,7 @@ def _plot_tsne(
         edges: Edge colors
         shapes: Marker shapes
         styles: Style dictionary for centroids
+        bicolor_info: Dict mapping class index to bicolor style info
         use_l_axis: Use L-shaped axis
         is_control: If control plot
         plot_centroids: Add centroid vectors
@@ -755,6 +878,7 @@ def _plot_tsne(
             colors=colors,
             shapes=shapes,
             edgecolors=edges,
+            bicolor_info=bicolor_info,
             legend=False,
             draw_axis=not use_l_axis,
             draw_title=False
@@ -789,6 +913,7 @@ def plot_figure_latent(
     colors: Dict,
     edges: Dict,
     shapes: Dict,
+    bicolor_info: Dict = None,
     out_path: str = 'results/CombiPlots/fig_latent_chptRuns_1.png',
     use_l_axis: bool = True,
     logger = None
@@ -820,11 +945,14 @@ def plot_figure_latent(
         # Add row label
         fig.text(0.05, task_y_pos[row], task_name, ha='left', va='center', fontsize=12, rotation=90, weight='bold', transform=fig.transFigure)
         
+        # Bicolor info for this task
+        task_bicolor = bicolor_info.get(task, {}) if bicolor_info else {}
+
         # Plot control t-SNE (first column)
-        _plot_tsne(fig, gs, row, 0, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis, is_control=True, task=task, logger=logger)
+        _plot_tsne(fig, gs, row, 0, run_dict, class_names, colors[task], edges[task], shapes[task], bicolor_info=task_bicolor, use_l_axis=use_l_axis, is_control=True, task=task, logger=logger)
         
         # Plot best t-SNE (second column)
-        _plot_tsne(fig, gs, row, 1, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis, task=task, logger=logger)
+        _plot_tsne(fig, gs, row, 1, run_dict, class_names, colors[task], edges[task], shapes[task], bicolor_info=task_bicolor, use_l_axis=use_l_axis, task=task, logger=logger)
         
         # ── NEW: Plot biological axes (third column) ──
         # Uses full high-D latent space, NOT t-SNE 2D
@@ -842,6 +970,7 @@ def plot_figure_latent(
                 task=task,
                 colors=colors[task],
                 edges=edges[task],
+                bicolor_info=task_bicolor,
                 fig=fig,
                 gs=gs,
                 row=row,
@@ -866,11 +995,16 @@ def plot_figure_latent(
         _plot_accuracy_vs_dimension(ax, run_dict, task_name, color=list(colors.values())[row], row=row, 
                                     primary_family=primary_family, overlay_alt_family=False, best_dim=best_dim)
     
+    # Draw legend panel at bottom of figure
+    _draw_legend_panel(fig, styles)
+
     # Save figure
     if logger:
         logger.debug(f"Saving figure to {out_path}")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.savefig(out_path, dpi=300, bbox_inches='tight', pad_inches=0.15)
+    plt.savefig(out_path.replace('.png', '.svg'), dpi=300, format='svg', bbox_inches='tight', pad_inches=0.15)
+    logger.info(f"Saved SVG : {out_path.replace('.png', '.svg')}")
     plt.close()
     if logger:
         logger.info(f"Figure saved to {out_path}")
@@ -889,14 +1023,13 @@ def main():
     logger.debug(f"Checking if BASE_RESULTS_DIR exists: {os.path.exists(BASE_RESULTS_DIR)}")
     
     logger.debug("Loading styles from YAML file...")
-    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES = get_style(style = "stylesE")
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="stylesG")
     logger.debug(f"Loaded styles. TASK_CLASS_NAMES keys: {list(TASK_CLASS_NAMES.keys()) if isinstance(TASK_CLASS_NAMES, dict) else 'N/A'}")
 
     logger.debug(f"Loading results from {BASE_RESULTS_DIR}...")
     logger.debug(f"Task names to load: {list(TASK_CLASS_NAMES.keys()) if isinstance(TASK_CLASS_NAMES, dict) else TASK_CLASS_NAMES}")
-    # fixed_cnn_for_H: E must equal this to populate H* groups (used when primary_family="H")
-    # fixed_trf_for_E: H must equal this to populate E* groups (used when primary_family="E")
-    results_dict = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES, fixed_trf_for_E=16, fixed_cnn_for_H=16, logger=logger)
+    # only_cnn_dim=16: skip all runs where E != 16 (saves significant load time)
+    results_dict = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES, fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16, logger=logger)
     logger.debug(f"Loaded results. Tasks found: {list(results_dict.keys())}")
     
     # Debug: Check what was loaded for each task
@@ -911,7 +1044,7 @@ def main():
     logger.info("Loaded results successfully")
 
     logger.debug("Generating figure...")
-    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, out_path='results/CombiPlots/fig_Latent_v11.png', logger=logger)
+    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, bicolor_info=TASK_BICOLOR_INFO, out_path='results/CombiPlots/fig_Latent_v13.png', logger=logger)
     logger.info("Figure generation complete")
 
 if __name__ == '__main__':

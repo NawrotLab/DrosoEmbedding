@@ -77,6 +77,26 @@ Tensor = torch.Tensor
 #     return None
 
 
+def _plot_class_symbol(ax, x, y, style, markersize=12, transform=None, clip_on=False, zorder=10):
+    """Draw a class symbol (regular dot or bicolor split-circle) at (x, y)."""
+    from src.utils.helpers import HALF_CIRCLE_LEFT, HALF_CIRCLE_RIGHT
+    kw = dict(clip_on=clip_on, zorder=zorder)
+    if transform is not None:
+        kw['transform'] = transform
+
+    if style.get('bicolor', False):
+        ax.plot(x, y, marker=HALF_CIRCLE_LEFT, markersize=markersize,
+                markerfacecolor=style.get('left_color', 'gray'),
+                markeredgecolor=style.get('left_edgecolor', 'black'), **kw)
+        ax.plot(x, y, marker=HALF_CIRCLE_RIGHT, markersize=markersize,
+                markerfacecolor=style.get('right_color', 'gray'),
+                markeredgecolor=style.get('right_edgecolor', 'black'), **kw)
+    else:
+        ax.plot(x, y, marker=style.get('shape', 'o'), markersize=markersize,
+                markerfacecolor=style.get('color', 'gray'),
+                markeredgecolor=style.get('edgecolor', 'black'), **kw)
+
+
 
 def get_class_style(class_name, styles):
     """Get style properties for a given class name.
@@ -384,35 +404,18 @@ def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperpa
         # Get the style for each class
         for i, class_name in enumerate(class_names):
             style = get_class_style(class_name, styles)
-            # print(f"Style for {class_name}: {style}")
             if style:
-                # Add dot for y-axis (row) label - position just to the left of the matrix
+                # Add dot for y-axis (row) label
                 if axis_labeling in ['both', 'y_axis']:
-                    ax.plot(
-                        -0.05, i + 0.5,  # Moved closer to the matrix
-                        marker=style.get('shape', 'o'),
-                        markersize=12,  # Slightly smaller for better fit
-                        markerfacecolor=style.get('color', 'gray'),
-                        markeredgecolor=style.get('edgecolor', 'black'),
-                        transform=ax.get_yaxis_transform(),
-                        clip_on=False,
-                        zorder=10  # Ensure dots are on top
-                    )
-                    print(f"Added dot label: {class_name}")
+                    _plot_class_symbol(ax, -0.05, i + 0.5, style, markersize=12,
+                                       transform=ax.get_yaxis_transform(),
+                                       clip_on=False, zorder=10)
 
-                
-                # Add dot for x-axis (column) label - position just below the matrix
+                # Add dot for x-axis (column) label
                 if axis_labeling in ['both', 'x_axis']:
-                    ax.plot(
-                        i + 0.5, -0.04,  # Moved closer to the matrix
-                        marker=style.get('shape', 'o'),
-                        markersize=12,  # Slightly smaller for better fit
-                        markerfacecolor=style.get('color', 'gray'),
-                        markeredgecolor=style.get('edgecolor', 'black'),
-                        transform=ax.get_xaxis_transform(),
-                        clip_on=False,
-                        zorder=10  # Ensure dots are on top
-                    )
+                    _plot_class_symbol(ax, i + 0.5, -0.04, style, markersize=12,
+                                       transform=ax.get_xaxis_transform(),
+                                       clip_on=False, zorder=10)
 
     n_classes = len(class_names)
     
@@ -485,6 +488,7 @@ def plot_tsne_latent(latent_2d,
                      colors=None,
                      shapes=None,
                      edgecolors=None,
+                     bicolor_info=None,
                      ax=None,
                      title=None,
                      legend=True,
@@ -499,12 +503,15 @@ def plot_tsne_latent(latent_2d,
       class_names: list of class name strings
       output_path: if provided, save standalone figure here
       filename: name for saving
+      bicolor_info: dict mapping class_index -> {left_color, right_color, left_edgecolor, right_edgecolor}
       ax: Optional Axes to draw on (subplot mode)
       title: Optional subplot title
       legend: whether to show legend
       draw_axis: whether to draw x/y labels
       draw_title: whether to draw the title
     """
+    from src.utils.helpers import scatter_bicolor_cloud, HALF_CIRCLE_LEFT
+
     standalone = ax is None
     if standalone:
         fig, ax = plt.subplots(figsize=(12, 10))
@@ -514,13 +521,29 @@ def plot_tsne_latent(latent_2d,
         shapes = ['o'] * len(class_names)
     if edgecolors is None:
         edgecolors = ['none'] * len(class_names)
+    if bicolor_info is None:
+        bicolor_info = {}
 
     for cls in np.unique(labels_np):
+        ci = int(cls)
         idx = labels_np == cls
-        ax.scatter(latent_2d[idx, 0], latent_2d[idx, 1],
-                   label=f"{class_names[int(cls)]} ({idx.sum()})",
-                   alpha=0.8, s=6,
-                   color=colors[int(cls)], edgecolors=edgecolors[int(cls)], linewidth=0.5, marker=shapes[int(cls)])
+        lbl = f"{class_names[ci]} ({idx.sum()})"
+
+        if ci in bicolor_info:
+            # Render bicolor split-circle cloud
+            scatter_bicolor_cloud(ax, latent_2d[idx, 0], latent_2d[idx, 1],
+                                  bicolor_info[ci], s=6, alpha=0.8, linewidth=0.3)
+            # Invisible scatter just for legend entry
+            ax.scatter([], [], marker=HALF_CIRCLE_LEFT,
+                       c=[bicolor_info[ci]['left_color']],
+                       edgecolors=[bicolor_info[ci]['left_edgecolor']],
+                       s=20, label=lbl)
+        else:
+            ax.scatter(latent_2d[idx, 0], latent_2d[idx, 1],
+                       label=lbl,
+                       alpha=0.8, s=6,
+                       color=colors[ci], edgecolors=edgecolors[ci],
+                       linewidth=0.5, marker=shapes[ci])
     ax.plot(0, 0, 'ko', markersize=3)
 
     if xlim:
@@ -1226,15 +1249,7 @@ def plot_precision_recall_comparison(ax, rpt_best, class_names, show_legend=Fals
         for i, class_name in enumerate(class_names):
             style = get_class_style(class_name, styles)
             if style:
-                ax.plot(
-                    i, -0.1,
-                    marker=style.get('shape', 'o'),
-                    markersize=12,
-                    markerfacecolor=style.get('color', 'gray'),
-                    markeredgecolor=style.get('edgecolor', 'black'),
-                    # transform=ax.get_xaxis_transform(),
-                    clip_on=False
-                )
+                _plot_class_symbol(ax, i, -0.1, style, markersize=12, clip_on=False)
     else:
         # Use text labels
         ax.set_xticklabels(class_names, rotation=90, ha='right')

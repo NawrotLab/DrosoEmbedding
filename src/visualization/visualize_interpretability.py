@@ -23,6 +23,7 @@ import json
 import cairosvg
 from PIL import Image
 import io
+import matplotlib.transforms as mtransforms
 
 
 # ════════════════════════════════════════════════
@@ -575,7 +576,7 @@ def plot_gradcam_pooled(
         nrows, ncols + 1,
         subplot_spec=gs_slot,
         wspace=0.04, hspace=0.05,
-        width_ratios=[1, 1, 1, 0.08],
+        width_ratios=[1, 1, 1, 0.05],
     )
 
     # ── Image grid ─────────────────────────────────────────
@@ -639,8 +640,11 @@ def plot_heatmap_groups_abs(
                         ha='center', va='center', fontsize=fontsize_annot, color='white')
     if title:
         ax.set_title(title)
-    cbar = ax.figure.colorbar(im, ax=ax, fraction=0.03, pad=0.02)
-    cbar.set_label('Weights', fontsize=16, labelpad=6)
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax = divider.append_axes("right", size="3%", pad=0.08)
+    cbar = ax.figure.colorbar(im, cax=cax)
+    cbar.set_label('Importance Weights', fontsize=16, labelpad=6)
     return ax
 
 
@@ -730,11 +734,20 @@ def plot_contrasts_horizontal(
         # Title below
         ax.set_xlabel(title, fontsize=fontsize_title, fontweight='bold')
 
+        trans = mtransforms.blended_transform_factory(ax.transData, ax.transAxes)
+        neg_lbl = info["neg_label"].replace("Appetitive", "App.").replace("Aversive", "Avs.")
+        pos_lbl = info["pos_label"].replace("Appetitive", "App.").replace("Aversive", "Avs.")
+
+
         # Direction annotation above
-        ax.text(0.5, 1.03,
-                f'← {info["neg_label"]}  |  {info["pos_label"]} →',
-                ha='center', va='bottom', fontsize=14,
-                transform=ax.transAxes)
+
+        ax.text(0, 1.03, '|', ha='center', va='bottom', fontsize=14, transform=trans)
+        ax.text(0, 1.03, f'← {neg_lbl} ', ha='right', va='bottom', fontsize=14, transform=trans)
+        ax.text(0, 1.03, f' {pos_lbl} →', ha='left', va='bottom', fontsize=14, transform=trans)
+        # ax.text(0.5, 1.03,
+        #         f'← {info["neg_label"]}  |  {info["pos_label"]} →',
+        #         ha='center', va='bottom', fontsize=14,
+        #         transform=ax.transAxes)
 
         # Y-tick labels + left spine only on FIRST panel
         if ax_idx == 0:

@@ -12,13 +12,16 @@
 # Optional: Activate virtualenv
 source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
+
 # Run evaluation
-# python -m scripts.run_figure_hLatent
-# python -m scripts.neuropils_importance_cofficients
+python -m scripts.run_figure_hLatentNew
 # python -m scripts.run_figure_interpretability
+# python -m scripts.run_figure_overview
+
+
+
+# python -m scripts.neuropils_importance_cofficients
 # python -m scripts.VizCAM
 # python -m scripts.run_plotting
-python -m scripts.run_figure_hLatentNew
-# python -m scripts.run_figure_overview
 # python -m tmp.latentCentroids_tries
 
