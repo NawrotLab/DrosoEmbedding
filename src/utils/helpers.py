@@ -8,6 +8,7 @@ import torch
 from sklearn.manifold import TSNE
 import yaml
 from pathlib import Path
+import gc
 # import umap
 
 # Shared configuration constants
@@ -241,154 +242,214 @@ def _get_group_map_eval(task_name: str, class_names: list[str]) -> dict[str, lis
 #             out[task]['__class_names__'] = task_names[task]
 
 #     return out
+# -------
+# def load_all_results(
+#     base_dir: str | os.PathLike,
+#     task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
+#     fixed_trf_for_E: int = 16,   # H must equal this to populate E* groups
+#     fixed_cnn_for_H: int = 16,   # E must equal this to populate H* groups
+#     logger = None,
+# ) -> Dict[str, Dict[str, Any]]:
+#     """
+#     Scan a results root and return, per task:
+#       {
+#         '...': {
+#           'control': <pkl or None>,
+#           'best'   : <pkl or None>,
+#           'runs'   : {
+#             'E4' : [ {run, classes, cnn_dim, trf_dim, path, data}, ... ]   # ONLY files with H==fixed_trf_for_E
+#             'E8' : [ ... ],
+#             ...
+#             'H4' : [ {run, classes, cnn_dim, trf_dim, path, data}, ... ]   # ONLY files with E==fixed_cnn_for_H
+#             'H8' : [ ... ],
+#             ...
+#           },
+#           '__class_names__': ...  # only if task_names is a mapping
+#         }
+#       }
 
-def load_all_results(
-    base_dir: str | os.PathLike,
-    task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
-    fixed_trf_for_E: int = 16,   # H must equal this to populate E* groups
-    fixed_cnn_for_H: int = 16,   # E must equal this to populate H* groups
-) -> Dict[str, Dict[str, Any]]:
-    """
-    Scan a results root and return, per task:
-      {
-        '...': {
-          'control': <pkl or None>,
-          'best'   : <pkl or None>,
-          'runs'   : {
-            'E4' : [ {run, classes, cnn_dim, trf_dim, path, data}, ... ]   # ONLY files with H==fixed_trf_for_E
-            'E8' : [ ... ],
-            ...
-            'H4' : [ {run, classes, cnn_dim, trf_dim, path, data}, ... ]   # ONLY files with E==fixed_cnn_for_H
-            'H8' : [ ... ],
-            ...
-          },
-          '__class_names__': ...  # only if task_names is a mapping
-        }
-      }
+#     Only files strictly matching 'C{classes}_E{cnn}_H{trf}_{run}.pkl' are considered.
+#     """
+#     base = Path(base_dir)
 
-    Only files strictly matching 'C{classes}_E{cnn}_H{trf}_{run}.pkl' are considered.
-    """
-    base = Path(base_dir)
+#     # Strict pattern: C2_E4_H16_1.pkl (underscores only, optional dash before run also allowed)
+#     strict = re.compile(
+#         r'^C(?P<classes>\d+)_E(?P<cnn>\d+)_H(?P<trf>\d+)[_-](?P<run>\d+)\.pkl$',
+#         re.IGNORECASE
+#     )
 
-    # Strict pattern: C2_E4_H16_1.pkl (underscores only, optional dash before run also allowed)
-    strict = re.compile(
-        r'^C(?P<classes>\d+)_E(?P<cnn>\d+)_H(?P<trf>\d+)[_-](?P<run>\d+)\.pkl$',
-        re.IGNORECASE
-    )
+#     def parse_filename(name: str):
+#         m = strict.match(name)
+#         if not m:
+#             raise ValueError(f"Non-matching filename '{name}'")
+#         return (
+#             int(m.group("classes")),
+#             int(m.group("cnn")),
+#             int(m.group("trf")),
+#             int(m.group("run")),
+#         )
 
-    def parse_filename(name: str):
-        m = strict.match(name)
-        if not m:
-            raise ValueError(f"Non-matching filename '{name}'")
-        return (
-            int(m.group("classes")),
-            int(m.group("cnn")),
-            int(m.group("trf")),
-            int(m.group("run")),
-        )
+#     def load_latest_pkl(dir_path: Path):
+#         if not dir_path.is_dir():
+#             if logger:
+#                 logger.debug(f"load_latest_pkl: {dir_path} is not a directory")
+#             return None
+#         pkls = [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".pkl"]
+#         if not pkls:
+#             if logger:
+#                 logger.debug(f"load_latest_pkl: No .pkl files found in {dir_path}")
+#             return None
+#         pkls.sort(key=lambda p: p.stat().st_mtime, reverse=True)  # newest first
+#         try:
+#             file_size = pkls[0].stat().st_size
+#             # if logger:
+#             #     logger.info(f"load_latest_pkl: Loading {pkls[0].name} ({file_size / (1024*1024):.2f} MB) from {dir_path}")
+#             with pkls[0].open("rb") as f:
+#                 data = pickle.load(f)
+#                 # if logger:
+#                 #     logger.info("data keys: {data.keys()}")
+#                 #     logger.info(f"load_latest_pkl: Successfully loaded {pkls[0].name}")
+#                 return data
+#         except Exception as e:
+#             if logger:
+#                 logger.warning(f"load_latest_pkl: Failed to load latest pkl in {dir_path}: {e}")
+#             else:
+#                 print(f"[WARN] Failed to load latest pkl in {dir_path}: {e}")
+#             return None
 
-    def load_latest_pkl(dir_path: Path):
-        if not dir_path.is_dir():
-            return None
-        pkls = [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".pkl"]
-        if not pkls:
-            return None
-        pkls.sort(key=lambda p: p.stat().st_mtime, reverse=True)  # newest first
-        try:
-            with pkls[0].open("rb") as f:
-                return pickle.load(f)
-        except Exception as e:
-            print(f"[WARN] Failed to load latest pkl in {dir_path}: {e}")
-            return None
+#     def load_pickle(path: Path):
+#         try:
+#             file_size = path.stat().st_size
+#             # if logger:
+#             #     logger.info(f"load_pickle: Loading {path.name} ({file_size / (1024*1024):.2f} MB)")
+#             with path.open("rb") as f:
+#                 data = pickle.load(f)
+#                 if logger:
+#                     logger.info(f"data keys: {data.keys()}")
+#                     logger.info(f"load_pickle: Successfully loaded {path.name}")
+#                 return data
+#         except Exception as e:
+#             if logger:
+#                 logger.warning(f"load_pickle: Failed to load {path.name}: {e}")
+#             else:
+#                 print(f"[WARN] Failed to load {path.name}: {e}")
+#             return None
 
-    def load_pickle(path: Path):
-        try:
-            with path.open("rb") as f:
-                return pickle.load(f)
-        except Exception as e:
-            print(f"[WARN] Failed to load {path.name}: {e}")
-            return None
+#     # Normalize task_names into a whitelist and optional class-name mapping
+#     whitelist: Optional[set[str]] = None
+#     classmap: Optional[Mapping[str, Any]] = None
+#     if task_names is not None:
+#         if isinstance(task_names, Mapping):
+#             classmap = task_names
+#             whitelist = set(task_names.keys())
+#         else:
+#             whitelist = set(task_names)
 
-    # Normalize task_names into a whitelist and optional class-name mapping
-    whitelist: Optional[set[str]] = None
-    classmap: Optional[Mapping[str, Any]] = None
-    if task_names is not None:
-        if isinstance(task_names, Mapping):
-            classmap = task_names
-            whitelist = set(task_names.keys())
-        else:
-            whitelist = set(task_names)
+#     # choose which task folders to walk
+#     if logger:
+#         logger.debug(f"load_all_results: Scanning base directory {base}")
+#     tasks = [p for p in base.iterdir() if p.is_dir()]
+#     if whitelist is not None:
+#         tasks = [p for p in tasks if p.name in whitelist]
+#     tasks.sort(key=lambda p: p.name)
+#     if logger:
+#         logger.debug(f"load_all_results: Found {len(tasks)} task directories: {[t.name for t in tasks]}")
 
-    # choose which task folders to walk
-    tasks = [p for p in base.iterdir() if p.is_dir()]
-    if whitelist is not None:
-        tasks = [p for p in tasks if p.name in whitelist]
-    tasks.sort(key=lambda p: p.name)
+#     out: Dict[str, Dict[str, Any]] = {}
+#     for task_dir in tasks:
+#         task = task_dir.name
+#         if logger:
+#             logger.debug(f"load_all_results: Processing task '{task}'")
+#         entry: Dict[str, Any] = {"control": None, "best": None, "runs": {}}
 
-    out: Dict[str, Dict[str, Any]] = {}
-    for task_dir in tasks:
-        task = task_dir.name
-        entry: Dict[str, Any] = {"control": None, "best": None, "runs": {}}
+#         # control (support 'control' OR 'control_run')
+#         for c in ("control", "control_run"):
+#             cand = task_dir / c
+#             v = load_latest_pkl(cand)
+#             if v is not None:
+#                 entry["control"] = v
+#                 if logger:
+#                     logger.debug(f"load_all_results: Found control file for task '{task}' in {cand}")
+#                 break
 
-        # control (support 'control' OR 'control_run')
-        for c in ("control", "control_run"):
-            cand = task_dir / c
-            v = load_latest_pkl(cand)
-            if v is not None:
-                entry["control"] = v
-                break
+#         # best
+#         best_path = task_dir / "best"
+#         entry["best"] = load_latest_pkl(best_path)
+#         if entry["best"] is not None and logger:
+#             logger.debug(f"load_all_results: Found best file for task '{task}'")
 
-        # best
-        entry["best"] = load_latest_pkl(task_dir / "best")
+#         # runs (support 'runs' OR 'dim_runs'), but ONLY strict filenames C*_E*_H*_* .pkl
+#         for runs_folder in ("runs", "dim_runs"):
+#             rdir = task_dir / runs_folder
+#             if not rdir.is_dir():
+#                 continue
+#             if logger:
+#                 logger.info(f"load_all_results: Processing runs folder '{runs_folder}' for task '{task}'")
+#             pkl_files = [p for p in rdir.iterdir() if p.is_file() and p.suffix == ".pkl"]
+#             if logger:
+#                 logger.info(f"load_all_results: Found {len(pkl_files)} .pkl files in {rdir}")
 
-        # runs (support 'runs' OR 'dim_runs'), but ONLY strict filenames C*_E*_H*_* .pkl
-        for runs_folder in ("runs", "dim_runs"):
-            rdir = task_dir / runs_folder
-            if not rdir.is_dir():
-                continue
+#             file_count = 0
+#             for p in sorted(pkl_files, key=lambda x: x.name):
+#                 file_count += 1
+#                 try:
+#                     classes, cnn_dim, trf_dim, run = parse_filename(p.name)
+#                     file_size = p.stat().st_size
+#                 except Exception as e:
+#                     # Strictly skip anything not matching the new scheme
+#                     if logger:
+#                         logger.debug(f"load_all_results: Skipping {p.name}: {e}")
+#                     else:
+#                         print(f"[INFO] Skipping {p.name}: {e}")
+#                     continue
 
-            for p in sorted(rdir.iterdir(), key=lambda x: x.name):
-                if not (p.is_file() and p.suffix == ".pkl"):
-                    continue
-                try:
-                    classes, cnn_dim, trf_dim, run = parse_filename(p.name)
-                except Exception as e:
-                    # Strictly skip anything not matching the new scheme
-                    print(f"[INFO] Skipping {p.name}: {e}")
-                    continue
+#                 if logger:
+#                     logger.info(f"load_all_results: Processing file {file_count}/{len(pkl_files)}: {p.name} ({file_size / (1024*1024):.2f} MB)")
+#                 rec = {
+#                     "run": run,
+#                     "classes": classes,
+#                     "cnn_dim": cnn_dim,   # E*
+#                     "trf_dim": trf_dim,   # H*
+#                     "path": str(p),
+#                     "data": load_pickle(p),
+#                 }
+#                 if rec["data"] is None:
+#                     if logger:
+#                         logger.warning(f"load_all_results: Failed to load data from {p.name}, skipping")
+#                     continue
+#                 # if logger:
+#                 #     logger.info(f"load_all_results: Completed loading file {file_count}/{len(pkl_files)}: {p.name}")
 
-                rec = {
-                    "run": run,
-                    "classes": classes,
-                    "cnn_dim": cnn_dim,   # E*
-                    "trf_dim": trf_dim,   # H*
-                    "path": str(p),
-                    "data": load_pickle(p),
-                }
-                # print(rec["data"]["transformer_latent_space"].shape)
+#                 # Group as E{cnn} only if H == fixed_trf_for_E (vary CNN while TRF fixed)
+#                 if trf_dim == fixed_trf_for_E:
+#                     key_E = f"E{cnn_dim}"
+#                     entry["runs"].setdefault(key_E, []).append(rec)
+#                     if logger:
+#                         logger.debug(f"load_all_results: Added {p.name} to group {key_E}")
 
+#                 # Group as H{trf} only if E == fixed_cnn_for_H (vary TRF while CNN fixed)
+#                 if cnn_dim == fixed_cnn_for_H:
+#                     key_H = f"H{trf_dim}"
+#                     entry["runs"].setdefault(key_H, []).append(rec)
+#                     if logger:
+#                         logger.debug(f"load_all_results: Added {p.name} to group {key_H}")
 
-                # Group as E{cnn} only if H == fixed_trf_for_E (vary CNN while TRF fixed)
-                if trf_dim == fixed_trf_for_E:
-                    key_E = f"E{cnn_dim}"
-                    entry["runs"].setdefault(key_E, []).append(rec)
+#         # sort each dimension's list by run index
+#         for k in list(entry["runs"].keys()):
+#             entry["runs"][k].sort(key=lambda d: d["run"])
+#         if logger:
+#             runs_per_group = {k: len(v) for k, v in entry['runs'].items()}
+#             logger.debug(f"load_all_results: Task '{task}' complete - groups: {list(entry['runs'].keys())}, runs per group: {runs_per_group}")
 
-                # Group as H{trf} only if E == fixed_cnn_for_H (vary TRF while CNN fixed)
-                if cnn_dim == fixed_cnn_for_H:
-                    key_H = f"H{trf_dim}"
-                    entry["runs"].setdefault(key_H, []).append(rec)
+#         # attach class names if provided as a mapping
+#         if classmap is not None and task in classmap:
+#             entry["__class_names__"] = classmap[task]
 
-        # sort each dimension's list by run index
-        for k in list(entry["runs"].keys()):
-            entry["runs"][k].sort(key=lambda d: d["run"])
+#         out[task] = entry
 
-        # attach class names if provided as a mapping
-        if classmap is not None and task in classmap:
-            entry["__class_names__"] = classmap[task]
-
-        out[task] = entry
-
-    return out
+#     if logger:
+#         logger.debug(f"load_all_results: Completed loading all results. Total tasks: {len(out)}")
+#     return out
 
 def get_style(style = "stylesD"):
     
@@ -474,3 +535,205 @@ def get_style(style = "stylesD"):
     }
 
     return styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES
+
+
+
+
+
+
+def load_all_results(
+    base_dir: str | os.PathLike,
+    task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
+    fixed_trf_for_E: int = 16,   # H must equal this to populate E* groups
+    fixed_cnn_for_H: int = 16,   # E must equal this to populate H* groups
+    logger=None,
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Memory-safe loader.
+
+    - For runs/dim_runs pickles: keeps ONLY 'accuracy' (plus metadata/path).
+    - For control/best: keeps ONLY selected keys.
+    - Groups runs into:
+        E{cnn_dim} if trf_dim == fixed_trf_for_E
+        H{trf_dim} if cnn_dim == fixed_cnn_for_H
+    - Only strict filenames C{classes}_E{cnn}_H{trf}_{run}.pkl (or -run) are considered.
+    """
+
+    RUNS_KEEP = {"accuracy"}
+    CONTROL_BEST_KEEP = {
+        "accuracy",
+        "confusion_matrix",
+        "classification_report_dict",
+        "transformer_latent_space",
+        "latent_labels",
+        "tsne_2d",
+        "mean_cams",
+    }
+
+    base = Path(base_dir)
+
+    strict = re.compile(
+        r'^C(?P<classes>\d+)_E(?P<cnn>\d+)_H(?P<trf>\d+)[_-](?P<run>\d+)\.pkl$',
+        re.IGNORECASE
+    )
+
+    def parse_filename(name: str):
+        m = strict.match(name)
+        if not m:
+            raise ValueError(f"Non-matching filename '{name}'")
+        return (int(m["classes"]), int(m["cnn"]), int(m["trf"]), int(m["run"]))
+
+    def load_pickle_filtered(path: Path, keep: set[str]) -> Optional[dict]:
+        """Load pickle and keep only selected keys (dict expected)."""
+        try:
+            with path.open("rb") as f:
+                data = pickle.load(f)
+            if not isinstance(data, dict):
+                # unexpected format; return as-is (but this might be large)
+                return None
+
+            out = {k: data.get(k) for k in keep if k in data}
+
+            # free ASAP
+            del data
+            gc.collect()
+            return out
+        except Exception as e:
+            if logger:
+                logger.warning(f"Failed to load {path}: {e}")
+            else:
+                print(f"[WARN] Failed to load {path}: {e}")
+            return None
+
+    def load_latest_pkl_filtered(dir_path: Path, keep: set[str], return_path: bool = False) -> Optional[dict]:
+        """Load newest .pkl in dir_path, filtered to keys.
+        
+        If return_path=True, returns (data_dict, filename) tuple instead of just dict.
+        """
+        if not dir_path.is_dir():
+            return (None, None) if return_path else None
+        pkls = [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".pkl"]
+        if not pkls:
+            return (None, None) if return_path else None
+        pkls.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        data = load_pickle_filtered(pkls[0], keep=keep)
+        if return_path:
+            return (data, pkls[0].name)
+        return data
+
+    # Normalize task_names into whitelist and optional class-name mapping
+    whitelist: Optional[set[str]] = None
+    classmap: Optional[Mapping[str, Any]] = None
+    if task_names is not None:
+        if isinstance(task_names, Mapping):
+            classmap = task_names
+            whitelist = set(task_names.keys())
+        else:
+            whitelist = set(task_names)
+
+    # choose which task folders to walk
+    tasks = [p for p in base.iterdir() if p.is_dir()]
+    if whitelist is not None:
+        tasks = [p for p in tasks if p.name in whitelist]
+    tasks.sort(key=lambda p: p.name)
+
+    out: Dict[str, Dict[str, Any]] = {}
+
+    for task_dir in tasks:
+        task = task_dir.name
+        entry: Dict[str, Any] = {"control": None, "best": None, "runs": {}}
+
+        # control (support 'control' OR 'control_run') - filtered
+        for c in ("control", "control_run"):
+            cand = task_dir / c
+            v = load_latest_pkl_filtered(cand, keep=CONTROL_BEST_KEEP)
+            if v is not None:
+                entry["control"] = v
+                break
+
+        # best - filtered (also capture filename to extract dimension info)
+        best_data, best_filename = load_latest_pkl_filtered(task_dir / "best", keep=CONTROL_BEST_KEEP, return_path=True)
+        entry["best"] = best_data
+        entry["best_filename"] = best_filename
+        # Parse best filename to extract dimensions (e.g., C6E16_H8_3.pkl -> cnn=16, trf=8)
+        entry["best_cnn_dim"] = None
+        entry["best_trf_dim"] = None
+        if best_filename:
+            try:
+                _, cnn_dim, trf_dim, _ = parse_filename(best_filename)
+                entry["best_cnn_dim"] = cnn_dim
+                entry["best_trf_dim"] = trf_dim
+            except Exception:
+                pass  # filename didn't match expected pattern
+
+        # runs (support 'runs' OR 'dim_runs')
+        for runs_folder in ("runs", "dim_runs"):
+            rdir = task_dir / runs_folder
+            if not rdir.is_dir():
+                continue
+
+            pkl_files = [p for p in rdir.iterdir() if p.is_file() and p.suffix == ".pkl"]
+            for p in sorted(pkl_files, key=lambda x: x.name):
+                try:
+                    classes, cnn_dim, trf_dim, run = parse_filename(p.name)
+                except Exception:
+                    continue
+
+                # load only accuracy for run pickles
+                small = load_pickle_filtered(p, keep=RUNS_KEEP)
+                if small is None:
+                    continue
+
+                rec = {
+                    "run": run,
+                    "classes": classes,
+                    "cnn_dim": cnn_dim,
+                    "trf_dim": trf_dim,
+                    "path": str(p),
+                    "accuracy": small.get("accuracy", None),
+                }
+                del small
+                gc.collect()
+
+                # group
+                if trf_dim == fixed_trf_for_E:
+                    entry["runs"].setdefault(f"E{cnn_dim}", []).append(rec)
+                if cnn_dim == fixed_cnn_for_H:
+                    entry["runs"].setdefault(f"H{trf_dim}", []).append(rec)
+
+        # sort each group's list by run index
+        for k in list(entry["runs"].keys()):
+            entry["runs"][k].sort(key=lambda d: d["run"])
+
+        # attach class names if provided as mapping
+        if classmap is not None and task in classmap:
+            entry["__class_names__"] = classmap[task]
+
+        out[task] = entry
+
+    return out
+
+
+def load_h16_classification_reports(entry):
+    """
+    For all runs at d_model=16 (H16 group), load the full 
+    classification_report_dict from disk.
+    Returns a list of report dicts.
+    """
+    reports = []
+    h16_runs = entry.get("runs", {}).get("H16", [])
+    for run in h16_runs:
+        path = run.get("path")
+        if path is None:
+            continue
+        try:
+            with open(path, "rb") as f:
+                data = pickle.load(f)
+            report = data.get("classification_report_dict")
+            if report is not None:
+                reports.append(report)
+            del data
+            gc.collect()
+        except Exception as e:
+            print(f"[WARN] Failed to load {path}: {e}")
+    return reports

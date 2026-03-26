@@ -5,9 +5,9 @@ from PIL import Image
 
 DrosoImage = Image.open('src/src_imgs/DrosoImaging.png')
 RawData = Image.open('src/src_imgs/RawImages.png')
-ExpHierarchy = Image.open('src/src_imgs/expHierarchy_final.png')
+ExpHierarchy = Image.open('src/src_imgs/expHierarchy.png')
 ModelImage = Image.open('src/src_imgs/ModelArch.png')
-LatentSketch = Image.open('src/src_imgs/LatentSketch_v1.png')
+LatentSketch = Image.open('src/src_imgs/LatentSketch.png')
 placeholder = Image.open('src/src_imgs/Placeholder.png')
 
 
@@ -92,6 +92,5 @@ for ax, label in zip(axes.values(), labels):
 
 
 plt.tight_layout(pad=1)
-plt.savefig('results/CombiPlots/fig_overview_v0.png', dpi=500, bbox_inches='tight', pad_inches=0.1)
-print("Figure saved to results/CombiPlots/Figure1_v4.png")
+plt.savefig('results/CombiPlots/fig_overview_v1.png', dpi=500, bbox_inches='tight', pad_inches=0.1)
 

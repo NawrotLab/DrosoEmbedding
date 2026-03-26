@@ -949,99 +949,79 @@ def plot_similarity_matrix(matrix, class_labels, output_path, title):
 def plot_centroid_vectors(): 
     return ''
 
+def plot_model_stats(ax, rpt_ctrl, rpt_best, class_names,
+                     rpt_all_runs=None,
+                     show_legend=False, use_class_symbols=False, styles=None):
 
-def plot_model_stats(ax, rpt_ctrl, rpt_best, class_names, show_legend=False, use_class_symbols=False, styles=None):
-    """
-    Plot mean F1, precision, and recall for control and model with per-class scatter dots.
-    Bars are grouped side by side for each metric.
-    
-    Args:
-        ax: Matplotlib axis to plot on
-        rpt_ctrl: Control report dictionary with per-class metrics
-        rpt_best: Model report dictionary with per-class metrics
-        class_names: List of class names
-        show_legend: Whether to show legend
-        use_class_symbols: If True, use styled symbols for scatter dots
-        styles: Dictionary mapping class names to style properties
-    """
-    # Calculate mean metrics
-    f1_ctrl = [rpt_ctrl[name]['f1-score'] for name in class_names]
-    f1_best = [rpt_best[name]['f1-score'] for name in class_names]
+    f1_ctrl   = [rpt_ctrl[name]['f1-score']  for name in class_names]
     prec_ctrl = [rpt_ctrl[name]['precision'] for name in class_names]
-    prec_best = [rpt_best[name]['precision'] for name in class_names]
-    rec_ctrl = [rpt_ctrl[name]['recall'] for name in class_names]
-    rec_best = [rpt_best[name]['recall'] for name in class_names]
-    
-    mean_f1_ctrl = np.mean(f1_ctrl)
-    mean_f1_best = np.mean(f1_best)
+    rec_ctrl  = [rpt_ctrl[name]['recall']    for name in class_names]
+
+    if rpt_all_runs:
+        f1_best   = [np.mean([rpt[name]['f1-score']  for rpt in rpt_all_runs]) for name in class_names]
+        prec_best = [np.mean([rpt[name]['precision'] for rpt in rpt_all_runs]) for name in class_names]
+        rec_best  = [np.mean([rpt[name]['recall']    for rpt in rpt_all_runs]) for name in class_names]
+    else:
+        f1_best   = [rpt_best[name]['f1-score']  for name in class_names]
+        prec_best = [rpt_best[name]['precision'] for name in class_names]
+        rec_best  = [rpt_best[name]['recall']    for name in class_names]
+
+    mean_f1_ctrl   = np.mean(f1_ctrl)
+    mean_f1_best   = np.mean(f1_best)
     mean_prec_ctrl = np.mean(prec_ctrl)
     mean_prec_best = np.mean(prec_best)
-    mean_rec_ctrl = np.mean(rec_ctrl)
-    mean_rec_best = np.mean(rec_best)
-    
-    # X-axis positions for 3 groups (F1, Precision, Recall)
+    mean_rec_ctrl  = np.mean(rec_ctrl)
+    mean_rec_best  = np.mean(rec_best)
+
     x = np.arange(3)
     width = 0.35
-    
-    # Plot outlined bars (no fill, just edge) - grouped side by side
-    ax.bar(x - width/2, [mean_f1_ctrl, mean_prec_ctrl, mean_rec_ctrl], width, 
+
+    ax.bar(x - width/2, [mean_f1_ctrl, mean_prec_ctrl, mean_rec_ctrl], width,
            edgecolor='#b7bec4', facecolor='none', linewidth=2, label='Control')
     ax.bar(x + width/2, [mean_f1_best, mean_prec_best, mean_rec_best], width,
            edgecolor='#094c80', facecolor='none', linewidth=2, label='Model')
-    
-    # Add scatter dots for per-class performance
-    # Position scatter dots slightly offset from bar centers to avoid overlap
+
     scatter_offset = 0.2
-    
-    # Define data for each bar: (x_bar_center, values_list, default_color)
+
     scatter_data = [
-        (x[0] - width/2, f1_ctrl, '#b7bec4'),      # F1 control
-        (x[0] + width/2, f1_best, '#094c80'),      # F1 model
-        (x[1] - width/2, prec_ctrl, '#b7bec4'),    # Precision control
-        (x[1] + width/2, prec_best, '#094c80'),    # Precision model
-        (x[2] - width/2, rec_ctrl, '#b7bec4'),      # Recall control
-        (x[2] + width/2, rec_best, '#094c80')       # Recall model
+        (x[0] - width/2, f1_ctrl,   '#b7bec4'),
+        (x[0] + width/2, f1_best,   '#094c80'),
+        (x[1] - width/2, prec_ctrl, '#b7bec4'),
+        (x[1] + width/2, prec_best, '#094c80'),
+        (x[2] - width/2, rec_ctrl,  '#b7bec4'),
+        (x[2] + width/2, rec_best,  '#094c80'),
     ]
-    
-    # Plot scatter dots for each metric
+
     for x_bar, values, default_color in scatter_data:
         for i, class_name in enumerate(class_names):
             x_scatter = x_bar + (i - len(class_names)/2 + 0.5) * scatter_offset / len(class_names)
             y_scatter = values[i]
-            
             if use_class_symbols and styles:
                 style = get_class_style(class_name, styles)
                 if style:
                     ax.scatter(x_scatter, y_scatter,
-                              marker=style.get('shape', 'o'),
-                              s=50,
-                              facecolor=style.get('color', 'gray'),
-                              edgecolor=style.get('edgecolor', 'black'),
-                              linewidth=1,
-                              alpha=0.7,
-                              zorder=5)
+                               marker=style.get('shape', 'o'),
+                               s=50,
+                               facecolor=style.get('color', 'gray'),
+                               edgecolor=style.get('edgecolor', 'black'),
+                               linewidth=1, alpha=0.7, zorder=5)
                 else:
                     ax.scatter(x_scatter, y_scatter, s=30, color=default_color, alpha=0.7, zorder=5)
             else:
                 ax.scatter(x_scatter, y_scatter, s=30, color=default_color, alpha=0.7, zorder=5)
-    
-    # Set labels and formatting - only at bottom
+
     ax.set_xticks(x)
     ax.set_xticklabels(['F1', 'Precision', 'Recall'], fontsize=15)
     ax.set_ylabel('Score', fontsize=10)
     ax.set_ylim(0, 1)
-    
-    # Hide the right and top spines
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
-    
+
     if show_legend:
-        # Create legend handles for control and model
         from matplotlib.patches import Rectangle
         ctrl_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#b7bec4', linewidth=2)
         model_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#094c80', linewidth=2)
         ax.legend([ctrl_handle, model_handle], ['Control', 'Model'], loc='upper right')
-    
 
 def plot_f1_comparison(ax, rpt_ctrl, rpt_best, class_names, show_legend=False, use_class_symbols=False, styles=None):
     """

@@ -6,7 +6,7 @@ authors = ["Amina"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.10,<4.0"
 torch = ">=1.13.0,<2.5.0" # "1.13"
 torchvision = "^0.19.1"
 matplotlib = "^3.8.3"

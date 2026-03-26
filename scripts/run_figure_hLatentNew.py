@@ -12,9 +12,305 @@ import numpy as np
 import matplotlib.pyplot as plt
 import yaml
 from matplotlib.gridspec import GridSpec
+from mpl_toolkits.mplot3d import Axes3D
 from src.visualization.visualize_preformance import plot_tsne_latent
 from src.utils.helpers import load_all_results, get_style, _color_for_group
 from src.utils.logger import setup_logger
+
+
+# ═══════════════════════════════════════════════
+# BIOLOGICAL AXES — replaces t-SNE centroid arrows in column C
+# ═══════════════════════════════════════════════
+
+def _short_name(n: str) -> str:
+    """Shorten LaTeX class names for plot labels."""
+    return n.replace('$^{+}$', '+').replace('$^{-}$', '-').replace(' (S)', ' S').replace(' (F)', ' F')
+
+
+def _compute_biological_axes(X, labels, task_key, class_names):
+    """
+    Compute biological axes and project class centroids.
+    Returns: (projections_dict, axes_dict, displacements)
+    """
+    global_mu = X.mean(axis=0)
+    unique_labels = np.sort(np.unique(labels))
+    centroids = np.array([X[labels == l].mean(axis=0) for l in unique_labels])
+    displacements = centroids - global_mu
+
+    if task_key == 'MetabolicState_2':
+        mean_S = X[labels == 0].mean(axis=0)
+        mean_F = X[labels == 1].mean(axis=0)
+        state_axis = mean_F - mean_S
+        state_axis /= np.linalg.norm(state_axis)
+        proj_state = displacements @ state_axis
+        return {'state': proj_state}, {'state': state_axis}, displacements
+
+    if task_key == 'State_Modality_6':
+        mean_S = X[np.isin(labels, [0, 2, 4])].mean(axis=0)
+        mean_F = X[np.isin(labels, [1, 3, 5])].mean(axis=0)
+        mean_O = X[np.isin(labels, [0, 1])].mean(axis=0)
+        mean_T = X[np.isin(labels, [2, 3])].mean(axis=0)
+
+        state_axis = mean_F - mean_S
+        state_axis /= np.linalg.norm(state_axis)
+        modality_axis = mean_T - mean_O
+        modality_axis /= np.linalg.norm(modality_axis)
+
+        proj_state = displacements @ state_axis
+        proj_modality = displacements @ modality_axis
+
+        return {'state': proj_state, 'modality': proj_modality}, \
+               {'state': state_axis, 'modality': modality_axis}, displacements
+
+    if task_key == 'State_Modality_Valence_16':
+        mean_S = X[np.isin(labels, [0, 1, 4, 5, 8, 9, 10, 11])].mean(axis=0)
+        mean_F = X[np.isin(labels, [2, 3, 6, 7, 12, 13, 14, 15])].mean(axis=0)
+        mean_O = X[np.isin(labels, [0, 1, 2, 3])].mean(axis=0)
+        mean_T = X[np.isin(labels, [4, 5, 6, 7])].mean(axis=0)
+
+        pos_inds = [i for i, n in enumerate(class_names) if '$^{+}$' in n and '$^{-}$' not in n]
+        neg_inds = [i for i, n in enumerate(class_names) if '$^{-}$' in n and '$^{+}$' not in n]
+        mean_pos = X[np.isin(labels, pos_inds)].mean(axis=0)
+        mean_neg = X[np.isin(labels, neg_inds)].mean(axis=0)
+
+        state_axis = mean_F - mean_S
+        state_axis /= np.linalg.norm(state_axis)
+        modality_axis = mean_T - mean_O
+        modality_axis /= np.linalg.norm(modality_axis)
+        valence_axis = mean_pos - mean_neg
+        valence_axis /= np.linalg.norm(valence_axis)
+
+        proj_state = displacements @ state_axis
+        proj_modality = displacements @ modality_axis
+        proj_valence = displacements @ valence_axis
+
+        return {'state': proj_state, 'modality': proj_modality, 'valence': proj_valence}, \
+               {'state': state_axis, 'modality': modality_axis, 'valence': valence_axis}, displacements
+
+
+def _clean_axis(ax):
+    """Remove all spines, ticks, and labels — blank canvas."""
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+
+
+def _add_axis_indicator(ax, axis_names, fontsize=8):
+    """
+    Add a clean L-shaped axis indicator in the bottom-left corner.
+    All lines meet at a single origin point. Uses axes-fraction transform.
+    
+    axis_names: list of axis name strings
+      - 1 name  → horizontal line only (e.g. ['State'])
+      - 2 names → L-shape: horizontal + vertical (e.g. ['State', 'Modality'])
+      - 3 names → L-shape + diagonal for 3rd axis
+    """
+    from matplotlib.transforms import blended_transform_factory
+
+    # Origin and arm length in axes fraction
+    x0, y0 = 0.06, 0.06
+    length = 0.13
+    trans = ax.transAxes
+
+    # Horizontal arm
+    if len(axis_names) >= 1:
+        ax.plot([x0, x0 + length], [y0, y0], '-', color='black', lw=1.0,
+                transform=trans, clip_on=False)
+        ax.text(x0 + length / 2, y0 - 0.035, axis_names[0],
+                transform=trans, ha='center', va='top', fontsize=fontsize)
+
+    # Vertical arm (connected at same origin)
+    if len(axis_names) >= 2:
+        ax.plot([x0, x0], [y0, y0 + length], '-', color='black', lw=1.0,
+                transform=trans, clip_on=False)
+        ax.text(x0 - 0.02, y0 + length / 2, axis_names[1],
+                transform=trans, ha='right', va='center', fontsize=fontsize,
+                rotation=90)
+
+    # Diagonal arm (connected at same origin)
+    if len(axis_names) >= 3:
+        diag = length * 0.75
+        dx = diag * np.cos(np.deg2rad(45))
+        dy = diag * np.sin(np.deg2rad(45))
+        ax.plot([x0, x0 + dx], [y0, y0 + dy], '-', color='black', lw=1.0,
+                transform=trans, clip_on=False)
+        ax.text(x0 + dx + 0.015, y0 + dy + 0.01, axis_names[2],
+                transform=trans, ha='left', va='bottom', fontsize=fontsize)
+
+
+def _add_cos_box(ax, lines, fontsize=10):
+    """Add cosine similarity + variance annotation box in top-left corner."""
+    text = '\n'.join(lines)
+    ax.text(0.02, 0.98, text,
+            transform=ax.transAxes, ha='left', va='top',
+            fontsize=fontsize, fontstyle='italic', family='monospace',
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='lightyellow',
+                      edgecolor='gray', alpha=0.85),
+            zorder=10)
+
+
+def plot_biological_axes_panel(
+    ax,
+    X: np.ndarray,
+    labels: np.ndarray,
+    class_names: List[str],
+    task: str,
+    colors: Dict,
+    edges: Dict,
+    fig: plt.Figure = None,
+    gs: 'GridSpec' = None,
+    row: int = 0,
+) -> None:
+    """
+    Plot biological axes projections with cosine similarity annotations.
+    Clean style: plain gray lines, text endpoint labels, no axis frames,
+    no class name annotations, cosine + variance box in top-left.
+    
+    All three rows use 2D axes (16-class uses oblique projection).
+    """
+    projections, axes_dict, displacements = _compute_biological_axes(X, labels, task, class_names)
+    n_classes = len(np.unique(labels))
+
+    # Variance explained
+    total_var = np.sum(displacements ** 2)
+    explained = sum(np.sum(p ** 2) for p in projections.values())
+    pct = explained / total_var * 100
+
+    # ── 2-class: 1D number line ──
+    if task == 'MetabolicState_2':
+        proj_s = projections['state']
+
+        # Cosine similarity between the 2 displacement vectors
+        cos_val = np.dot(displacements[0], displacements[1]) / \
+                  (np.linalg.norm(displacements[0]) * np.linalg.norm(displacements[1]))
+
+        _clean_axis(ax)
+
+        # Gray line
+        xlim = np.abs(proj_s).max() * 1.4
+        ax.plot([-xlim, xlim], [0, 0], '-', color='gray', lw=1.2, alpha=0.6, zorder=1)
+
+        # Origin cross
+        ax.plot(0, 0, '+', color='gray', ms=8, mew=1.5, zorder=2)
+
+        # Centroids (no labels)
+        for i in range(n_classes):
+            is_starved = '(S)' in class_names[i] or class_names[i] == 'Starved'
+            ax.scatter(proj_s[i], 0, c=colors[i], edgecolors=edges[i],
+                       linewidth=2.0 if is_starved else 0.5, s=200, zorder=3)
+
+        # Endpoint text labels — placed beyond the line ends for clearance
+        ax.text(-xlim * 1.15, 0, 'Starved', ha='right', va='center', fontsize=10)
+        ax.text(xlim * 1.15, 0, 'Fed', ha='left', va='center', fontsize=10)
+
+        ax.set_xlim(-xlim * 2.2, xlim * 2.2)
+        ax.set_ylim(-0.5, 0.5)
+
+        # Axis indicator
+        _add_axis_indicator(ax, ['State'])
+
+    # ── 6-class: 2D scatter ──
+    elif task == 'State_Modality_6':
+        proj_s, proj_m = projections['state'], projections['modality']
+
+        # Cosine similarity between axes
+        cos_sm = np.dot(axes_dict['state'], axes_dict['modality'])
+
+        _clean_axis(ax)
+
+        # Axis limits
+        all_vals = np.concatenate([proj_s, proj_m])
+        lim = np.abs(all_vals).max() * 1.4
+
+        # Plain gray crossing lines
+        ax.plot([-lim, lim], [0, 0], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+        ax.plot([0, 0], [-lim, lim], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+
+        # Origin cross
+        ax.plot(0, 0, '+', color='gray', ms=8, mew=1.5, zorder=2)
+
+        # Centroids (no labels)
+        for i in range(n_classes):
+            is_starved = '(S)' in class_names[i]
+            ax.scatter(proj_s[i], proj_m[i], c=colors[i], edgecolors=edges[i],
+                       linewidth=2.0 if is_starved else 0.5, s=180, zorder=3)
+
+        # Endpoint text labels
+        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
+        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=10)
+        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=10)
+        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=10)
+
+        ax.set_xlim(-lim * 1.7, lim * 1.7)
+        ax.set_ylim(-lim * 1.5, lim * 1.5)
+
+        # Axis indicator
+        _add_axis_indicator(ax, ['State', 'Modality'])
+
+    # ── 16-class: flat 2D with oblique 3rd axis ──
+    elif task == 'State_Modality_Valence_16':
+        proj_s = projections['state']
+        proj_m = projections['modality']
+        proj_v = projections['valence']
+
+        # Pairwise cosine similarities
+        cos_sm = np.dot(axes_dict['state'], axes_dict['modality'])
+        cos_sv = np.dot(axes_dict['state'], axes_dict['valence'])
+        cos_mv = np.dot(axes_dict['modality'], axes_dict['valence'])
+
+        _clean_axis(ax)
+
+        # Oblique projection: state → x, modality → y, valence → diagonal
+        # The diagonal angle gives the 3D feel in 2D
+        angle = np.deg2rad(35)  # oblique angle for valence axis
+        cos_a, sin_a = np.cos(angle), np.sin(angle)
+
+        # Project to 2D: x = state + valence*cos(angle), y = modality + valence*sin(angle)
+        # Scale valence contribution so it doesn't dominate
+        v_scale = 0.6
+        x_pts = proj_s + proj_v * v_scale * cos_a
+        y_pts = proj_m + proj_v * v_scale * sin_a
+
+        # Axis limits
+        all_vals = np.concatenate([x_pts, y_pts])
+        lim = np.abs(all_vals).max() * 1.3
+
+        # Draw three gray axis lines through origin
+        # State axis: horizontal
+        ax.plot([-lim, lim], [0, 0], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+        # Modality axis: vertical
+        ax.plot([0, 0], [-lim, lim], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+        # Valence axis: diagonal
+        diag_len = lim * 0.85
+        ax.plot([-diag_len * cos_a, diag_len * cos_a],
+                [-diag_len * sin_a, diag_len * sin_a],
+                '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+
+        # Origin cross
+        ax.plot(0, 0, '+', color='gray', ms=8, mew=1.5, zorder=2)
+
+        # Centroids (no labels)
+        for i in range(n_classes):
+            is_starved = '(S)' in class_names[i]
+            ax.scatter(x_pts[i], y_pts[i], c=colors[i], edgecolors=edges[i],
+                       linewidth=2.0 if is_starved else 0.5, s=120, zorder=3)
+
+        # Endpoint text labels
+        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
+        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=10)
+        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=10)
+        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=10)
+        ax.text(diag_len * cos_a, diag_len * sin_a, '  App.', ha='left', va='bottom', fontsize=10)
+        ax.text(-diag_len * cos_a, -diag_len * sin_a, 'Avers.  ', ha='right', va='top', fontsize=10)
+
+        ax.set_xlim(-lim * 1.7, lim * 1.7)
+        ax.set_ylim(-lim * 2.0, lim * 1.6)  # more room at bottom for axis indicator
+
+        # Axis indicator
+        _add_axis_indicator(ax, ['State', 'Modality', 'Valence'])
 
 
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
@@ -506,7 +802,7 @@ def plot_figure_latent(
     task_names = ['i. State', 'ii. State, Modality', 'iii. State, Modality, Valence']
     task_y_pos = [0.81, 0.53, 0.25]
     
-    column_titles = ['a. Control t-SNE', 'b. Model t-SNE', 'c. Centroids', 'd. Accuracy']
+    column_titles = ['a. Control t-SNE', 'b. Model t-SNE', 'c. Centroid projections', 'd. Accuracy']
     column_positions = [0.18, 0.43, 0.65, 0.9] 
 
     for x, title in zip(column_positions, column_titles):
@@ -530,9 +826,34 @@ def plot_figure_latent(
         # Plot best t-SNE (second column)
         _plot_tsne(fig, gs, row, 1, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis, task=task, logger=logger)
         
-        # Plot centroids (third column) - fixed limit at 60 for ~2x magnification vs t-SNE (which uses ±120)
-        CENTROID_FIXED_LIM = 70  # Same scale for all rows, ~2x zoom vs t-SNE
-        _plot_tsne(fig, gs, row, 2, run_dict, class_names, colors[task], edges[task], shapes[task], styles=styles, use_l_axis=use_l_axis, plot_centroids=True, task=task, logger=logger, centroid_fixed_lim=CENTROID_FIXED_LIM)
+        # ── NEW: Plot biological axes (third column) ──
+        # Uses full high-D latent space, NOT t-SNE 2D
+        best_data = run_dict.get('best', {})
+        X_hd = best_data.get('transformer_latent_space')
+        latent_labels = best_data.get('latent_labels')
+        
+        if X_hd is not None and latent_labels is not None:
+            ax_bio = fig.add_subplot(gs[row, 2])
+            plot_biological_axes_panel(
+                ax=ax_bio,
+                X=X_hd,
+                labels=latent_labels,
+                class_names=class_names,
+                task=task,
+                colors=colors[task],
+                edges=edges[task],
+                fig=fig,
+                gs=gs,
+                row=row,
+            )
+        else:
+            # Fallback: empty panel with warning
+            ax_bio = fig.add_subplot(gs[row, 2])
+            ax_bio.text(0.5, 0.5, 'No high-D data', ha='center', va='center',
+                       fontsize=10, color='red', transform=ax_bio.transAxes)
+            ax_bio.set_xticks([]); ax_bio.set_yticks([])
+            if logger:
+                logger.warning(f"Task '{task}': missing transformer_latent_space for biological axes")
         
         # Plot accuracy vs dimension for each task
         ax = fig.add_subplot(gs[row, 3])
@@ -590,7 +911,7 @@ def main():
     logger.info("Loaded results successfully")
 
     logger.debug("Generating figure...")
-    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, out_path='results/CombiPlots/fig_Latent_dim16x16_bestRun.png', logger=logger)
+    plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, out_path='results/CombiPlots/fig_Latent_v11.png', logger=logger)
     logger.info("Figure generation complete")
 
 if __name__ == '__main__':

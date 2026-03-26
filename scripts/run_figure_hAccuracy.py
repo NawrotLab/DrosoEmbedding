@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats
-from src.utils.helpers import load_all_results, get_style
+from src.utils.helpers import load_all_results, get_style, load_h16_classification_reports
 
 
 # Base results directory
@@ -51,7 +51,7 @@ def load_styles():
         styles = yaml.safe_load(f)['styles']
     return styles
 
-def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_horizontal_chkpt_v4.png', use_class_symbols=True):
+def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_v7.png', use_class_symbols=True):
     """Main plotting function for the horizontal accuracy figure."""
     # Set up figure with styles
     plt.rc('xtick', labelsize=8)
@@ -59,6 +59,9 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     
     # Load styles if needed
     styles = load_styles() if use_class_symbols else None
+    # styles, _, _, _, _ = get_style(style="stylesE")
+    print(f"style lookup for 'Odor (S)': {get_class_style('Odor (S)', styles)}")
+
     
     # Create figure with 4 rows (colorbar + 3 tasks) and appropriate columns
     fig = plt.figure(figsize=(18, 16))
@@ -68,7 +71,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     outer = GridSpec(3, 1, hspace=0.1, height_ratios=[1, 1, 1], top=0.85, bottom=0.05)
 
     # Add column titles at the top
-    column_titles = ['a Control', 'b Model', 'c F1, Precision, Recall']
+    column_titles = ['a. Control', 'b. Model', 'c. F1, Precision, Recall']
     col_positions = [0.2, 0.5, 0.8]  # X-positions for each column
     for col_pos, title in zip(col_positions, column_titles):
         fig.text(col_pos, 0.93, title, ha='center', va='center', fontsize=16, weight='bold', 
@@ -113,9 +116,18 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     
     # Store reference to first ax_stats for sharing x-axis
     first_ax_stats = None
+
+    
     
     # For each task (now in rows)
     for row_idx, (task, result) in enumerate(results_dict.items()):
+
+        print(f"use_class_symbols: {use_class_symbols}")
+        print(f"styles is None: {styles is None}")
+        if styles:
+            print(f"styles keys (first 3): {list(styles.keys())[:3]}")
+        print(f"result['__class_names__']: {result['__class_names__']}")
+
         # Add row title
         row_y = 0.8 - (row_idx * 0.3)  # Adjust vertical position based on row index
         row_y = [0.75, 0.45, 0.16]
@@ -170,12 +182,16 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         else:
             ax_stats = fig.add_subplot(inner[2], sharex=first_ax_stats)
         
+        all_reports = load_h16_classification_reports(result)
         # Plot model stats (F1, Precision, Recall for both control and model)
+        print(f"Task {task} - class_names: {result['__class_names__'][:2]}")
+
         plot_model_stats(
             ax_stats,
             result['control']['classification_report_dict'],
             result['best']['classification_report_dict'],
             result['__class_names__'],
+            rpt_all_runs=all_reports,
             show_legend=False,  # Legend will be added separately at the top
             use_class_symbols=use_class_symbols,
             styles=styles
@@ -217,6 +233,26 @@ def main():
     """Main function to load results and generate the figure."""
     # Load results
     results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES)
+
+    for task, result in results.items():
+        all_reports = load_h16_classification_reports(result)
+        accs = [rpt['accuracy'] for rpt in all_reports]
+        ctrl_acc = result['control']['classification_report_dict']['accuracy']
+        best_acc = result['best']['classification_report_dict']['accuracy']
+        print(f"\n{task}")
+        print(f"  Control accuracy:       {ctrl_acc:.3f}")
+        print(f"  Best run accuracy:      {best_acc:.3f}")
+        print(f"  Mean acc (50 runs):     {np.mean(accs):.3f}")
+        print(f"  Median acc (50 runs):   {np.median(accs):.3f}")
+        print(f"  IQR (25-75):            {np.percentile(accs,25):.3f} -- {np.percentile(accs,75):.3f}")
+        # Identify worst classes in task iii
+        if '16' in task:
+            best_rpt = result['best']['classification_report_dict']
+            class_names = result['__class_names__']
+            f1s = [(name, best_rpt[name]['f1-score']) for name in class_names]
+            f1s.sort(key=lambda x: x[1])
+            print(f"  3 lowest F1 classes:    {f1s[:3]}")
+    
     
     # Generate and save the figure
     plot_figure_accuracy(results)

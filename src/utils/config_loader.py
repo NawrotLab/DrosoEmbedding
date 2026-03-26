@@ -97,7 +97,7 @@ def setup_derived_parameters(config):
     neuropil = config["data"]["preprocessing"]["neuropil"]
     isolate  = config["data"]["preprocessing"]["isolate_neuropil"]
     remove   = config["data"]["preprocessing"]["remove_neuropil"]
-    use_aligned_template = config["data"]["preprocessing"]["use_aligned_neuropil_template"]
+    use_aligned_template = config["data"]["preprocessing"].get("use_aligned_neuropil_template", False)
     if isolate:
         if use_aligned_template:
             logT_name = f"logTs_{neuropil}-template"

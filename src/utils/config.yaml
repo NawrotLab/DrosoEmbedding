@@ -1,4 +1,4 @@
-run_id: "C16_E16_H32_9" #"go6_cnn16_trf64" go2_cnn16_trf4_bs64_lr001, go2_newLR_lr0001_bs64_cnn16_trf16, Seed2lr0001_trf64_5
+run_id: "C16_E16_H16_42"  #"C16_E16_H32_9" #"go6_cnn16_trf64" go2_cnn16_trf4_bs64_lr001, go2_newLR_lr0001_bs64_cnn16_trf16, Seed2lr0001_trf64_5
 
 data:
   # use one of following or define a new task name in config_loader: 
@@ -17,7 +17,7 @@ data:
     times: 'logTs'  #'logTs'
     neuropil: 'VMMP'
     remove_neuropil: false
-    isolate_neuropil: true
+    isolate_neuropil: false
     use_aligned_neuropil_template: false
     
 
@@ -42,7 +42,7 @@ model:
   parameters:
     nr_channels: 1
     cnn_embed_dim: 16
-    transformer_embed_dim: 32
+    transformer_embed_dim: 16
     max_seq_len: 10         # >= longest sequence you’ll feed
     num_heads: 2
     num_layers: 1
