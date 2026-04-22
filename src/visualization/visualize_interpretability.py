@@ -576,7 +576,7 @@ def plot_gradcam_pooled(
         nrows, ncols + 1,
         subplot_spec=gs_slot,
         wspace=0.04, hspace=0.05,
-        width_ratios=[1, 1, 1, 0.05],
+        width_ratios=[1, 1, 1, 0.1],
     )
 
     # ── Image grid ─────────────────────────────────────────
@@ -607,6 +607,11 @@ def plot_gradcam_pooled(
 
     # ── Colorbar column (spans all rows) ───────────────────
     if im_ref is not None:
+        
+        # from mpl_toolkits.axes_grid1 import make_axes_locatable
+        # divider = make_axes_locatable(ax)
+        # ax_cb = divider.append_axes("right", size="3%", pad=0.08)
+        
         ax_cb = fig.add_subplot(inner_gs[:, ncols])
         fig.colorbar(im_ref, cax=ax_cb)
         ax_cb.set_ylabel('GradCAM intensity', fontsize=16, labelpad=6)

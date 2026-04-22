@@ -212,7 +212,7 @@ print_element_sizes(
 
 logger.info("Assembling figure (new 2×3 layout, independent row widths)...")
 
-fig = plt.figure(figsize=(24, 14))
+fig = plt.figure(figsize=(20, 14))
 
 # ── Two independent GridSpecs — one per row ────────────────
 #    They share left/right/hspace margins but have their own
@@ -223,7 +223,7 @@ gs_top = GridSpec(
     left=0.05, right=0.97,
     bottom=0.52, top=0.93,
     wspace=0.28,
-    width_ratios=[0.5, 1.1, 0.7],
+    width_ratios=[0.6, 1.1, 0.8],
 )
 
 gs_bot = GridSpec(
@@ -231,18 +231,27 @@ gs_bot = GridSpec(
     left=0.05, right=0.97,
     bottom=0.05, top=0.47,
     wspace=0.28,
-    width_ratios=[0.6, 1.1, 0.7],
+    width_ratios=[0.6, 1.1, 0.8],
 )
+
+
+fig.text(0.07, 0.925, 'a', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.25, 0.925, 'b', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.69, 0.925, 'c', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.07, 0.48, 'd', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.25, 0.48, 'e', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.69, 0.48, 'f', ha='left', fontsize=16, fontweight='bold')
 
 # ═══════════════════ TOP ROW ═══════════════════
 
 # ── Panel a: GradCAM pipeline sketch (top-left) ────────────
 ax_pipeline = fig.add_subplot(gs_top[0, 0])
 if os.path.exists(GRADCAM_SKETCH_PATH):
-    # sketch_img = mpimg.imread(GRADCAM_SKETCH_PATH)
-    # sketch_img = plt.imread(GRADCAM_SKETCH_PATH)
     sketch_img = load_image(GRADCAM_SKETCH_PATH)
     ax_pipeline.imshow(sketch_img, aspect='equal')
+    ax_pipeline_pos = ax_pipeline.get_position()
+    ax_pipeline.set_position([ax_pipeline_pos.x0 + 0.02, ax_pipeline_pos.y0, ax_pipeline_pos.width, ax_pipeline_pos.height])
+
 else:
     ax_pipeline.text(0.5, 0.5, '(a) GradCAM pipeline\nnot found',
                      ha='center', va='center', fontsize=9, color='gray',
@@ -250,12 +259,6 @@ else:
 ax_pipeline.set_xticks([]); ax_pipeline.set_yticks([])
 for spine in ax_pipeline.spines.values():
     spine.set_visible(False)
-fig.text(0.07, 0.925, 'a', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.30, 0.925, 'b', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.7, 0.925, 'c', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.07, 0.48, 'd', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.30, 0.48, 'e', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.7, 0.48, 'f', ha='left', fontsize=16, fontweight='bold')
 
 # add_panel_label(fig, ax_pipeline, 'a')
 
@@ -270,6 +273,8 @@ plot_gradcam_pooled(
     normalize_per_row=False,
 )
 
+# ax_gradcam_pos = gs_gradcam.get_position()
+# gs_gradcam.set_position([ax_gradcam_pos.x0 - 0.01, ax_gradcam_pos.y0, ax_gradcam_pos.width, ax_gradcam_pos.height])
 # ── Panel c: Anatomy / Neuropil atlas (top-right) ─────────
 ax_atlas = fig.add_subplot(gs_top[0, 2])
 # add_panel_label(fig, ax_atlas, 'c')
@@ -278,6 +283,8 @@ if os.path.exists(ATLAS_PATH):
     # atlas_img = mpimg.imread(ATLAS_PATH)
     atlas_img = load_image(ATLAS_PATH)
     ax_atlas.imshow(atlas_img, aspect='equal')
+    ax_atlas_pos = ax_atlas.get_position()
+    ax_atlas.set_position([ax_atlas_pos.x0 - 0.01, ax_atlas_pos.y0, ax_atlas_pos.width, ax_atlas_pos.height])
 else:
     ax_atlas.text(0.5, 0.5, '(c) Anatomy\nnot found',
                   ha='center', va='center', fontsize=9, color='gray',
@@ -325,7 +332,7 @@ plot_contrasts_horizontal(
 )
 
 # ════════════════════════════════════════════════
-# SAVE — PNG + vector formats
+# SAVE
 # ════════════════════════════════════════════════
 
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -333,6 +340,7 @@ os.makedirs(OUT_DIR, exist_ok=True)
 png_path = os.path.join(OUT_DIR, f"{OUT_STEM}.png")
 svg_path = os.path.join(OUT_DIR, f"{OUT_STEM}.svg")
 pdf_path = os.path.join(OUT_DIR, f"{OUT_STEM}.pdf")
+eps_path = os.path.join(OUT_DIR, f"{OUT_STEM}.eps")
 
 plt.savefig(png_path, dpi=300, bbox_inches='tight')
 logger.info(f"Saved PNG : {png_path}")
@@ -340,8 +348,11 @@ logger.info(f"Saved PNG : {png_path}")
 plt.savefig(svg_path, format='svg', bbox_inches='tight')
 logger.info(f"Saved SVG : {svg_path}")
 
-# plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
-# logger.info(f"Saved PDF : {pdf_path}")
+plt.savefig(eps_path, format='eps', bbox_inches='tight')
+logger.info(f"Saved EPS : {eps_path}")
+
+plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
+logger.info(f"Saved PDF : {pdf_path}")
 
 plt.close()
 logger.info("Done.")

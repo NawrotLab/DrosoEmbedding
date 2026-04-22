@@ -14,9 +14,13 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 
 # Run evaluation
-python -m scripts.run_figure_hLatentNew
-# python -m scripts.run_figure_interpretability
 # python -m scripts.run_figure_overview
+# python -m scripts.run_figure_hLatentNew
+# python -m scripts.run_figure_hAccuracy
+# python -m scripts.run_figure_interpretability
+# python -m scripts.run_figure_expDesign
+python -m scripts.neuropils_importance_cofficients
+
 
 
 

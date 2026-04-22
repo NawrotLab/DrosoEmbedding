@@ -157,7 +157,12 @@ def _color_for_group(styles: Dict[str, Any], code: str) -> str:
 
 
 
-def _get_group_map_eval(task_name: str, class_names: list[str]) -> dict[str, list[int]]:
+def get_group_map(task_name: str, class_names: list[str]) -> dict[str, list[int]]:
+    """
+    Return the group mapping for the given task and class names.
+    
+    Canonical version — used by all figure scripts and visualize_preformance.
+    """
     if task_name == 'MetabolicState_2':
         return {'S': [0], 'F': [1]}
     

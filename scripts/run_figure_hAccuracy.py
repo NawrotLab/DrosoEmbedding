@@ -12,14 +12,12 @@ Column Descriptions:
 """
 
 import os
-import yaml
 import pickle
 import numpy as np
 import sys
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats
+from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats, draw_legend_panel, build_class_styles
 from src.utils.helpers import load_all_results, get_style, load_h16_classification_reports
 
 
@@ -28,38 +26,12 @@ from src.utils.helpers import load_all_results, get_style, load_h16_classificati
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
 
 
-# Task configurations
-TASK_CLASS_NAMES = {
-    'MetabolicState_2': ["Starved", "Fed"],
-    'State_Modality_6': [
-        "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)",
-        "Odor + Taste (S)", "Odor + Taste (F)"
-    ],
-    'State_Modality_Valence_16': [
-        "O$^{+}$ (S)", "O$^{-}$ (S)", "O$^{+}$ (F)", "O$^{-}$ (F)",
-        "T$^{+}$ (S)", "T$^{-}$ (S)", "T$^{+}$ (F)", "T$^{-}$ (F)",
-        "O$^{+}$+T$^{+}$ (S)", "O$^{-}$+T$^{-}$ (S)", "O$^{-}$+T$^{+}$ (S)", "O$^{+}$+T$^{-}$ (S)",
-        "O$^{+}$+T$^{+}$ (F)", "O$^{-}$+T$^{-}$ (F)", "O$^{-}$+T$^{+}$ (F)", "O$^{+}$+T$^{-}$ (F)"
-    ]
-}
-
-
-def load_styles():
-    """Load styles from the stylesE.yaml file."""
-    styles_path = os.path.join('src', 'visualization', 'stylesE.yaml')
-    with open(styles_path, 'r') as f:
-        styles = yaml.safe_load(f)['styles']
-    return styles
-
-def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy_v7.png', use_class_symbols=True):
+def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_accuracy_v7.png', use_class_symbols=True):
     """Main plotting function for the horizontal accuracy figure."""
     # Set up figure with styles
     plt.rc('xtick', labelsize=8)
     plt.rc('ytick', labelsize=8)
     
-    # Load styles if needed
-    styles = load_styles() if use_class_symbols else None
-    # styles, _, _, _, _ = get_style(style="stylesE")
     print(f"style lookup for 'Odor (S)': {get_class_style('Odor (S)', styles)}")
 
     
@@ -68,7 +40,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
     
     # Main grid for the tasks (3 rows, 3 columns)
     # Adjust the height to make space for the colorbar and titles
-    outer = GridSpec(3, 1, hspace=0.1, height_ratios=[1, 1, 1], top=0.85, bottom=0.05)
+    outer = GridSpec(3, 1, hspace=0.1, height_ratios=[1, 1, 1], top=0.85, bottom=0.17)
 
     # Add column titles at the top
     column_titles = ['a. Control', 'b. Model', 'c. F1, Precision, Recall']
@@ -130,7 +102,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
 
         # Add row title
         row_y = 0.8 - (row_idx * 0.3)  # Adjust vertical position based on row index
-        row_y = [0.75, 0.45, 0.16]
+        row_y = [0.75, 0.52, 0.28]
         fig.text(0.05, row_y[row_idx], row_titles[task], 
                 ha='left', va='center', fontsize=16, #weight='bold', 
                 transform=fig.transFigure, rotation=90, weight='bold')
@@ -152,9 +124,10 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
             ax=ax_ctrl,
             annot=False,
             cbar=False, 
-            axis_labeling='y_axis',  # Changed from 'x_axis' to 'both' to show both axes
+            axis_labeling='y_axis',
             use_class_symbols=use_class_symbols,
-            styles=styles
+            styles=styles,
+            class_styles=result.get('__class_styles__')
         )
         
         # Second column: Best run confusion matrix
@@ -168,9 +141,10 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
             ax=ax_best,
             annot=False,
             cbar=False, 
-            axis_labeling=None,  # Changed from 'x_axis' to 'both' to show both axes
+            axis_labeling=None,
             use_class_symbols=use_class_symbols,
-            styles=styles
+            styles=styles,
+            class_styles=result.get('__class_styles__')
         )
         # ax_best.set_title('Best Run', fontsize=10)
         
@@ -182,7 +156,7 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
         else:
             ax_stats = fig.add_subplot(inner[2], sharex=first_ax_stats)
         
-        all_reports = load_h16_classification_reports(result)
+        all_reports = result.get('__h16_reports__') or load_h16_classification_reports(result)
         # Plot model stats (F1, Precision, Recall for both control and model)
         print(f"Task {task} - class_names: {result['__class_names__'][:2]}")
 
@@ -192,50 +166,53 @@ def plot_figure_accuracy(results_dict, out_path='results/CombiPlots/fig_accuracy
             result['best']['classification_report_dict'],
             result['__class_names__'],
             rpt_all_runs=all_reports,
-            show_legend=False,  # Legend will be added separately at the top
+            show_legend=False,
             use_class_symbols=use_class_symbols,
-            styles=styles
+            styles=styles,
+            class_styles=result.get('__class_styles__')
         )
         
         # Hide x-axis labels for top two rows, only show on bottom row
         if row_idx < 2:  # Top two rows
             plt.setp(ax_stats.get_xticklabels(), visible=False)
     
-    # Add legend at the top, aligned with colorbar
-    # Create legend handles manually (matching plot_model_stats style)
-    from matplotlib.patches import Rectangle
-    ctrl_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#b7bec4', linewidth=2)
-    model_handle = Rectangle((0, 0), 1, 1, fill=False, edgecolor='#094c80', linewidth=2)
-    handles = [ctrl_handle, model_handle]
-    labels = ['Control', 'Model']
-    
-    legend_gs = GridSpec(1, 1, top=0.9, bottom=0.88, left=0.6, right=0.98)
-    legend_ax = fig.add_subplot(legend_gs[0])
-    legend_ax.axis('off')
-    legend = legend_ax.legend(handles, labels, 
-                             loc='center', 
-                             ncol=len(labels),
-                             fontsize=15, 
-                             frameon=False)
-    legend.set_in_layout(False)
+    # Draw shared legend panel at bottom of figure
+    draw_legend_panel(fig, styles, line_y=0.13,
+                      ax_rect=[0.03, 0.02, 0.95, 0.095])
     
     # Adjust layout to accommodate the colorbar and legends
-    plt.subplots_adjust(left=0.1, right=0.98, top=0.88, bottom=0.1)
+    plt.subplots_adjust(left=0.1, right=0.98, top=0.88, bottom=0.17)
     
     # Save figure
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     plt.savefig(out_path, dpi=300, bbox_inches='tight')
+    plt.savefig(out_path.replace('.png', '.svg'), dpi=300, format='svg', bbox_inches='tight', pad_inches=0.15)
+    plt.savefig(out_path.replace('.png', '.pdf'), dpi=300, format='pdf', bbox_inches='tight', pad_inches=0.15)
     plt.close()
     print(f"Figure saved to {out_path}")
 
 def main():
     print(f"Python: {sys.executable}")
     """Main function to load results and generate the figure."""
-    # Load results
-    results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES)
+    # Load styles and class names from shared config
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="stylesG")
+
+    # Load results — only_cnn_dim=16 skips unneeded dim combos (much faster)
+    results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES,
+                               fixed_trf_for_E=16, fixed_cnn_for_H=16,
+                               only_cnn_dim=16)
 
     for task, result in results.items():
+        # Load H16 reports once and cache on the result dict
         all_reports = load_h16_classification_reports(result)
+        result['__h16_reports__'] = all_reports
+
+        # Build per-class style dicts (handles bicolor entries correctly)
+        result['__class_styles__'] = build_class_styles(
+            TASK_COLORS[task], TASK_EDGECOLORS[task], TASK_SHAPES[task],
+            TASK_BICOLOR_INFO.get(task, {})
+        )
+
         accs = [rpt['accuracy'] for rpt in all_reports]
         ctrl_acc = result['control']['classification_report_dict']['accuracy']
         best_acc = result['best']['classification_report_dict']['accuracy']
@@ -255,7 +232,7 @@ def main():
     
     
     # Generate and save the figure
-    plot_figure_accuracy(results)
+    plot_figure_accuracy(results, styles)
 
 if __name__ == '__main__':
     main()

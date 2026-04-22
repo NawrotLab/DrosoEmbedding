@@ -8,6 +8,10 @@ import re
 import shutil
 import subprocess
 import matplotlib
+# from pdf2image import convert_from_path
+import fitz  # pymupdf
+
+
 
 # --- Make matplotlib's DejaVu Sans available to cairo/fontconfig ---
 # ~/.fonts is a standard user-level font dir, no sudo needed
@@ -91,8 +95,10 @@ def load_svg(path, dpi=1000):
         png_data = cairosvg.svg2png(bytestring=svg_data, dpi=dpi)
         return Image.open(io.BytesIO(png_data))
 
-
-DrosoImage = Image.open('src/src_imgs/DrosoImaging.png')
+DrosoDoc = fitz.open('src/src_imgs/DrosoImaging.pdf')[0]
+pix = DrosoDoc.get_pixmap(dpi=300)
+DrosoImage = Image.open(io.BytesIO(pix.tobytes("png")))
+# DrosoImage = Image.open('src/src_imgs/DrosoImaging.pdf')
 RawData = Image.open('src/src_imgs/RawImages.png')
 ExpHierarchy = load_svg('src/src_imgs/expHierarchy.svg')
 ModelImage = load_svg('src/src_imgs/ModelArch.svg')
@@ -147,5 +153,6 @@ shrink = 0.9
 cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
 new_w, new_h = pos.width * shrink, pos.height * shrink
 axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
-plt.savefig('results/CombiPlots/fig_overview_v1.png', dpi=500, bbox_inches='tight', pad_inches=0.1)
-plt.savefig('results/CombiPlots/fig_overview_v1.svg', dpi=500, bbox_inches='tight', pad_inches=0.1)
+plt.savefig('results/CombiPlots/fig_overview.png', format='png', dpi=500, bbox_inches='tight', pad_inches=0.1)
+plt.savefig('results/CombiPlots/fig_overview.svg', format='svg', dpi=500, bbox_inches='tight', pad_inches=0.1)
+plt.savefig('results/CombiPlots/fig_overview.pdf', format='pdf', dpi=500, bbox_inches='tight', pad_inches=0.1)
