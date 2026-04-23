@@ -64,7 +64,7 @@ class FigureConfig:
 class FigureBase:
     """Base class for figure generation with common functionality."""
     
-    def __init__(self, style_file: str = "stylesE", base_results_dir: Optional[str] = None):
+    def __init__(self, style_file: str = "styles", base_results_dir: Optional[str] = None):
         """
         Initialize the figure base.
         
@@ -194,7 +194,7 @@ class FigureBase:
         return cbar
 
 
-def load_styles(style_file: str = "stylesE") -> Dict[str, Any]:
+def load_styles(style_file: str = "styles") -> Dict[str, Any]:
     """
     Load styles from YAML file.
     

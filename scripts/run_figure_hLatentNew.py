@@ -169,7 +169,7 @@ def main():
     logger.debug(f"Checking if BASE_RESULTS_DIR exists: {os.path.exists(BASE_RESULTS_DIR)}")
 
     logger.debug("Loading styles from YAML file...")
-    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="stylesG")
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="styles")
     logger.debug(f"Loaded styles. TASK_CLASS_NAMES keys: {list(TASK_CLASS_NAMES.keys()) if isinstance(TASK_CLASS_NAMES, dict) else 'N/A'}")
 
     logger.debug(f"Loading results from {BASE_RESULTS_DIR}...")

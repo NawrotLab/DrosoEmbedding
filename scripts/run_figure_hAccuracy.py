@@ -195,7 +195,7 @@ def main():
     print(f"Python: {sys.executable}")
     """Main function to load results and generate the figure."""
     # Load styles and class names from shared config
-    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="stylesG")
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="styles")
 
     # Load results — only_cnn_dim=16 skips unneeded dim combos (much faster)
     results = load_all_results(BASE_RESULTS_DIR, TASK_CLASS_NAMES,

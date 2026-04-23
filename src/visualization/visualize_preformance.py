@@ -26,7 +26,7 @@ Tensor = torch.Tensor
     
 #     Args:
 #         class_name: The name of the class to get style for
-#         styles: Dictionary of style properties from stylesE.yaml
+#         styles: Dictionary of style properties from styles.yaml
         
 #     Returns:
 #         Dictionary with style properties or None if not found
@@ -97,7 +97,7 @@ def get_class_style(class_name, styles):
     
     Args:
         class_name: The name of the class to get style for
-        styles: Dictionary of style properties from stylesE.yaml
+        styles: Dictionary of style properties from styles.yaml
         
     Returns:
         Dictionary with style properties or None if not found
@@ -1899,7 +1899,7 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
 
     Args:
         fig: Matplotlib Figure
-        styles: Style dictionary (from stylesG.yaml / get_style())
+        styles: Style dictionary (from styles.yaml / get_style())
         line_y: y-position for the separator line in figure coords
         ax_rect: [left, bottom, width, height] for the legend axes
                  (default [0.03, 0.02, 0.95, 0.095])

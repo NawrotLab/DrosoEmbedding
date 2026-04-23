@@ -184,7 +184,7 @@ def get_group_map(task_name: str, class_names: list[str]) -> dict[str, list[int]
         }
     return None
 
-def get_style(style = "stylesD"):
+def get_style(style = "styles"):
     
     with open(f'src/visualization/{style}.yaml', "r") as f:
         styles = yaml.safe_load(f)["styles"]
