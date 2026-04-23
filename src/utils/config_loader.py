@@ -5,10 +5,10 @@ import os
 import random 
 import numpy as np
 
-def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml"):
+def load_config(config_path=None):
     """
     Load configuration from YAML file with environment variable overrides.
-    
+
     Environment variables that can be used to override config values:
     - RUN_ID: Overrides the run_id
     - TASK: Overrides data.task
@@ -16,6 +16,8 @@ def load_config(config_path="/rhomes/aabdel/DrosoEmbedding/src/utils/config.yaml
     - LEARNING_RATE: Overrides training.learning_rate
     - EPOCHS: Overrides training.epochs
     """
+    if config_path is None:
+        config_path = Path(__file__).parent / "config.yaml"
     # Load base config from YAML
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
@@ -40,7 +42,11 @@ def apply_env_overrides(config):
         'TRF_DIM': ['model', 'parameters', 'transformer_embed_dim'],
         'METHOD_CH': ['data', 'preprocessing', 'method_ch'],
         'TIMES': ['data', 'preprocessing', 'times'],
-        'NEUROPIL': ['data', 'preprocessing', 'neuropil']
+        'NEUROPIL': ['data', 'preprocessing', 'neuropil'],
+        'DROSO_ROOT': ['paths', 'root'],
+        'DROSO_DATA_ROOT': ['paths', 'data_root'],
+        'DROSO_ALLT_BASE': ['paths', 'allTs_base'],
+        'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
         }
     
     for env_var, config_path in env_mappings.items():

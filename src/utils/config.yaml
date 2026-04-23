@@ -69,11 +69,11 @@ test_config:
 base_seed: 777
 
 paths:
-  root: "/rhomes/aabdel/DrosoEmbedding"
-  data_root: "/projects/lab-data/Collaboration/Gruenwald_Kadow"
+  root: "/path/to/DrosoEmbedding"
+  data_root: "/path/to/data_root"
   pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
-  allTs_base: "/localscratch/aabdel/imgs4DL"
-  peakIDs_Times_All: '/rhomes/aabdel/MSc_DL4DrosoWBCI/pickles/IDs_logTs.pickle'
+  allTs_base: "/path/to/allTs_base"
+  peakIDs_Times_All: '/path/to/IDs_logTs.pickle'
 
 visualization:
   plot_batch_size: 16
