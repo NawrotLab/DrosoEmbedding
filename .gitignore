@@ -22,6 +22,9 @@ __pycache__/
 .ipynb_checkpoints/
 *.ipynb
 
+# Environment variables (contain local paths — use .env.example as template)
+.env
+
 # macOS
 .DS_Store
 

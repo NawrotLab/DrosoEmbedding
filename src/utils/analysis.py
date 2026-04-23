@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 import os
-from src.utils.helpers import _get_group_map_eval
+from src.utils.helpers import get_group_map
 from sklearn.manifold import TSNE
 
 
@@ -22,7 +22,7 @@ def compute_centroid_tsne_payload(
     N, D = features_hd.shape
     assert labels.shape[0] == N
 
-    group_map = _get_group_map_eval(task_name, class_names)
+    group_map = get_group_map(task_name, class_names)
 
     # Build groups: grouped if map exists, else per-class
     if group_map is None:
