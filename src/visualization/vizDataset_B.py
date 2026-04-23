@@ -162,7 +162,6 @@ def main():
     
     # Save additional plot
     plot_meanZ(data, time_points, OUTPUT_PATH, bg_path)
-    print('sth')
 
 
 if __name__ == "__main__":

@@ -161,7 +161,7 @@ def get_group_map(task_name: str, class_names: list[str]) -> dict[str, list[int]
     """
     Return the group mapping for the given task and class names.
     
-    Canonical version — used by all figure scripts and visualize_preformance.
+    Canonical version — used by all figure scripts and visualize_performance.
     """
     if task_name == 'MetabolicState_2':
         return {'S': [0], 'F': [1]}

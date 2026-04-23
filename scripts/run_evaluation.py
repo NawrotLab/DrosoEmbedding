@@ -17,7 +17,7 @@ from src.utils.analysis import (
     euclidean_intra_class, euclidean_inter_class,
     silhouette_scores, compute_centroid_tsne_payload
 )
-from src.visualization.visualize_preformance import plot_mean_cams, compute_class_mean_cams
+from src.visualization.visualize_performance import plot_mean_cams, compute_class_mean_cams
 from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
 from src.utils.helpers import paths2neuropilpaths
 

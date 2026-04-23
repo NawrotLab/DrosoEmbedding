@@ -43,7 +43,7 @@ def filterRecordings_and_returnLabels(rec_paths_dict, classes, include_StimType,
     elif include_MetaboliteState and not include_StimType and not include_Valence: # eg S, F
         states = np.unique([i for i in classes]).tolist()
     else:
-        print("menmen still has to add this case")
+        raise NotImplementedError("Valence-only task not implemented")
 
     for recID, img_paths in rec_paths_dict.items():
         match = re.match(r'^([A-Z]+)', recID)

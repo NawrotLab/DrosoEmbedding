@@ -12,7 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import yaml
 from matplotlib.gridspec import GridSpec
-from src.visualization.visualize_preformance import plot_tsne_latent
+from src.visualization.visualize_performance import plot_tsne_latent
 from src.utils.helpers import load_all_results, get_style, _color_for_group
 from src.utils.logger import setup_logger
 

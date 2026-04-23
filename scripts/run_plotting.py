@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_metric_distribution, plot_similarity_matrix, plot_mean_cams
+from src.visualization.visualize_performance import plot_confusion_matrix, plot_train_val_loss, plot_weighted_avg, plot_per_class_metrics, plot_tsne_latent, plot_metric_distribution, plot_similarity_matrix, plot_mean_cams
 from src.utils.helpers import compute_tsne
 
 def plot_all(results: dict, config: dict, logger) -> None:

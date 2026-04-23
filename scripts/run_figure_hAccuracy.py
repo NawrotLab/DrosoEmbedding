@@ -17,7 +17,7 @@ import numpy as np
 import sys
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from src.visualization.visualize_preformance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats, draw_legend_panel, build_class_styles
+from src.visualization.visualize_performance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats, draw_legend_panel, build_class_styles
 from src.utils.helpers import load_all_results, get_style, load_h16_classification_reports
 
 
@@ -31,9 +31,6 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     # Set up figure with styles
     plt.rc('xtick', labelsize=8)
     plt.rc('ytick', labelsize=8)
-    
-    print(f"style lookup for 'Odor (S)': {get_class_style('Odor (S)', styles)}")
-
     
     # Create figure with 4 rows (colorbar + 3 tasks) and appropriate columns
     fig = plt.figure(figsize=(18, 16))
@@ -94,12 +91,6 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     # For each task (now in rows)
     for row_idx, (task, result) in enumerate(results_dict.items()):
 
-        print(f"use_class_symbols: {use_class_symbols}")
-        print(f"styles is None: {styles is None}")
-        if styles:
-            print(f"styles keys (first 3): {list(styles.keys())[:3]}")
-        print(f"result['__class_names__']: {result['__class_names__']}")
-
         # Add row title
         row_y = 0.8 - (row_idx * 0.3)  # Adjust vertical position based on row index
         row_y = [0.75, 0.52, 0.28]
@@ -158,8 +149,6 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
         
         all_reports = result.get('__h16_reports__') or load_h16_classification_reports(result)
         # Plot model stats (F1, Precision, Recall for both control and model)
-        print(f"Task {task} - class_names: {result['__class_names__'][:2]}")
-
         plot_model_stats(
             ax_stats,
             result['control']['classification_report_dict'],

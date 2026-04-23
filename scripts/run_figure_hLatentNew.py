@@ -4,7 +4,7 @@ Latent Space Visualization Script
 This script generates a figure with t-SNE visualizations and centroid vectors
 for different experimental conditions and model runs.
 
-Plotting helpers live in src.visualization.visualize_preformance;
+Plotting helpers live in src.visualization.visualize_performance;
 this script only handles figure layout + assembly.
 """
 
@@ -14,7 +14,7 @@ from typing import Dict, Tuple
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 
-from src.visualization.visualize_preformance import (
+from src.visualization.visualize_performance import (
     draw_legend_panel,
     plot_biological_axes_panel,
     plot_accuracy_vs_dimension,

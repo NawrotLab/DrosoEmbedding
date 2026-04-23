@@ -21,7 +21,7 @@ from src.models.model_io import load_model
 from src.utils.config_loader import load_config
 from src.utils.helpers import paths2neuropilpaths
 from src.utils.logger import setup_logger
-from src.visualization.visualize_preformance import compute_class_mean_cams, plot_mean_cams
+from src.visualization.visualize_performance import compute_class_mean_cams, plot_mean_cams
 
 
 CAM_METHODS = {
