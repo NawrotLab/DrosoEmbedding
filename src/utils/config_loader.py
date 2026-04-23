@@ -2,8 +2,9 @@ import yaml
 from pathlib import Path
 import torch
 import os
-import random 
+import random
 import numpy as np
+from dotenv import load_dotenv
 
 def load_config(config_path=None):
     """
@@ -16,6 +17,7 @@ def load_config(config_path=None):
     - LEARNING_RATE: Overrides training.learning_rate
     - EPOCHS: Overrides training.epochs
     """
+    load_dotenv()
     if config_path is None:
         config_path = Path(__file__).parent / "config.yaml"
     # Load base config from YAML
