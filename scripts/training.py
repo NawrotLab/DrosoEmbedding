@@ -15,7 +15,7 @@ from src.data.dataset import CustomDataset
 from src.models.cnn_transformer import CNN_Transformer
 from src.training.training_routine import train_seq_seq_Classifier
 from src.models.model_io import load_model, save_model
-from src.utils.helpers import log_params_recursive
+from src.utils.mlflow_utils import log_params_recursive
 
 
 # Argument parsing

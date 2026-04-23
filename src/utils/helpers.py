@@ -2,7 +2,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable, Mapping, Any, Dict, Optional
 import os, re, pickle
-import mlflow
 import numpy as np
 import torch
 from sklearn.manifold import TSNE
@@ -92,13 +91,6 @@ def paths2neuropilpaths(X, config):
 
     return X_new
 
-
-def log_params_recursive(d):
-    for k, v in d.items():
-        if isinstance(v, dict):
-            log_params_recursive(v)
-        elif isinstance(v, (int, float, str, bool)):
-            mlflow.log_param(k, v)
 
 def get_latent_space(model, data_loader, device, return_cnn_latent=False):
     model.eval()
