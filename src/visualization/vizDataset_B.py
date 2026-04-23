@@ -1,3 +1,5 @@
+# Generates source images for Figure 1 (experimental design panel).
+# Output is saved to src/src_images/ and manually cropped for use in run_figure_overview.py.
 import pickle
 import os
 import random
