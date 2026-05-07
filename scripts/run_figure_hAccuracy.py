@@ -19,7 +19,9 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from src.visualization.visualize_performance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats, draw_legend_panel, build_class_styles
 from src.utils.helpers import load_all_results, get_style, load_h16_classification_reports
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
 
+apply_style()
 
 # Base results directory
 # BASE_RESULTS_DIR = os.path.join('results', 'finals')
@@ -28,12 +30,9 @@ BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
 
 def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_accuracy_v7.png', use_class_symbols=True):
     """Main plotting function for the horizontal accuracy figure."""
-    # Set up figure with styles
-    plt.rc('xtick', labelsize=8)
-    plt.rc('ytick', labelsize=8)
     
     # Create figure with 4 rows (colorbar + 3 tasks) and appropriate columns
-    fig = plt.figure(figsize=(18, 16))
+    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 8/9))
     
     # Main grid for the tasks (3 rows, 3 columns)
     # Adjust the height to make space for the colorbar and titles
@@ -43,7 +42,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     column_titles = ['a. Control', 'b. Model', 'c. F1, Precision, Recall']
     col_positions = [0.2, 0.5, 0.8]  # X-positions for each column
     for col_pos, title in zip(col_positions, column_titles):
-        fig.text(col_pos, 0.93, title, ha='center', va='center', fontsize=16, weight='bold', 
+        fig.text(col_pos, 0.93, title, ha='center', va='center', fontsize=FONT_SIZES['title'], weight='bold',
         transform=fig.transFigure)
     
     # Add colorbar below the titles
@@ -55,7 +54,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=100))
     sm.set_array([])
     cbar = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal')
-    cbar.set_label('Prediction Percentage', labelpad=10, fontsize=10)
+    cbar.set_label('Prediction Percentage', labelpad=10, fontsize=FONT_SIZES['colorbar'])
     cbar.ax.xaxis.set_label_position('top')
     cbar.ax.xaxis.label.set_ha('right')
     cbar.ax.xaxis.label.set_x(1.0)  # still in [0,1] axes coords
@@ -72,7 +71,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
         v = v*100
         cbar.ax.axvline(v, color='black', linestyle='--', linewidth=1)
         cbar.ax.text(v, 1.2, lab, transform=trans, ha='center', va='bottom',
-                    fontsize=9, fontweight='bold')
+                    fontsize=FONT_SIZES['colorbar'], fontweight='bold')
         
     # Add row names on the left
     row_titles = {
@@ -94,8 +93,8 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
         # Add row title
         row_y = 0.8 - (row_idx * 0.3)  # Adjust vertical position based on row index
         row_y = [0.75, 0.52, 0.28]
-        fig.text(0.05, row_y[row_idx], row_titles[task], 
-                ha='left', va='center', fontsize=16, #weight='bold', 
+        fig.text(0.05, row_y[row_idx], row_titles[task],
+                ha='left', va='center', fontsize=FONT_SIZES['title'],
                 transform=fig.transFigure, rotation=90, weight='bold')
         # Inner grid for each task row with 3 columns
         inner = GridSpecFromSubplotSpec(1, 3, 

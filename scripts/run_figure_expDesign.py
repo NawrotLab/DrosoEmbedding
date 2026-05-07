@@ -20,17 +20,13 @@ from PIL import Image
 import tifffile
 import cairosvg
 
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
 # ─── FONT ────────────────────────────────────────────────────────────────────
+apply_style()
 mpl.rcParams.update({
-    'font.family'    : 'sans-serif',
-    'font.sans-serif': ['Arial', 'DejaVu Sans', 'Verdana', 'Liberation Sans'],
-    'font.size'      : 7,
-    'axes.labelsize' : 7,
-    'axes.titlesize' : 7,
-    'xtick.labelsize': 6,
-    'ytick.labelsize': 6,
-    'figure.dpi'     : 300,
-    'svg.fonttype'   : 'none',
+    'figure.dpi'  : 300,
+    'svg.fonttype': 'none',
 })
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
@@ -261,10 +257,10 @@ def draw_timeline(ax):
         ha = 'left' if ci == 0 else ('right' if ci == n - 1 else 'center')
         ax.plot(ci, 0, 'o', color='#1d3557', ms=8, zorder=5,
                 markeredgecolor='white', markeredgewidth=1.0, clip_on=False)
-        ax.text(ci, -0.35, f'{t_s} s', ha=ha, va='top', fontsize=7,
+        ax.text(ci, -0.35, f'{t_s} s', ha=ha, va='top', fontsize=FONT_SIZES['annotation'],
                 style='italic', fontweight='bold', color='#1d3557',
                 clip_on=False)
-        ax.text(ci, 0.35, lbl, ha=ha, va='bottom', fontsize=6,
+        ax.text(ci, 0.35, lbl, ha=ha, va='bottom', fontsize=FONT_SIZES['tick'],
                 color='#333333', linespacing=1.3, clip_on=False)
 
 
@@ -340,7 +336,7 @@ def build_figure():
 
     # ── Layout ────────────────────────────────────────────────────────────
     n_rows = len(GROUPINGS)
-    fig = plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH / 2))
 
     outer = gridspec.GridSpec(
         1, 2, figure=fig,
@@ -375,7 +371,7 @@ def build_figure():
     except Exception as e:
         ax_a.text(0.5, 0.5, f'[Panel A]\n{e}',
                   ha='center', va='center', transform=ax_a.transAxes,
-                  fontsize=5, color='grey')
+                  fontsize=FONT_SIZES['annotation'], color='grey')
     ax_a.axis('off')
 
     # ── Panel B ───────────────────────────────────────────────────────────
@@ -399,7 +395,7 @@ def build_figure():
                 sp.set_edgecolor(INC_COL); sp.set_linewidth(1.5)
 
             if ci == 0:
-                ax.set_ylabel(label, fontsize=6, fontweight='bold',
+                ax.set_ylabel(label, fontsize=FONT_SIZES['label'], fontweight='bold',
                               rotation=90, ha='center', va='center',
                               labelpad=8)
 
@@ -427,14 +423,14 @@ def build_figure():
     top_y     = c_bbox[1][0] + 0.015
 
     fig.text((inc_left + inc_right) / 2, top_y, 'Included',
-             ha='center', va='bottom', fontsize=7, fontweight='bold',
+             ha='center', va='bottom', fontsize=FONT_SIZES['subplot_title'], fontweight='bold',
              color=INC_COL)
     fig.text((exc_left + exc_right) / 2, top_y, 'Excluded',
-             ha='center', va='bottom', fontsize=7, fontweight='bold',
+             ha='center', va='bottom', fontsize=FONT_SIZES['subplot_title'], fontweight='bold',
              color=EXC_COL)
 
     # ── Panel labels ──────────────────────────────────────────────────────
-    lkw = dict(fontsize=10, fontweight='bold', transform=fig.transFigure,
+    lkw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', transform=fig.transFigure,
                va='top', ha='left')
     fig.text(0.01,  0.97, 'A', **lkw)
     fig.text(0.01,  0.25, 'B', **lkw)

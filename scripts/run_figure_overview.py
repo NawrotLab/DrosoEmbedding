@@ -11,6 +11,10 @@ import matplotlib
 # from pdf2image import convert_from_path
 import fitz  # pymupdf
 
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
+
 
 
 # --- Make matplotlib's DejaVu Sans available to cairo/fontconfig ---
@@ -114,14 +118,14 @@ layout = [
 
 fig, axes = plt.subplot_mosaic(
     layout,
-    figsize=(12, 8),
+    figsize=(PAGE_WIDTH, PAGE_WIDTH * 2 / 3),
     gridspec_kw={'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5]}
 )
 
 labels = ['a', 'b', 'c', 'd', 'e']
 
 for ax, label in zip(axes.values(), labels):
-    ax.set_title(label, loc='left', fontsize=10, color='black', fontweight='bold')
+    ax.set_title(label, loc='left', fontsize=FONT_SIZES['panel_label'], color='black', fontweight='bold')
     ax.set_xticks([]); ax.set_yticks([])
 
     if label == 'a':

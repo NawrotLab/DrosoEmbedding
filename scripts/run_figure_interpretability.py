@@ -59,6 +59,9 @@ from src.visualization.visualize_interpretability import (
     load_image,
     add_panel_label
 )
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
 
 # ════════════════════════════════════════════════
 # CONFIG
@@ -212,7 +215,7 @@ print_element_sizes(
 
 logger.info("Assembling figure (new 2×3 layout, independent row widths)...")
 
-fig = plt.figure(figsize=(20, 14))
+fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 7/10))
 
 # ── Two independent GridSpecs — one per row ────────────────
 #    They share left/right/hspace margins but have their own
@@ -235,12 +238,12 @@ gs_bot = GridSpec(
 )
 
 
-fig.text(0.07, 0.925, 'a', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.25, 0.925, 'b', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.69, 0.925, 'c', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.07, 0.48, 'd', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.25, 0.48, 'e', ha='left', fontsize=16, fontweight='bold')
-fig.text(0.69, 0.48, 'f', ha='left', fontsize=16, fontweight='bold')
+fig.text(0.07, 0.925, 'a', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.25, 0.925, 'b', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.69, 0.925, 'c', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.07, 0.48, 'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.25, 0.48, 'e', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.69, 0.48, 'f', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 
 # ═══════════════════ TOP ROW ═══════════════════
 
@@ -254,7 +257,7 @@ if os.path.exists(GRADCAM_SKETCH_PATH):
 
 else:
     ax_pipeline.text(0.5, 0.5, '(a) GradCAM pipeline\nnot found',
-                     ha='center', va='center', fontsize=9, color='gray',
+                     ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
                      transform=ax_pipeline.transAxes)
 ax_pipeline.set_xticks([]); ax_pipeline.set_yticks([])
 for spine in ax_pipeline.spines.values():
@@ -287,7 +290,7 @@ if os.path.exists(ATLAS_PATH):
     ax_atlas.set_position([ax_atlas_pos.x0 - 0.01, ax_atlas_pos.y0, ax_atlas_pos.width, ax_atlas_pos.height])
 else:
     ax_atlas.text(0.5, 0.5, '(c) Anatomy\nnot found',
-                  ha='center', va='center', fontsize=9, color='gray',
+                  ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
                   transform=ax_atlas.transAxes)
 ax_atlas.set_xticks([]); ax_atlas.set_yticks([])
 for spine in ax_atlas.spines.values():
@@ -305,7 +308,7 @@ if os.path.exists(SKETCH_PATH):
     ax_ridge.imshow(ridge_img, aspect='equal')
 else:
     ax_ridge.text(0.5, 0.5, '(d) Ridge weight map\nnot found',
-                  ha='center', va='center', fontsize=9, color='gray',
+                  ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
                   transform=ax_ridge.transAxes)
 ax_ridge.set_xticks([]); ax_ridge.set_yticks([])
 for spine in ax_ridge.spines.values():

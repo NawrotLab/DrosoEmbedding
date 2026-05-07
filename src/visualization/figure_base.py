@@ -18,20 +18,21 @@ class FigureConfig:
     # Base results directory
     BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
     
-    # Figure sizes
-    FIGURE_SIZES = {
-        'accuracy': (18, 16),
-        'latent': (16, 12),
-        'overview': (12, 8)
-    }
-    
-    # Font sizes
+    # Target journal page width — change here to retarget all figures at once
+    # Full-page / double-column width: Nature, eLife, PNAS all land at 6.9–7.1"
+    PAGE_WIDTH = 7.0  # inches
+
+    # Font sizes — single source of truth for all publication figures
     FONT_SIZES = {
-        'title': 16,
-        'subtitle': 14,
-        'label': 12,
-        'tick': 8,
-        'legend': 13
+        'panel_label':   10,   # a, b, c… panel letters (bold)
+        'title':         12,   # structural row/column headers
+        'subplot_title':  9,   # individual subplot titles
+        'label':          9,   # xlabel / ylabel
+        'tick':           8,   # xtick / ytick labels
+        'legend':         9,   # legend text
+        'annotation':     8,   # in-plot text, chance-level labels, accuracy numbers
+        'colorbar':       9,   # colorbar tick labels and title
+        'heatmap_cell':   8,   # text inside heatmap cells
     }
     
     # Spacing
@@ -89,8 +90,7 @@ class FigureBase:
     
     def _setup_matplotlib(self):
         """Set up common matplotlib parameters."""
-        plt.rc('xtick', labelsize=FigureConfig.FONT_SIZES['tick'])
-        plt.rc('ytick', labelsize=FigureConfig.FONT_SIZES['tick'])
+        apply_style()
     
     def create_figure(self, figsize: Tuple[float, float], **kwargs) -> plt.Figure:
         """Create a new figure with standard settings."""
@@ -230,7 +230,15 @@ def get_task_config(task_name: str) -> Dict[str, Any]:
     })
 
 
-def setup_matplotlib_rc():
-    """Set up common matplotlib rc parameters."""
-    plt.rc('xtick', labelsize=FigureConfig.FONT_SIZES['tick'])
-    plt.rc('ytick', labelsize=FigureConfig.FONT_SIZES['tick'])
+def apply_style():
+    """Call once at the top of each figure script before any plotting."""
+    plt.rcParams.update({
+        'font.family':     'Arial',
+        'font.size':        FigureConfig.FONT_SIZES['annotation'],
+        'axes.titlesize':   FigureConfig.FONT_SIZES['subplot_title'],
+        'axes.labelsize':   FigureConfig.FONT_SIZES['label'],
+        'xtick.labelsize':  FigureConfig.FONT_SIZES['tick'],
+        'ytick.labelsize':  FigureConfig.FONT_SIZES['tick'],
+        'legend.fontsize':  FigureConfig.FONT_SIZES['legend'],
+        'figure.titlesize': FigureConfig.FONT_SIZES['title'],
+    })

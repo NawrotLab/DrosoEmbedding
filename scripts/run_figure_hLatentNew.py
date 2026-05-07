@@ -22,6 +22,9 @@ from src.visualization.visualize_performance import (
 )
 from src.utils.helpers import load_all_results, get_style
 from src.utils.logger import setup_logger
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
 
 
 # ──────────────────────────────────────────────
@@ -30,10 +33,8 @@ from src.utils.logger import setup_logger
 
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
-    plt.rc('xtick', labelsize=8)
-    plt.rc('ytick', labelsize=8)
 
-    fig = plt.figure(figsize=(16, 15))
+    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 15/16))
 
     gs = GridSpec(3, 4, figure=fig,
                  left=0.08, right=0.98,
@@ -70,7 +71,7 @@ def plot_figure_latent(
     column_positions = [0.18, 0.43, 0.65, 0.9]
 
     for x, title in zip(column_positions, column_titles):
-        fig.text(x, 0.95, title, ha='center', va='center', fontsize=12, weight='bold')
+        fig.text(x, 0.95, title, ha='center', va='center', fontsize=FONT_SIZES['title'], weight='bold')
 
     # Plot each task
     for row, (task, task_name) in enumerate(zip(tasks, task_names)):
@@ -83,7 +84,7 @@ def plot_figure_latent(
 
         # Row label
         fig.text(0.05, task_y_pos[row], task_name, ha='left', va='center',
-                 fontsize=12, rotation=90, weight='bold', transform=fig.transFigure)
+                 fontsize=FONT_SIZES['title'], rotation=90, weight='bold', transform=fig.transFigure)
 
         task_bicolor = bicolor_info.get(task, {}) if bicolor_info else {}
 
@@ -122,7 +123,7 @@ def plot_figure_latent(
         else:
             ax_bio = fig.add_subplot(gs[row, 2])
             ax_bio.text(0.5, 0.5, 'No high-D data', ha='center', va='center',
-                       fontsize=10, color='red', transform=ax_bio.transAxes)
+                       fontsize=FONT_SIZES['annotation'], color='red', transform=ax_bio.transAxes)
             ax_bio.set_xticks([]); ax_bio.set_yticks([])
             if logger:
                 logger.warning(f"Task '{task}': missing transformer_latent_space for biological axes")

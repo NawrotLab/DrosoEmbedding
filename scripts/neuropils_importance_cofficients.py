@@ -47,6 +47,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import torch
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
 
 # ================================================================
 # CONFIG
@@ -338,13 +341,13 @@ ax.plot(alphas_sweep[0], ols_cv_r2,   marker='*', color='coral',     markersize=
 ax.annotate(f'α = 0\n(OLS / LinearRegression)\ntrain={ols_train_r2:.4f}, CV={ols_cv_r2:.4f}',
             xy=(alphas_sweep[0], ols_cv_r2),
             xytext=(alphas_sweep[3], ols_cv_r2 - 0.006),
-            fontsize=8, color='#555555',
+            fontsize=FONT_SIZES['annotation'], color='#555555',
             arrowprops=dict(arrowstyle='->', color='#555555', lw=1))
 
-ax.set_xlabel('α (regularisation strength)', fontsize=12)
-ax.set_ylabel('R²', fontsize=12)
-ax.set_title('Bias-variance tradeoff: Ridge regularisation sweep', fontsize=12)
-ax.legend(fontsize=9)
+ax.set_xlabel('α (regularisation strength)', fontsize=FONT_SIZES['label'])
+ax.set_ylabel('R²', fontsize=FONT_SIZES['label'])
+ax.set_title('Bias-variance tradeoff: Ridge regularisation sweep', fontsize=FONT_SIZES['subplot_title'])
+ax.legend(fontsize=FONT_SIZES['legend'])
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
 plt.tight_layout()
@@ -408,16 +411,16 @@ for col, (method_label, cdata) in enumerate(zip(method_labels, contrast_data)):
         bar_colors = [cp if v >= 0 else cn for v in vals]
         ax.bar(range(len(NEUROPILS)), vals, color=bar_colors)
         ax.set_xticks(range(len(NEUROPILS)))
-        ax.set_xticklabels(NEUROPILS, rotation=45, ha='right', fontsize=8)
+        ax.set_xticklabels(NEUROPILS, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
         ax.axhline(0, color='black', linewidth=0.5)
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
         if col == 0:
-            ax.set_ylabel(f'Δ |W|\n{title}', fontsize=9)
+            ax.set_ylabel(f'Δ |W|\n{title}', fontsize=FONT_SIZES['label'])
         if row == 0:
-            ax.set_title(method_label, fontsize=9, fontweight='bold')
+            ax.set_title(method_label, fontsize=FONT_SIZES['subplot_title'], fontweight='bold')
 
-plt.suptitle('Neuropil contrast comparison: Ridge vs OLS vs Polynomial overfit', fontsize=12, y=1.01)
+plt.suptitle('Neuropil contrast comparison: Ridge vs OLS vs Polynomial overfit', fontsize=FONT_SIZES['title'], y=1.01)
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "comparison_ridge_ols_poly.png"), dpi=200, bbox_inches='tight')
 plt.savefig(os.path.join(OUTDIR, "comparison_ridge_ols_poly.pdf"), format='pdf', bbox_inches='tight')
@@ -539,7 +542,7 @@ ax.set_title("Ridge Weights (|W|): Neuropil -> Class Logits")
 plt.colorbar(im, ax=ax)
 for i in range(len(class_names)):
     for j in range(len(NEUROPILS)):
-        ax.text(j, i, f"{df_abs.values[i,j]:.2f}", ha='center', va='center', fontsize=7, color='white')
+        ax.text(j, i, f"{df_abs.values[i,j]:.2f}", ha='center', va='center', fontsize=FONT_SIZES['heatmap_cell'], color='white')
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "heatmap_classes_abs.png"), dpi=150)
 plt.close()
@@ -557,7 +560,7 @@ ax.set_title("Group Profiles (|W|)")
 plt.colorbar(im, ax=ax)
 for i in range(df_group_abs.shape[0]):
     for j in range(df_group_abs.shape[1]):
-        ax.text(j, i, f"{df_group_abs.values[i,j]:.2f}", ha='center', va='center', fontsize=7, color='white')
+        ax.text(j, i, f"{df_group_abs.values[i,j]:.2f}", ha='center', va='center', fontsize=FONT_SIZES['heatmap_cell'], color='white')
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "heatmap_groups_abs.png"), dpi=150)
 plt.close()
@@ -591,16 +594,16 @@ for ax, (title, info) in zip(axes, fig4_spec.items()):
     colors = [info['pos_color'] if v >= 0 else info['neg_color'] for v in vals]
     ax.bar(range(len(NEUROPILS)), vals, color=colors)
     ax.set_xticks(range(len(NEUROPILS)))
-    ax.set_xticklabels(NEUROPILS, rotation=45, ha='right', fontsize=9)
-    ax.set_title(title, fontsize=12, fontweight='bold')
+    ax.set_xticklabels(NEUROPILS, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
+    ax.set_title(title, fontsize=FONT_SIZES['subplot_title'], fontweight='bold')
     ax.axhline(0, color='black', linewidth=0.5)
     ax.set_ylim(-ylim_max, ylim_max)
     if ax == axes[0]:
-        ax.set_ylabel('Δ |W|', fontsize=11)
+        ax.set_ylabel('Δ |W|', fontsize=FONT_SIZES['label'])
     ax.legend(handles=[
         Patch(facecolor=info['pos_color'], label=info['pos_label']),
         Patch(facecolor=info['neg_color'], label=info['neg_label']),
-    ], loc='upper right', fontsize=9, framealpha=0.9)
+    ], loc='upper right', fontsize=FONT_SIZES['legend'], framealpha=0.9)
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "fig4_contrasts_3panel.png"), dpi=300)
 plt.close()
@@ -620,11 +623,11 @@ for ax, (title, group_dict) in zip(axes, summary_specs.items()):
     agg = profiles.mean(axis=0)
     sort_idx = np.argsort(agg)[::-1]
     ax.bar(x, agg[sort_idx], color='steelblue')
-    ax.set_title(title, fontsize=12, fontweight='bold')
+    ax.set_title(title, fontsize=FONT_SIZES['subplot_title'], fontweight='bold')
     ax.set_xticks(x)
     ax.set_xticklabels([NEUROPILS[i] for i in sort_idx], rotation=45, ha='right')
     if ax == axes[0]:
-        ax.set_ylabel("Mean |W|", fontsize=11)
+        ax.set_ylabel("Mean |W|", fontsize=FONT_SIZES['label'])
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "summary_barplots_factors.png"), dpi=150)
 plt.close()
@@ -655,7 +658,7 @@ ax.set_title("Inter-neuropil correlation (mean activity)")
 plt.colorbar(im, ax=ax, shrink=0.8)
 for i in range(len(NEUROPILS)):
     for j in range(len(NEUROPILS)):
-        ax.text(j, i, f"{corr_df.values[i,j]:.2f}", ha='center', va='center', fontsize=7)
+        ax.text(j, i, f"{corr_df.values[i,j]:.2f}", ha='center', va='center', fontsize=FONT_SIZES['heatmap_cell'])
 plt.tight_layout()
 plt.savefig(os.path.join(OUTDIR, "correlation_matrix.png"), dpi=150)
 plt.close()
@@ -671,10 +674,10 @@ ax.hist(perm_r2s, bins=bins_main, color='#7f8c8d', alpha=0.8, edgecolor='white',
 ax.axvline(real_r2, color='#c0392b', linewidth=2, linestyle='--',
            label=f'Observed $R^2$ = {real_r2:.3f}')
  
-ax.set_xlabel('$R^2$', fontsize=13)
-ax.set_ylabel('Count', fontsize=13)
-ax.set_title(f'Permutation test ($p$ < {1/N_PERMUTATIONS:.3f})', fontsize=13)
-ax.legend(fontsize=10, loc='upper center')
+ax.set_xlabel('$R^2$', fontsize=FONT_SIZES['label'])
+ax.set_ylabel('Count', fontsize=FONT_SIZES['label'])
+ax.set_title(f'Permutation test ($p$ < {1/N_PERMUTATIONS:.3f})', fontsize=FONT_SIZES['subplot_title'])
+ax.legend(fontsize=FONT_SIZES['legend'], loc='upper center')
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
  
@@ -684,10 +687,10 @@ ax_inset = inset_axes(ax, width="45%", height="55%", loc='upper right',
  
 bins_inset = np.linspace(perm_r2s.min() - 0.0001, perm_r2s.max() * 1.3, 40)
 ax_inset.hist(perm_r2s, bins=bins_inset, color='#7f8c8d', alpha=0.8, edgecolor='white', linewidth=0.5)
-ax_inset.set_xlabel('$R^2$', fontsize=9)
-ax_inset.set_ylabel('Count', fontsize=9)
-ax_inset.set_title('Null distribution (zoom)', fontsize=9)
-ax_inset.tick_params(labelsize=8)
+ax_inset.set_xlabel('$R^2$', fontsize=FONT_SIZES['label'])
+ax_inset.set_ylabel('Count', fontsize=FONT_SIZES['label'])
+ax_inset.set_title('Null distribution (zoom)', fontsize=FONT_SIZES['subplot_title'])
+ax_inset.tick_params(labelsize=FONT_SIZES['tick'])
 ax_inset.spines['top'].set_visible(False)
 ax_inset.spines['right'].set_visible(False)
  

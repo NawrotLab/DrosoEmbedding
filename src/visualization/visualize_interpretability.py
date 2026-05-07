@@ -24,6 +24,9 @@ import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
 
 
 # ════════════════════════════════════════════════
@@ -38,7 +41,7 @@ def add_panel_label(fig, ax, label, dx=0.0, dy=0.01):
         label,
         ha='left',
         va='bottom',
-        fontsize=16,
+        fontsize=FONT_SIZES['panel_label'],
         fontweight='bold'
     )
 
@@ -202,15 +205,15 @@ def save_gradcam_examples(
         fig, axes = plt.subplots(1, 2, figsize=(6, 3))
 
         axes[0].imshow(img, cmap='gray' if img.ndim == 2 else None, aspect='equal')
-        axes[0].set_title('Input', fontsize=10)
+        axes[0].set_title('Input', fontsize=FONT_SIZES['subplot_title'])
         axes[0].axis('off')
 
         axes[1].imshow(cam_map, cmap=cmap, aspect='equal', vmin=0, vmax=cam_map.max())
-        axes[1].set_title('Attribution', fontsize=10)
+        axes[1].set_title('Attribution', fontsize=FONT_SIZES['subplot_title'])
         axes[1].axis('off')
 
         cls_label = class_names[label] if class_names else str(label)
-        fig.suptitle(f'Example {rank+1}  —  class: {cls_label}', fontsize=11)
+        fig.suptitle(f'Example {rank+1}  —  class: {cls_label}', fontsize=FONT_SIZES['title'])
         fig.tight_layout(rect=[0, 0, 1, 0.93])
 
         fname = os.path.join(out_dir, f"gradcam_example_{rank+1:02d}_cls{label}.png")
@@ -309,14 +312,14 @@ def save_feature_maps(
 
         # First cell: input image
         axes_flat[0].imshow(inp_img, cmap='gray' if inp_img.ndim == 2 else None, aspect='equal')
-        axes_flat[0].set_title('Input', fontsize=8)
+        axes_flat[0].set_title('Input', fontsize=FONT_SIZES['subplot_title'])
         axes_flat[0].axis('off')
 
         # Remaining cells: feature map channels
         for ch in range(n_channels):
             ax = axes_flat[ch + 1]
             ax.imshow(feat[ch], cmap=cmap, aspect='equal')
-            ax.set_title(f'ch {ch}', fontsize=7)
+            ax.set_title(f'ch {ch}', fontsize=FONT_SIZES['subplot_title'])
             ax.axis('off')
 
         # Hide unused cells
@@ -326,7 +329,7 @@ def save_feature_maps(
         fig_grid.suptitle(
             f'Sample {rank+1} — class: {cls_label}  |  '
             f'layer shape: ({n_channels}, {fh}, {fw})',
-            fontsize=10,
+            fontsize=FONT_SIZES['title'],
         )
         fig_grid.tight_layout(rect=[0, 0, 1, 0.95])
         fig_grid.savefig(
@@ -596,11 +599,11 @@ def plot_gradcam_pooled(
 
             # Factor label on the left (vertical)
             lbl = display_labels.get(entry, entry)
-            ax.set_ylabel(lbl, fontsize=16, rotation=90, labelpad=4)
+            ax.set_ylabel(lbl, fontsize=FONT_SIZES['label'], rotation=90, labelpad=4)
 
             # Column header only on top row
             if r == 0:
-                ax.set_title(col_label, fontsize=17, fontweight='bold',
+                ax.set_title(col_label, fontsize=FONT_SIZES['subplot_title'], fontweight='bold',
                              pad=4)
 
             ax.set_xticks([]); ax.set_yticks([])
@@ -614,7 +617,7 @@ def plot_gradcam_pooled(
         
         ax_cb = fig.add_subplot(inner_gs[:, ncols])
         fig.colorbar(im_ref, cax=ax_cb)
-        ax_cb.set_ylabel('GradCAM intensity', fontsize=16, labelpad=6)
+        ax_cb.set_ylabel('GradCAM intensity', fontsize=FONT_SIZES['colorbar'], labelpad=6)
 
     return fig
 
@@ -625,7 +628,7 @@ def plot_gradcam_pooled(
 
 def plot_heatmap_groups_abs(
     ax, group_profiles_abs, neuropil_names=None,
-    cmap='viridis', annotate=True, fontsize_annot=9, title=None,
+    cmap='viridis', annotate=True, fontsize_annot=None, title=None,
 ):
     """Grouped absolute importance heatmap."""
     if neuropil_names is None:
@@ -633,11 +636,13 @@ def plot_heatmap_groups_abs(
     values = group_profiles_abs.values
     group_names = list(group_profiles_abs.index)
 
+    if fontsize_annot is None:
+        fontsize_annot = FONT_SIZES['heatmap_cell']
     im = ax.imshow(values, aspect='auto', cmap=cmap)
     ax.set_xticks(range(len(neuropil_names)))
-    ax.set_xticklabels(neuropil_names, rotation=45, ha='right', fontsize=16)
+    ax.set_xticklabels(neuropil_names, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
     ax.set_yticks(range(len(group_names)))
-    ax.set_yticklabels(group_names, fontsize=16)
+    ax.set_yticklabels(group_names, fontsize=FONT_SIZES['tick'])
     if annotate:
         for i in range(values.shape[0]):
             for j in range(values.shape[1]):
@@ -649,7 +654,7 @@ def plot_heatmap_groups_abs(
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="3%", pad=0.08)
     cbar = ax.figure.colorbar(im, cax=cax)
-    cbar.set_label('Importance Weights', fontsize=16, labelpad=6)
+    cbar.set_label('Importance Weights', fontsize=FONT_SIZES['colorbar'], labelpad=6)
     return ax
 
 
@@ -680,7 +685,7 @@ def plot_contrasts_horizontal(
     axes, group_contrasts_abs, neuropil_names=None,
     contrast_spec=None, uniform_xlim=True,
     sort_by_modality=False,
-    fontsize_title=17, fontsize_labels=16, fontsize_legend=10,
+    fontsize_title=None, fontsize_labels=None, fontsize_legend=None,
 ):
     """
     3-panel HORIZONTAL contrast barplots.
@@ -691,6 +696,12 @@ def plot_contrasts_horizontal(
         contrast_spec = DEFAULT_CONTRAST_SPEC
     if neuropil_names is None:
         neuropil_names = list(group_contrasts_abs.columns)
+    if fontsize_title is None:
+        fontsize_title = FONT_SIZES['subplot_title']
+    if fontsize_labels is None:
+        fontsize_labels = FONT_SIZES['label']
+    if fontsize_legend is None:
+        fontsize_legend = FONT_SIZES['legend']
 
     n_np = len(neuropil_names)
     neuropil_names = list(neuropil_names)  # ensure mutable copy
@@ -746,9 +757,9 @@ def plot_contrasts_horizontal(
 
         # Direction annotation above
 
-        ax.text(0, 1.03, '|', ha='center', va='bottom', fontsize=14, transform=trans)
-        ax.text(0, 1.03, f'← {neg_lbl} ', ha='right', va='bottom', fontsize=14, transform=trans)
-        ax.text(0, 1.03, f' {pos_lbl} →', ha='left', va='bottom', fontsize=14, transform=trans)
+        ax.text(0, 1.03, '|', ha='center', va='bottom', fontsize=fontsize_labels, transform=trans)
+        ax.text(0, 1.03, f'← {neg_lbl} ', ha='right', va='bottom', fontsize=fontsize_labels, transform=trans)
+        ax.text(0, 1.03, f' {pos_lbl} →', ha='left', va='bottom', fontsize=fontsize_labels, transform=trans)
         # ax.text(0.5, 1.03,
         #         f'← {info["neg_label"]}  |  {info["pos_label"]} →',
         #         ha='center', va='bottom', fontsize=14,
@@ -786,7 +797,7 @@ def plot_contrasts_horizontal(
                      color='black', linewidth=1.5,
                      clip_on=False, solid_capstyle='butt')
         last_ax.text((sb_x_start + sb_x_end) / 2, sb_y - 0.3, f'{scale_val}',
-                     ha='center', va='top', fontsize=fontsize_labels - 2,
+                     ha='center', va='top', fontsize=max(6, fontsize_labels - 2),
                      clip_on=False)
 
     return axes
@@ -797,10 +808,12 @@ def plot_contrasts_horizontal(
 # ════════════════════════════════════════════════
 
 def plot_correlation_matrix(
-    ax, corr_df, annotate=True, fontsize_annot=7,
+    ax, corr_df, annotate=True, fontsize_annot=None,
     title="Inter-neuropil correlation",
 ):
     """Neuropil correlation matrix."""
+    if fontsize_annot is None:
+        fontsize_annot = FONT_SIZES['heatmap_cell']
     names = list(corr_df.columns)
     values = corr_df.values
     im = ax.imshow(values, cmap='RdBu_r', vmin=-1, vmax=1)

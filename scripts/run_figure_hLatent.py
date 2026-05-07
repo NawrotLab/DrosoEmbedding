@@ -15,15 +15,16 @@ from matplotlib.gridspec import GridSpec
 from src.visualization.visualize_performance import plot_tsne_latent
 from src.utils.helpers import load_all_results, get_style, _color_for_group
 from src.utils.logger import setup_logger
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+
+apply_style()
 
 
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
-    plt.rc('xtick', labelsize=8)
-    plt.rc('ytick', labelsize=8)
     
     # More compact figure size
-    fig = plt.figure(figsize=(16, 12))
+    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 3/4))
     
     # Adjust grid spec with less space between columns
     gs = GridSpec(3, 4, figure=fig, 
@@ -138,7 +139,7 @@ def plot_centroid_vectors(
             ax.annotate(
                 name, xy=(mid_x, mid_y), xytext=(0, 8),
                 textcoords="offset points", ha="center", va="center",
-                fontsize=14, color=col, zorder=3
+                fontsize=FONT_SIZES['annotation'], color=col, zorder=3
             )
 
     # 5) Cosmetics
@@ -238,7 +239,7 @@ def _plot_accuracy_vs_dimension(
     # --- primary family ---
     dims_p, stats_p = _extract_family_stats(primary_family)
     if not dims_p:
-        ax.axis('off'); ax.text(0.5, 0.5, f'No {primary_family}* runs', ha='center', va='center', fontsize=10)
+        ax.axis('off'); ax.text(0.5, 0.5, f'No {primary_family}* runs', ha='center', va='center', fontsize=FONT_SIZES['annotation'])
         return
 
     # optional alt - always compute stats_a for star logic, even if not plotting
@@ -317,19 +318,19 @@ def _plot_accuracy_vs_dimension(
 
     for x, (y, n) in zip(x_p, zip(med_p, n_p)):
         if y_min <= y <= y_max:
-            ax.text(x, y - 2, f'{y:.1f}\nn={n}', ha='left', va='top', fontsize=7, color='k')
+            ax.text(x, y - 2, f'{y:.1f}\nn={n}', ha='left', va='top', fontsize=FONT_SIZES['annotation'], color='k')
 
     # x-axis: show the full grid so missing dims appear as gaps
     N = len(grid_dims)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels([str(d) for d in grid_dims])
     if row == 2:
-        ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=10)
+        ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=FONT_SIZES['label'])
 
-    ax.set_ylabel('Accuracy (%)', fontsize=10)
+    ax.set_ylabel('Accuracy (%)', fontsize=FONT_SIZES['label'])
     ax.axhline(y=chance_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
     ax.text(0.7, y_min + 1, f'Chance: {chance_level:.1f}%',
-            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=8)
+            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['annotation'])
 
     # frame/limits
     ax.spines['left'].set_bounds(y_min, y_max)
@@ -349,7 +350,7 @@ def _plot_accuracy_vs_dimension(
     if overlay_alt_family:
         handles, labels = ax.get_legend_handles_labels()
         if labels:
-            ax.legend(handles, labels, loc="upper right", fontsize=8, frameon=False)
+            ax.legend(handles, labels, loc="upper right", fontsize=FONT_SIZES['legend'], frameon=False)
 
 
 def _add_l_shaped_axis(ax: plt.Axes, axis_length: float = 20.0, show_labels: bool = True) -> None:
@@ -382,10 +383,10 @@ def _add_l_shaped_axis(ax: plt.Axes, axis_length: float = 20.0, show_labels: boo
     
     # Add axis labels at the ends of the L if show_labels is True
     if show_labels:
-        ax.text(xmin, ymin - y_offset, 't-SNE 1', 
-                ha='left', va='top', fontsize=10)
-        ax.text(xmin - x_offset, ymin, 't-SNE 2', 
-                ha='right', va='bottom', fontsize=10, rotation=90)
+        ax.text(xmin, ymin - y_offset, 't-SNE 1',
+                ha='left', va='top', fontsize=FONT_SIZES['label'])
+        ax.text(xmin - x_offset, ymin, 't-SNE 2',
+                ha='right', va='bottom', fontsize=FONT_SIZES['label'], rotation=90)
     
     # Hide default ticks and labels
     ax.set_xticks([])
@@ -510,7 +511,7 @@ def plot_figure_latent(
     column_positions = [0.18, 0.43, 0.65, 0.9] 
 
     for x, title in zip(column_positions, column_titles):
-        fig.text(x, 0.95, title, ha='center', va='center', fontsize=12, weight='bold')
+        fig.text(x, 0.95, title, ha='center', va='center', fontsize=FONT_SIZES['title'], weight='bold')
     
     # Plot each task
     for row, (task, task_name) in enumerate(zip(tasks, task_names)):
@@ -522,7 +523,7 @@ def plot_figure_latent(
             logger.debug(f"Task '{task}': class_names = {class_names}")
         
         # Add row label
-        fig.text(0.05, task_y_pos[row], task_name, ha='left', va='center', fontsize=12, rotation=90, weight='bold', transform=fig.transFigure)
+        fig.text(0.05, task_y_pos[row], task_name, ha='left', va='center', fontsize=FONT_SIZES['title'], rotation=90, weight='bold', transform=fig.transFigure)
         
         # Plot control t-SNE (first column)
         _plot_tsne(fig, gs, row, 0, run_dict, class_names, colors[task], edges[task], shapes[task], use_l_axis=use_l_axis, is_control=True, task=task, logger=logger)
