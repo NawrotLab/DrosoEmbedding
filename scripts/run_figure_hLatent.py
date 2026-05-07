@@ -24,7 +24,7 @@ def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
     
     # More compact figure size
-    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 3/4))
+    fig = plt.figure(figsize=(16, 12))
     
     # Adjust grid spec with less space between columns
     gs = GridSpec(3, 4, figure=fig, 

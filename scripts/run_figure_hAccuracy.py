@@ -32,7 +32,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     """Main plotting function for the horizontal accuracy figure."""
     
     # Create figure with 4 rows (colorbar + 3 tasks) and appropriate columns
-    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 8/9))
+    fig = plt.figure(figsize=(18, 16))
     
     # Main grid for the tasks (3 rows, 3 columns)
     # Adjust the height to make space for the colorbar and titles

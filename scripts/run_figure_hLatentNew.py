@@ -34,7 +34,7 @@ apply_style()
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
 
-    fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 15/16))
+    fig = plt.figure(figsize=(16, 15))
 
     gs = GridSpec(3, 4, figure=fig,
                  left=0.08, right=0.98,

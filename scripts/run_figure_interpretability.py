@@ -215,7 +215,7 @@ print_element_sizes(
 
 logger.info("Assembling figure (new 2×3 layout, independent row widths)...")
 
-fig = plt.figure(figsize=(PAGE_WIDTH, PAGE_WIDTH * 7/10))
+fig = plt.figure(figsize=(20, 14))
 
 # ── Two independent GridSpecs — one per row ────────────────
 #    They share left/right/hspace margins but have their own

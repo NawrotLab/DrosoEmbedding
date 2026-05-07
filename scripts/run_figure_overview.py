@@ -118,7 +118,7 @@ layout = [
 
 fig, axes = plt.subplot_mosaic(
     layout,
-    figsize=(PAGE_WIDTH, PAGE_WIDTH * 2 / 3),
+    figsize=(12, 8),
     gridspec_kw={'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5]}
 )
 
