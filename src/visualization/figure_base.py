@@ -230,6 +230,11 @@ def get_task_config(task_name: str) -> Dict[str, Any]:
     })
 
 
+# Module-level aliases for direct import
+FONT_SIZES = FigureConfig.FONT_SIZES
+PAGE_WIDTH = FigureConfig.PAGE_WIDTH
+
+
 def apply_style():
     """Call once at the top of each figure script before any plotting."""
     plt.rcParams.update({
