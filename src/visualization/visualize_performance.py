@@ -1366,17 +1366,6 @@ def _add_axis_indicator(ax, axis_names, fontsize=None):
                 transform=trans, ha='left', va='bottom', fontsize=fontsize)
 
 
-def _add_cos_box(ax, lines, fontsize=None):
-    """Add cosine similarity + variance annotation box in top-left corner."""
-    if fontsize is None:
-        fontsize = FONT_SIZES['annotation']
-    text = '\n'.join(lines)
-    ax.text(0.02, 0.98, text,
-            transform=ax.transAxes, ha='left', va='top',
-            fontsize=fontsize, fontstyle='italic', family='monospace',
-            bbox=dict(boxstyle='round,pad=0.5', facecolor='lightyellow',
-                      edgecolor='gray', alpha=0.85),
-            zorder=10)
 
 
 def plot_biological_axes_panel(
@@ -1774,10 +1763,6 @@ def plot_accuracy_vs_dimension(
     else:
         chance_level, y_min, y_max = 0.0, 60, 100
 
-    for x, (y, n) in zip(x_p, zip(med_p, n_p)):
-        if y_min <= y <= y_max:
-            ax.text(x, y - 2, f'{y:.1f}\nn={n}', ha='left', va='top', fontsize=FONT_SIZES['annotation'], color='k')
-
     N = len(grid_dims)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels([str(d) for d in grid_dims])
@@ -1786,9 +1771,9 @@ def plot_accuracy_vs_dimension(
 
     ax.set_ylabel('Accuracy (%)', fontsize=FONT_SIZES['label'])
     ref_level = baseline if baseline is not None else chance_level
-    ref_label = f'Baseline: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
+    ref_label = f'Baseline Accuracy: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
     ax.axhline(y=ref_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
-    ax.text(0.7, y_min + 1, ref_label,
+    ax.text(0.02, y_min + 1, ref_label,
             transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['annotation'])
 
     ax.spines['left'].set_bounds(y_min, y_max)
