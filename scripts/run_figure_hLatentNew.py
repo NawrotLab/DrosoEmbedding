@@ -22,7 +22,7 @@ from src.visualization.visualize_performance import (
 )
 from src.utils.helpers import load_all_results, get_style
 from src.utils.logger import setup_logger
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH, FigureConfig
 
 apply_style()
 
@@ -34,7 +34,7 @@ apply_style()
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
 
-    fig = plt.figure(figsize=(16, 15))
+    fig = plt.figure(figsize=(18, 17))
 
     gs = GridSpec(3, 4, figure=fig,
                  left=0.08, right=0.98,
@@ -135,7 +135,8 @@ def plot_figure_latent(
         plot_accuracy_vs_dimension(ax, run_dict, task_name,
                                    color=list(colors.values())[row], row=row,
                                    primary_family=primary_family,
-                                   overlay_alt_family=False, best_dim=best_dim)
+                                   overlay_alt_family=False, best_dim=best_dim,
+                                   baseline=FigureConfig.TASK_CONFIG.get(task, {}).get('baseline'))
 
     # Draw legend panel at bottom of figure
     draw_legend_panel(fig, styles, line_y=0.13)

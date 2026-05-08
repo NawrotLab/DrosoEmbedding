@@ -1153,7 +1153,7 @@ def create_shared_legend(fig, handles, labels, position=(0.66, 0.84, 0.3, 0.1),
     return legend
 
 
-def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True):
+def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True, font_offset=0):
     """
     Add L-shaped corner axis to the plot with consistent length.
     
@@ -1644,6 +1644,7 @@ def plot_accuracy_vs_dimension(
     overlay_alt_family: bool = True,
     grid_dims: Optional[List[int]] = None,
     best_dim: Optional[int] = None,
+    baseline: Optional[float] = None,
 ) -> None:
     """Plot accuracy vs latent dimension for a given task."""
     def _extract_family_stats(family_prefix: str):
@@ -1779,14 +1780,16 @@ def plot_accuracy_vs_dimension(
         ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=10)
 
     ax.set_ylabel('Accuracy (%)', fontsize=10)
-    ax.axhline(y=chance_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
-    ax.text(0.7, y_min + 1, f'Chance: {chance_level:.1f}%',
+    ref_level = baseline if baseline is not None else chance_level
+    ref_label = f'Baseline: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
+    ax.axhline(y=ref_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
+    ax.text(0.7, y_min + 1, ref_label,
             transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=8)
 
     ax.spines['left'].set_bounds(y_min, y_max)
     ax.spines['bottom'].set_bounds(0, max(0, N-1))
     ax.spines['top'].set_visible(False); ax.spines['right'].set_visible(False)
-    y_ticks = np.arange(np.ceil(chance_level/10)*10, min(101, np.floor(y_max/10)*10 + 1), 10, dtype=int)
+    y_ticks = np.arange(np.ceil(ref_level/10)*10, min(101, np.floor(y_max/10)*10 + 1), 10, dtype=int)
     ax.yaxis.set_ticks(y_ticks)
     ax.set_ylim(y_min, y_max)
     ax.set_xlim(-0.5, N - 0.5)

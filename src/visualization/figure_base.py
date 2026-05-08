@@ -24,15 +24,15 @@ class FigureConfig:
 
     # Font sizes — single source of truth for all publication figures
     FONT_SIZES = {
-        'panel_label':   10,   # a, b, c… panel letters (bold)
-        'title':         12,   # structural row/column headers
-        'subplot_title':  9,   # individual subplot titles
-        'label':          9,   # xlabel / ylabel
-        'tick':           8,   # xtick / ytick labels
-        'legend':         9,   # legend text
-        'annotation':     8,   # in-plot text, chance-level labels, accuracy numbers
-        'colorbar':       9,   # colorbar tick labels and title
-        'heatmap_cell':   8,   # text inside heatmap cells
+        'panel_label':   12,   # a, b, c… panel letters (bold)
+        'title':         14,   # structural row/column headers
+        'subplot_title': 11,   # individual subplot titles
+        'label':         11,   # xlabel / ylabel
+        'tick':          10,   # xtick / ytick labels
+        'legend':        11,   # legend text
+        'annotation':    10,   # in-plot text, chance-level labels, accuracy numbers
+        'colorbar':      11,   # colorbar tick labels and title
+        'heatmap_cell':  10,   # text inside heatmap cells
     }
     
     # Spacing
@@ -47,16 +47,19 @@ class FigureConfig:
         'MetabolicState_2': {
             'name': 'i. State',
             'chance_level': 50.0,
+            'baseline': 54.1,
             'y_range': (70, 100)
         },
         'State_Modality_6': {
-            'name': 'ii. State, Modality', 
+            'name': 'ii. State, Modality',
             'chance_level': 100/6,
+            'baseline': 27.8,
             'y_range': (70, 100)
         },
         'State_Modality_Valence_16': {
             'name': 'iii. State, Modality, Valence',
             'chance_level': 100/16,
+            'baseline': 10.0,
             'y_range': (60, 90)
         }
     }
