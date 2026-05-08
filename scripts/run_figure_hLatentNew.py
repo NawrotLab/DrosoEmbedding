@@ -65,7 +65,7 @@ def plot_figure_latent(
 
     tasks = list(results_dict.keys())[:3]
     task_names = ['i. State', 'ii. State, Modality', 'iii. State, Modality, Valence']
-    task_y_pos = [0.81, 0.53, 0.25]
+    task_y_pos = [0.82, 0.55, 0.28]
 
     column_titles = ['a. Control t-SNE', 'b. Model t-SNE', 'c. Centroid projections', 'd. Accuracy']
     column_positions = [0.18, 0.43, 0.65, 0.9]
@@ -136,7 +136,7 @@ def plot_figure_latent(
                                    baseline=FigureConfig.TASK_CONFIG.get(task, {}).get('baseline'))
 
     # Draw legend panel at bottom of figure
-    draw_legend_panel(fig, styles, line_y=0.165)
+    draw_legend_panel(fig, styles, line_y=0.155)
 
     # Save figure
     if logger:
