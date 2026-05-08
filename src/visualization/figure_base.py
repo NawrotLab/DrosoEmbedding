@@ -27,8 +27,8 @@ class FigureConfig:
         'panel_label':   12,   # a, b, c… panel letters (bold)
         'title':         16,   # structural row/column headers
         'subplot_title': 11,   # individual subplot titles
-        'label':         11,   # xlabel / ylabel
-        'tick':          10,   # xtick / ytick labels
+        'label':         13,   # xlabel / ylabel
+        'tick':          12,   # xtick / ytick labels
         'legend':        11,   # legend text
         'annotation':    14,   # in-plot text, chance-level labels, accuracy numbers
         'colorbar':      11,   # colorbar tick labels and title

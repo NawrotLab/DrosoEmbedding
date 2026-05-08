@@ -1054,7 +1054,7 @@ def plot_model_stats(ax, rpt_ctrl, rpt_best, class_names,
 
     ax.set_xticks(x)
     ax.set_xticklabels(['F1', 'Precision', 'Recall'], fontsize=FONT_SIZES['label'])
-    ax.set_ylabel('Score', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('Accuracy', fontsize=FONT_SIZES['label'])
     ax.set_ylim(0, 1)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
