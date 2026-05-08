@@ -24,16 +24,16 @@ class FigureConfig:
 
     # Font sizes — single source of truth for all publication figures
     FONT_SIZES = {
-        'panel_label':   12,   # a, b, c… panel letters (bold)
-        'title':         16,   # structural row/column headers
-        'subplot_title': 11,   # individual subplot titles
-        'label':         13,   # xlabel / ylabel
-        'tick':          12,   # xtick / ytick labels
-        'legend':        11,   # legend text
-        'annotation':    14,   # in-plot text, chance-level labels, accuracy numbers
-        'colorbar':      11,   # colorbar tick labels and title
-        'heatmap_cell':  10,   # text inside heatmap cells
-        'legend_panel':  12,   # legend panel headers, row labels, footer
+        'panel_label':   13,   # a, b, c… panel letters (bold)
+        'title':         17,   # structural row/column headers
+        'subplot_title': 12,   # individual subplot titles
+        'label':         14,   # xlabel / ylabel
+        'tick':          14,   # xtick / ytick labels
+        'legend':        12,   # legend text
+        'annotation':    15,   # in-plot text, chance-level labels, accuracy numbers
+        'colorbar':      12,   # colorbar tick labels and title
+        'heatmap_cell':  11,   # text inside heatmap cells
+        'legend_panel':  13,   # legend panel headers, row labels, footer
     }
     
     # Spacing
