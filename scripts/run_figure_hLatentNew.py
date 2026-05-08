@@ -65,7 +65,7 @@ def plot_figure_latent(
 
     tasks = list(results_dict.keys())[:3]
     task_names = ['i. State', 'ii. State, Modality', 'iii. State, Modality, Valence']
-    task_y_pos = [0.82, 0.55, 0.28]
+    task_y_pos = [0.83, 0.57, 0.31]
 
     column_titles = ['a. Control t-SNE', 'b. Model t-SNE', 'c. Centroid projections', 'd. Accuracy']
     column_positions = [0.18, 0.43, 0.65, 0.9]
