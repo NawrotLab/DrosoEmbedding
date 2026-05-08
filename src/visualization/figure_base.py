@@ -33,6 +33,7 @@ class FigureConfig:
         'annotation':    10,   # in-plot text, chance-level labels, accuracy numbers
         'colorbar':      11,   # colorbar tick labels and title
         'heatmap_cell':  10,   # text inside heatmap cells
+        'legend_panel':  12,   # legend panel headers, row labels, footer
     }
     
     # Spacing

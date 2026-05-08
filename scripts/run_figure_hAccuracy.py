@@ -165,8 +165,8 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
             plt.setp(ax_stats.get_xticklabels(), visible=False)
     
     # Draw shared legend panel at bottom of figure
-    draw_legend_panel(fig, styles, line_y=0.13,
-                      ax_rect=[0.03, 0.02, 0.95, 0.095])
+    draw_legend_panel(fig, styles, line_y=0.145,
+                      ax_rect=[0.03, 0.02, 0.95, 0.11])
     
     # Adjust layout to accommodate the colorbar and legends
     plt.subplots_adjust(left=0.1, right=0.98, top=0.88, bottom=0.17)

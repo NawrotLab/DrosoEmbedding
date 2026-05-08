@@ -1914,7 +1914,7 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
     """
 
     if ax_rect is None:
-        ax_rect = [0.03, 0.02, 0.95, 0.095]
+        ax_rect = [0.03, 0.02, 0.95, 0.11]
 
     # ── Separator line ──
     fig.add_artist(plt.Line2D([0.05, 0.97], [line_y, line_y],
@@ -1952,15 +1952,15 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
     ms = 14
 
     # Row labels (left of first column)
-    ax.text(x_start - 0.045, y_fed, 'Fed', ha='right', va='center', fontsize=FONT_SIZES['annotation'], weight='bold')
-    ax.text(x_start - 0.045, y_stv, 'Stv', ha='right', va='center', fontsize=FONT_SIZES['annotation'], weight='bold')
+    ax.text(x_start - 0.045, y_fed, 'Fed', ha='right', va='center', fontsize=FONT_SIZES['legend_panel'], weight='bold')
+    ax.text(x_start - 0.045, y_stv, 'Stv', ha='right', va='center', fontsize=FONT_SIZES['legend_panel'], weight='bold')
 
     for i, (header, fed_key, stv_key) in enumerate(columns):
         x = xs[i]
 
         # Header — bold, dark
         ax.text(x, y_header, header, ha='center', va='center',
-                fontsize=FONT_SIZES['annotation'], weight='bold', color='0.2')
+                fontsize=FONT_SIZES['legend_panel'], weight='bold', color='0.2')
 
         fed_s = styles[fed_key]
         stv_s = styles[stv_key]
@@ -2007,9 +2007,9 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
     for fx, (ftype, fkw) in zip(fxs, footer_parts):
         if ftype == 'text':
             ax.text(fx, y_footer, fkw['s'], ha='center', va='center',
-                    fontsize=FONT_SIZES['annotation'], color=fkw['color'])
+                    fontsize=FONT_SIZES['legend_panel'], color=fkw['color'])
         elif ftype == 'swatch':
             ax.plot(fx - 0.015, y_footer, 's', ms=10, markerfacecolor=fkw['fc'],
                     markeredgecolor=fkw['fc'], clip_on=False)
             ax.text(fx + 0.01, y_footer, fkw['label'], ha='left', va='center',
-                    fontsize=FONT_SIZES['annotation'], color='0.3')
+                    fontsize=FONT_SIZES['legend_panel'], color='0.3')

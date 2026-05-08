@@ -139,7 +139,7 @@ def plot_figure_latent(
                                    baseline=FigureConfig.TASK_CONFIG.get(task, {}).get('baseline'))
 
     # Draw legend panel at bottom of figure
-    draw_legend_panel(fig, styles, line_y=0.13)
+    draw_legend_panel(fig, styles, line_y=0.145)
 
     # Save figure
     if logger:
