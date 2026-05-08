@@ -432,9 +432,9 @@ def build_figure():
     # ── Panel labels ──────────────────────────────────────────────────────
     lkw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', transform=fig.transFigure,
                va='top', ha='left')
-    fig.text(0.01,  0.97, 'A', **lkw)
-    fig.text(0.01,  0.25, 'B', **lkw)
-    fig.text(0.295, 0.97, 'C', **lkw)
+    fig.text(0.01,  0.97, 'a', **lkw)
+    fig.text(0.01,  0.25, 'b', **lkw)
+    fig.text(0.295, 0.97, 'c', **lkw)
 
     # ── Save ──────────────────────────────────────────────────────────────
     out = f'{OUTPUT_BASE}_S{SEED}'
