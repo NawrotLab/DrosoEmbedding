@@ -1335,7 +1335,7 @@ def _add_axis_indicator(ax, axis_names, fontsize=None):
     """
     # Origin and arm length in axes fraction
     if fontsize is None:
-        fontsize = FONT_SIZES['annotation']
+        fontsize = FONT_SIZES['label']
     x0, y0 = 0.06, 0.06
     length = 0.13
     trans = ax.transAxes
@@ -1695,7 +1695,7 @@ def plot_accuracy_vs_dimension(
 
     dims_p, stats_p = _extract_family_stats(primary_family)
     if not dims_p:
-        ax.axis('off'); ax.text(0.5, 0.5, f'No {primary_family}* runs', ha='center', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.axis('off')
         return
 
     alt_family = "H" if primary_family == "E" else "E"
@@ -1767,14 +1767,14 @@ def plot_accuracy_vs_dimension(
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels([str(d) for d in grid_dims])
     if row == 2:
-        ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=FONT_SIZES['label'])
+        ax.set_xlabel('Latent Dimension', fontsize=FONT_SIZES['label'])
 
     ax.set_ylabel('Accuracy (%)', fontsize=FONT_SIZES['label'])
     ref_level = baseline if baseline is not None else chance_level
     ref_label = f'Baseline Accuracy: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
     ax.axhline(y=ref_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
-    ax.text(0.02, y_min + 1, ref_label,
-            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['annotation'])
+    ax.text(0.35, y_min + 1, ref_label,
+            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['label'])
 
     ax.spines['left'].set_bounds(y_min, y_max)
     ax.spines['bottom'].set_bounds(0, max(0, N-1))

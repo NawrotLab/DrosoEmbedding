@@ -38,7 +38,7 @@ def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
 
     gs = GridSpec(3, 4, figure=fig,
                  left=0.08, right=0.98,
-                 bottom=0.17, top=0.93,
+                 bottom=0.20, top=0.93,
                  wspace=0.15, hspace=0.25,
                  width_ratios=[1, 1, 1, 0.8])
 
@@ -105,8 +105,8 @@ def plot_figure_latent(
         X_hd = best_data.get('transformer_latent_space')
         latent_labels = best_data.get('latent_labels')
 
+        ax_bio = fig.add_subplot(gs[row, 2])
         if X_hd is not None and latent_labels is not None:
-            ax_bio = fig.add_subplot(gs[row, 2])
             plot_biological_axes_panel(
                 ax=ax_bio,
                 X=X_hd,
@@ -121,9 +121,6 @@ def plot_figure_latent(
                 row=row,
             )
         else:
-            ax_bio = fig.add_subplot(gs[row, 2])
-            ax_bio.text(0.5, 0.5, 'No high-D data', ha='center', va='center',
-                       fontsize=FONT_SIZES['annotation'], color='red', transform=ax_bio.transAxes)
             ax_bio.set_xticks([]); ax_bio.set_yticks([])
             if logger:
                 logger.warning(f"Task '{task}': missing transformer_latent_space for biological axes")
@@ -139,7 +136,7 @@ def plot_figure_latent(
                                    baseline=FigureConfig.TASK_CONFIG.get(task, {}).get('baseline'))
 
     # Draw legend panel at bottom of figure
-    draw_legend_panel(fig, styles, line_y=0.145)
+    draw_legend_panel(fig, styles, line_y=0.165)
 
     # Save figure
     if logger:

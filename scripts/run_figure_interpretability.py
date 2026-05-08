@@ -255,10 +255,6 @@ if os.path.exists(GRADCAM_SKETCH_PATH):
     ax_pipeline_pos = ax_pipeline.get_position()
     ax_pipeline.set_position([ax_pipeline_pos.x0 + 0.02, ax_pipeline_pos.y0, ax_pipeline_pos.width, ax_pipeline_pos.height])
 
-else:
-    ax_pipeline.text(0.5, 0.5, '(a) GradCAM pipeline\nnot found',
-                     ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
-                     transform=ax_pipeline.transAxes)
 ax_pipeline.set_xticks([]); ax_pipeline.set_yticks([])
 for spine in ax_pipeline.spines.values():
     spine.set_visible(False)
@@ -288,10 +284,6 @@ if os.path.exists(ATLAS_PATH):
     ax_atlas.imshow(atlas_img, aspect='equal')
     ax_atlas_pos = ax_atlas.get_position()
     ax_atlas.set_position([ax_atlas_pos.x0 - 0.01, ax_atlas_pos.y0, ax_atlas_pos.width, ax_atlas_pos.height])
-else:
-    ax_atlas.text(0.5, 0.5, '(c) Anatomy\nnot found',
-                  ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
-                  transform=ax_atlas.transAxes)
 ax_atlas.set_xticks([]); ax_atlas.set_yticks([])
 for spine in ax_atlas.spines.values():
     spine.set_visible(False)
@@ -306,10 +298,6 @@ if os.path.exists(SKETCH_PATH):
     # ridge_img = mpimg.imread(SKETCH_PATH)
     ridge_img = load_image(SKETCH_PATH)
     ax_ridge.imshow(ridge_img, aspect='equal')
-else:
-    ax_ridge.text(0.5, 0.5, '(d) Ridge weight map\nnot found',
-                  ha='center', va='center', fontsize=FONT_SIZES['annotation'], color='gray',
-                  transform=ax_ridge.transAxes)
 ax_ridge.set_xticks([]); ax_ridge.set_yticks([])
 for spine in ax_ridge.spines.values():
     spine.set_visible(False)

@@ -30,7 +30,7 @@ class FigureConfig:
         'label':         11,   # xlabel / ylabel
         'tick':          10,   # xtick / ytick labels
         'legend':        11,   # legend text
-        'annotation':    12,   # in-plot text, chance-level labels, accuracy numbers
+        'annotation':    14,   # in-plot text, chance-level labels, accuracy numbers
         'colorbar':      11,   # colorbar tick labels and title
         'heatmap_cell':  10,   # text inside heatmap cells
         'legend_panel':  12,   # legend panel headers, row labels, footer
