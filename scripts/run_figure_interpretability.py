@@ -225,7 +225,7 @@ gs_top = GridSpec(
     1, 3, figure=fig,
     left=0.05, right=0.97,
     bottom=0.52, top=0.93,
-    wspace=0.28,
+    wspace=0.30,
     width_ratios=[0.6, 1.1, 0.8],
 )
 
@@ -233,7 +233,7 @@ gs_bot = GridSpec(
     1, 3, figure=fig,
     left=0.05, right=0.97,
     bottom=0.05, top=0.47,
-    wspace=0.28,
+    wspace=0.30,
     width_ratios=[0.6, 1.1, 0.8],
 )
 
@@ -241,9 +241,9 @@ gs_bot = GridSpec(
 fig.text(0.07, 0.925, 'a', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 fig.text(0.25, 0.925, 'b', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 fig.text(0.69, 0.925, 'c', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.07, 0.48, 'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.25, 0.48, 'e', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.69, 0.48, 'f', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.07, 0.50, 'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.25, 0.50, 'e', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.69, 0.50, 'f', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 
 # ═══════════════════ TOP ROW ═══════════════════
 
