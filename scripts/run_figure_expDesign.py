@@ -257,10 +257,10 @@ def draw_timeline(ax):
         ha = 'left' if ci == 0 else ('right' if ci == n - 1 else 'center')
         ax.plot(ci, 0, 'o', color='#1d3557', ms=8, zorder=5,
                 markeredgecolor='white', markeredgewidth=1.0, clip_on=False)
-        ax.text(ci, -0.35, f'{t_s} s', ha=ha, va='top', fontsize=FONT_SIZES['legend'],
+        ax.text(ci, -0.35, f'{t_s} s', ha=ha, va='top', fontsize=FONT_SIZES['small'],
                 style='italic', fontweight='bold', color='#1d3557',
                 clip_on=False)
-        ax.text(ci, 0.35, lbl, ha=ha, va='bottom', fontsize=FONT_SIZES['legend'],
+        ax.text(ci, 0.35, lbl, ha=ha, va='bottom', fontsize=FONT_SIZES['small'],
                 color='#333333', linespacing=1.3, clip_on=False)
 
 
@@ -395,7 +395,7 @@ def build_figure():
                 sp.set_edgecolor(INC_COL); sp.set_linewidth(1.5)
 
             if ci == 0:
-                ax.set_ylabel(label, fontsize=FONT_SIZES['legend'], fontweight='bold',
+                ax.set_ylabel(label.lower(), fontsize=FONT_SIZES['small'],
                               rotation=90, ha='center', va='center',
                               labelpad=8)
 

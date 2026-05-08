@@ -34,6 +34,7 @@ class FigureConfig:
         'colorbar':      12,   # colorbar tick labels and title
         'heatmap_cell':  11,   # text inside heatmap cells
         'legend_panel':  13,   # legend panel headers, row labels, footer
+        'small':         10,   # dense/compact labels in tight layouts
     }
     
     # Spacing
