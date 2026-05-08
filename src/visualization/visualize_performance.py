@@ -3,6 +3,7 @@ import textwrap
 from typing import Dict, List, Optional, Tuple, Any
 
 import matplotlib.pyplot as plt
+from src.visualization.figure_base import FONT_SIZES
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -351,8 +352,8 @@ def plot_confusion_matrix(cl_name, cm, class_names, output_path, dataID, hyperpa
             fontsize_title = 26
     else:
         fig = ax.figure
-        fontsize_annot = 12
-        fontsize_ticks = 12
+        fontsize_annot = FONT_SIZES['heatmap_cell']
+        fontsize_ticks = FONT_SIZES['tick']
         fontsize_axis = None
         fontsize_title = None
 
@@ -1052,8 +1053,8 @@ def plot_model_stats(ax, rpt_ctrl, rpt_best, class_names,
                 ax.scatter(x_scatter, y_scatter, s=30, color=default_color, alpha=0.7, zorder=5)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(['F1', 'Precision', 'Recall'], fontsize=15)
-    ax.set_ylabel('Score', fontsize=10)
+    ax.set_xticklabels(['F1', 'Precision', 'Recall'], fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('Score', fontsize=FONT_SIZES['label'])
     ax.set_ylim(0, 1)
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
@@ -1153,7 +1154,7 @@ def create_shared_legend(fig, handles, labels, position=(0.66, 0.84, 0.3, 0.1),
     return legend
 
 
-def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True, font_offset=0):
+def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True):
     """
     Add L-shaped corner axis to the plot with consistent length.
     
@@ -1184,10 +1185,10 @@ def add_l_shaped_axis(ax, axis_length=20.0, show_labels=True, font_offset=0):
     
     # Add axis labels at the ends of the L if show_labels is True
     if show_labels:
-        ax.text(xmin, ymin - y_offset, 't-SNE 1', 
-                ha='left', va='top', fontsize=10)
-        ax.text(xmin - x_offset, ymin, 't-SNE 2', 
-                ha='right', va='bottom', fontsize=10, rotation=90)
+        ax.text(xmin, ymin - y_offset, 't-SNE 1',
+                ha='left', va='top', fontsize=FONT_SIZES['label'])
+        ax.text(xmin - x_offset, ymin, 't-SNE 2',
+                ha='right', va='bottom', fontsize=FONT_SIZES['label'], rotation=90)
     
     # Hide default ticks and labels
     ax.set_xticks([])
@@ -1322,7 +1323,7 @@ def _clean_axis(ax):
     ax.set_yticklabels([])
 
 
-def _add_axis_indicator(ax, axis_names, fontsize=8):
+def _add_axis_indicator(ax, axis_names, fontsize=None):
     """
     Add a clean L-shaped axis indicator in the bottom-left corner.
     All lines meet at a single origin point. Uses axes-fraction transform.
@@ -1333,6 +1334,8 @@ def _add_axis_indicator(ax, axis_names, fontsize=8):
       - 3 names → L-shape + diagonal for 3rd axis
     """
     # Origin and arm length in axes fraction
+    if fontsize is None:
+        fontsize = FONT_SIZES['annotation']
     x0, y0 = 0.06, 0.06
     length = 0.13
     trans = ax.transAxes
@@ -1363,8 +1366,10 @@ def _add_axis_indicator(ax, axis_names, fontsize=8):
                 transform=trans, ha='left', va='bottom', fontsize=fontsize)
 
 
-def _add_cos_box(ax, lines, fontsize=10):
+def _add_cos_box(ax, lines, fontsize=None):
     """Add cosine similarity + variance annotation box in top-left corner."""
+    if fontsize is None:
+        fontsize = FONT_SIZES['annotation']
     text = '\n'.join(lines)
     ax.text(0.02, 0.98, text,
             transform=ax.transAxes, ha='left', va='top',
@@ -1432,8 +1437,8 @@ def plot_biological_axes_panel(
                            linewidth=lw, s=200, zorder=3)
 
         # Endpoint text labels — placed beyond the line ends for clearance
-        ax.text(-xlim * 1.15, 0, 'Starved', ha='right', va='center', fontsize=10)
-        ax.text(xlim * 1.15, 0, 'Fed', ha='left', va='center', fontsize=10)
+        ax.text(-xlim * 1.15, 0, 'Starved', ha='right', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text(xlim * 1.15, 0, 'Fed', ha='left', va='center', fontsize=FONT_SIZES['annotation'])
 
         ax.set_xlim(-xlim * 2.2, xlim * 2.2)
         ax.set_ylim(-0.5, 0.5)
@@ -1472,10 +1477,10 @@ def plot_biological_axes_panel(
                            linewidth=lw, s=180, zorder=3)
 
         # Endpoint text labels
-        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
-        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=10)
-        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=10)
-        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=10)
+        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=FONT_SIZES['annotation'])
+        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=FONT_SIZES['annotation'])
 
         ax.set_xlim(-lim * 1.7, lim * 1.7)
         ax.set_ylim(-lim * 1.5, lim * 1.5)
@@ -1531,12 +1536,12 @@ def plot_biological_axes_panel(
                            linewidth=lw, s=120, zorder=3)
 
         # Endpoint text labels
-        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=10)
-        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=10)
-        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=10)
-        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=10)
-        ax.text(diag_len * cos_a, diag_len * sin_a, '  App.', ha='left', va='bottom', fontsize=10)
-        ax.text(-diag_len * cos_a, -diag_len * sin_a, 'Avers.  ', ha='right', va='top', fontsize=10)
+        ax.text(-lim, 0, 'Starved  ', ha='right', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text(lim, 0, '  Fed', ha='left', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=FONT_SIZES['annotation'])
+        ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=FONT_SIZES['annotation'])
+        ax.text(diag_len * cos_a, diag_len * sin_a, '  App.', ha='left', va='bottom', fontsize=FONT_SIZES['annotation'])
+        ax.text(-diag_len * cos_a, -diag_len * sin_a, 'Avers.  ', ha='right', va='top', fontsize=FONT_SIZES['annotation'])
 
         ax.set_xlim(-lim * 1.7, lim * 1.7)
         ax.set_ylim(-lim * 2.0, lim * 1.6)
@@ -1610,7 +1615,7 @@ def plot_centroid_vectors(
             ax.annotate(
                 name, xy=(mid_x, mid_y), xytext=(0, 8),
                 textcoords="offset points", ha="center", va="center",
-                fontsize=14, color=col, zorder=3
+                fontsize=FONT_SIZES['annotation'], color=col, zorder=3
             )
 
     # 5) Cosmetics
@@ -1701,7 +1706,7 @@ def plot_accuracy_vs_dimension(
 
     dims_p, stats_p = _extract_family_stats(primary_family)
     if not dims_p:
-        ax.axis('off'); ax.text(0.5, 0.5, f'No {primary_family}* runs', ha='center', va='center', fontsize=10)
+        ax.axis('off'); ax.text(0.5, 0.5, f'No {primary_family}* runs', ha='center', va='center', fontsize=FONT_SIZES['annotation'])
         return
 
     alt_family = "H" if primary_family == "E" else "E"
@@ -1771,20 +1776,20 @@ def plot_accuracy_vs_dimension(
 
     for x, (y, n) in zip(x_p, zip(med_p, n_p)):
         if y_min <= y <= y_max:
-            ax.text(x, y - 2, f'{y:.1f}\nn={n}', ha='left', va='top', fontsize=7, color='k')
+            ax.text(x, y - 2, f'{y:.1f}\nn={n}', ha='left', va='top', fontsize=FONT_SIZES['annotation'], color='k')
 
     N = len(grid_dims)
     ax.set_xticks(np.arange(N))
     ax.set_xticklabels([str(d) for d in grid_dims])
     if row == 2:
-        ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=10)
+        ax.set_xlabel(f'Latent Dimension ({primary_family}*)', fontsize=FONT_SIZES['label'])
 
-    ax.set_ylabel('Accuracy (%)', fontsize=10)
+    ax.set_ylabel('Accuracy (%)', fontsize=FONT_SIZES['label'])
     ref_level = baseline if baseline is not None else chance_level
     ref_label = f'Baseline: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
     ax.axhline(y=ref_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
     ax.text(0.7, y_min + 1, ref_label,
-            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=8)
+            transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['annotation'])
 
     ax.spines['left'].set_bounds(y_min, y_max)
     ax.spines['bottom'].set_bounds(0, max(0, N-1))
@@ -1802,7 +1807,7 @@ def plot_accuracy_vs_dimension(
     if overlay_alt_family:
         handles, labels = ax.get_legend_handles_labels()
         if labels:
-            ax.legend(handles, labels, loc="upper right", fontsize=8, frameon=False)
+            ax.legend(handles, labels, loc="upper right", fontsize=FONT_SIZES['legend'], frameon=False)
 
 
 def plot_tsne_panel(
@@ -1947,15 +1952,15 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
     ms = 14
 
     # Row labels (left of first column)
-    ax.text(x_start - 0.045, y_fed, 'Fed', ha='right', va='center', fontsize=9, weight='bold')
-    ax.text(x_start - 0.045, y_stv, 'Stv', ha='right', va='center', fontsize=9, weight='bold')
+    ax.text(x_start - 0.045, y_fed, 'Fed', ha='right', va='center', fontsize=FONT_SIZES['annotation'], weight='bold')
+    ax.text(x_start - 0.045, y_stv, 'Stv', ha='right', va='center', fontsize=FONT_SIZES['annotation'], weight='bold')
 
     for i, (header, fed_key, stv_key) in enumerate(columns):
         x = xs[i]
 
         # Header — bold, dark
         ax.text(x, y_header, header, ha='center', va='center',
-                fontsize=9, weight='bold', color='0.2')
+                fontsize=FONT_SIZES['annotation'], weight='bold', color='0.2')
 
         fed_s = styles[fed_key]
         stv_s = styles[stv_key]
@@ -2002,9 +2007,9 @@ def draw_legend_panel(fig, styles, line_y=0.10, ax_rect=None):
     for fx, (ftype, fkw) in zip(fxs, footer_parts):
         if ftype == 'text':
             ax.text(fx, y_footer, fkw['s'], ha='center', va='center',
-                    fontsize=8.5, color=fkw['color'])
+                    fontsize=FONT_SIZES['annotation'], color=fkw['color'])
         elif ftype == 'swatch':
             ax.plot(fx - 0.015, y_footer, 's', ms=10, markerfacecolor=fkw['fc'],
                     markeredgecolor=fkw['fc'], clip_on=False)
             ax.text(fx + 0.01, y_footer, fkw['label'], ha='left', va='center',
-                    fontsize=8.5, color='0.3')
+                    fontsize=FONT_SIZES['annotation'], color='0.3')
