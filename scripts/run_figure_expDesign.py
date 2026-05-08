@@ -336,7 +336,7 @@ def build_figure():
 
     # ── Layout ────────────────────────────────────────────────────────────
     n_rows = len(GROUPINGS)
-    fig = plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(18, 9))
 
     outer = gridspec.GridSpec(
         1, 2, figure=fig,
