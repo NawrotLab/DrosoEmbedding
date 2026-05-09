@@ -204,9 +204,9 @@ def make_figure(all_groups, stats, out_path):
         s   = stats[state]
         p   = s['p_permutation_one_sided']
         p_str = f'p < 0.001' if p < 0.001 else f'p = {p:.3f}'
-        ax.text(0.98, 0.02,
+        ax.text(0.98, 0.98,
                 f"Δ = {s['mean_delta']:.3f}\n95% CI [{s['ci_95'][0]:.3f}, {s['ci_95'][1]:.3f}]\n{p_str}",
-                transform=ax.transAxes, ha='right', va='bottom',
+                transform=ax.transAxes, ha='right', va='top',
                 fontsize=FONT_SIZES['annotation'], color='0.3',
                 bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
                           edgecolor='0.8', alpha=0.85))
@@ -217,9 +217,9 @@ def make_figure(all_groups, stats, out_path):
                for v in valences]
     fig.legend(handles=handles, loc='upper center', ncol=3,
                fontsize=FONT_SIZES['legend'], frameon=False,
-               bbox_to_anchor=(0.5, 0.0))
+               bbox_to_anchor=(0.5, -0.02))
 
-    plt.tight_layout(rect=[0, 0.06, 1, 1])
+    plt.tight_layout(rect=[0, 0.08, 1, 1])
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
