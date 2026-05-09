@@ -1,12 +1,11 @@
 """
 Figure: Marginal 1D Latent Projections
 =======================================
-One row per task; each subplot shows class centroids projected onto a single
-biological axis.
+One task group per section; subplots stacked vertically (full figure width each).
 
-  Row i   (State)                   : 1 subplot — State
-  Row ii  (State, Modality)         : 2 subplots — State | Modality
-  Row iii (State, Modality, Valence): 3 subplots — State | Modality | Valence
+  Group i   (State)                   : title + 1 plot
+  Group ii  (State, Modality)         : title + 2 plots stacked
+  Group iii (State, Modality, Valence): title + 3 plots stacked
 
 Reuses plot_1d_marginal() and _compute_biological_axes() from
 visualize_performance.py. Marker/colour conventions match figure_latent.
@@ -14,7 +13,7 @@ visualize_performance.py. Marker/colour conventions match figure_latent.
 
 import os
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -49,25 +48,20 @@ def plot_figure_marginals(
     bicolor_info=None,
     out_path=OUT_PATH,
 ):
-    fig = plt.figure(figsize=(18, 12))
+    fig = plt.figure(figsize=(18, 18))
 
-    # Fixed 3-column grid: every subplot occupies exactly one column (1/3 figure width).
-    # Row i   uses col 1 (centered); row ii uses cols 0–1; row iii uses cols 0–2.
-    outer = GridSpec(3, 3, figure=fig,
-                     left=0.08, right=0.98,
-                     top=0.90, bottom=0.15,
-                     hspace=0.50, wspace=0.35)
+    # Outer grid: 3 task groups, height proportional to subplot count (1 : 2 : 3).
+    # Extra hspace between groups; inner hspace keeps plots within a group tight.
+    outer = GridSpec(3, 1, figure=fig,
+                     left=0.10, right=0.98,
+                     top=0.93, bottom=0.10,
+                     hspace=0.55,
+                     height_ratios=[1, 2, 3])
 
-    # Col slots per row — row i centered, row ii left-aligned pair, row iii full
-    COL_SLOTS = {
-        'MetabolicState_2':          [1],
-        'State_Modality_6':          [0, 1],
-        'State_Modality_Valence_16': [0, 1, 2],
-    }
+    # y positions for task group titles (placed above each outer row)
+    title_y = [0.955, 0.72, 0.44]
 
-    row_y_pos = [0.82, 0.55, 0.28]
-
-    fig.text(0.53, 0.94, 'Centroid projections — marginal 1D axes',
+    fig.text(0.53, 0.975, 'Centroid projections — marginal 1D axes',
              ha='center', va='center',
              fontsize=FONT_SIZES['title'], weight='bold')
 
@@ -87,13 +81,18 @@ def plot_figure_marginals(
 
         projections, _, _ = _compute_biological_axes(X, labels, task, class_names)
         axis_keys = TASK_AXES[task]
+        n_ax = len(axis_keys)
 
-        fig.text(0.03, row_y_pos[row], task_name,
-                 ha='left', va='center', fontsize=FONT_SIZES['title'],
-                 rotation=90, weight='bold', transform=fig.transFigure)
+        # Task group title above the group
+        fig.text(0.53, title_y[row], task_name,
+                 ha='center', va='bottom', fontsize=FONT_SIZES['title'],
+                 weight='bold', transform=fig.transFigure)
 
-        for col_slot, ax_key in zip(COL_SLOTS[task], axis_keys):
-            ax = fig.add_subplot(outer[row, col_slot])
+        # Stack subplots vertically within this task group
+        inner = GridSpecFromSubplotSpec(n_ax, 1, subplot_spec=outer[row], hspace=0.45)
+
+        for col_idx, ax_key in enumerate(axis_keys):
+            ax = fig.add_subplot(inner[col_idx, 0])
             plot_1d_marginal(
                 ax=ax,
                 proj=projections[ax_key],
@@ -105,7 +104,7 @@ def plot_figure_marginals(
                 s=180,
             )
 
-    draw_legend_panel(fig, styles, line_y=0.125)
+    draw_legend_panel(fig, styles, line_y=0.085)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
