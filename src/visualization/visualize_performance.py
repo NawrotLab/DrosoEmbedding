@@ -1407,9 +1407,9 @@ def plot_1d_marginal(
                        linewidth=lw, s=s, zorder=3)
 
     ax.set_xlim(-xlim * 2.0, xlim * 2.0)
-    ax.set_ylim(-0.5, 0.5)
+    ax.set_ylim(-0.25, 0.25)
     if axis_name:
-        ax.text(0, -0.18, axis_name, ha='center', va='top',
+        ax.text(0, -0.10, axis_name, ha='center', va='top',
                 fontsize=FONT_SIZES['label'], transform=ax.transData)
 
 

@@ -12,8 +12,11 @@ visualize_performance.py. Marker/colour conventions match figure_latent.
 """
 
 import os
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+from matplotlib.animation import FuncAnimation, PillowWriter
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — registers 3D projection
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -27,7 +30,7 @@ from src.visualization.figure_base import apply_style, FONT_SIZES
 apply_style()
 
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-OUT_PATH = 'figures/fig_latent_marginals.pdf'
+OUT_PATH = 'results/CombiPlots/fig_latent_marginals.pdf'
 
 TASKS = [
     'MetabolicState_2',
@@ -53,8 +56,8 @@ def plot_figure_marginals(
     # Outer grid: 3 task groups, height proportional to subplot count (1 : 2 : 3).
     # Extra hspace between groups; inner hspace keeps plots within a group tight.
     outer = GridSpec(3, 1, figure=fig,
-                     left=0.10, right=0.98,
-                     top=0.93, bottom=0.10,
+                     left=0.03, right=0.99,
+                     top=0.93, bottom=0.20,
                      hspace=0.55,
                      height_ratios=[1, 2, 3])
 
@@ -104,12 +107,69 @@ def plot_figure_marginals(
                 s=180,
             )
 
-    draw_legend_panel(fig, styles, line_y=0.085)
+    draw_legend_panel(fig, styles, line_y=0.165)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
     print(f"Saved: {out_path}")
+
+
+def plot_3d_rotating(
+    projections, class_names, colors, edges,
+    out_path='results/CombiPlots/fig_latent_marginals_3d.gif',
+    fps=20, n_frames=180,
+):
+    """Save a rotating 3D scatter of task-iii centroids (State × Modality × Valence).
+
+    Bicolor markers are not supported in 3D — those classes fall back to their
+    primary fill colour. Open/filled Starved/Fed convention is preserved via
+    edge linewidth.
+    """
+    proj_s = projections['state']
+    proj_m = projections['modality']
+    proj_v = projections['valence']
+
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111, projection='3d')
+
+    for i, cname in enumerate(class_names):
+        is_starved = '(S)' in cname or cname == 'Starved'
+        lw = 2.0 if is_starved else 0.5
+        ax.scatter(
+            float(proj_s[i]), float(proj_m[i]), float(proj_v[i]),
+            c=colors[i], edgecolors=edges[i],
+            s=150, linewidth=lw, depthshade=False, zorder=3,
+        )
+
+    ax.set_xlabel('State',    fontsize=FONT_SIZES['label'], labelpad=8)
+    ax.set_ylabel('Modality', fontsize=FONT_SIZES['label'], labelpad=8)
+    ax.set_zlabel('Valence',  fontsize=FONT_SIZES['label'], labelpad=8)
+    ax.tick_params(labelsize=FONT_SIZES['tick'])
+
+    # Draw reference planes through origin
+    lim = max(
+        float(np.abs(proj_s).max()),
+        float(np.abs(proj_m).max()),
+        float(np.abs(proj_v).max()),
+    ) * 1.2
+    ax.set_xlim(-lim, lim)
+    ax.set_ylim(-lim, lim)
+    ax.set_zlim(-lim, lim)
+
+    ax.plot([-lim, lim], [0, 0], [0, 0], '-', color='gray', lw=0.8, alpha=0.4)
+    ax.plot([0, 0], [-lim, lim], [0, 0], '-', color='gray', lw=0.8, alpha=0.4)
+    ax.plot([0, 0], [0, 0], [-lim, lim], '-', color='gray', lw=0.8, alpha=0.4)
+
+    def _update(frame):
+        ax.view_init(elev=20, azim=frame * (360 / n_frames))
+        return []
+
+    anim = FuncAnimation(fig, _update, frames=n_frames, interval=1000 // fps)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    anim.save(out_path, writer=PillowWriter(fps=fps))
+    plt.close(fig)
+    print(f"Saved 3D animation: {out_path}")
 
 
 def main():
@@ -131,6 +191,22 @@ def main():
         bicolor_info=TASK_BICOLOR_INFO,
         out_path=OUT_PATH,
     )
+
+    # 3D rotating animation for task iii
+    task_iii = 'State_Modality_Valence_16'
+    best_data = results_dict[task_iii].get('best', {})
+    X = best_data.get('transformer_latent_space')
+    labels = best_data.get('latent_labels')
+    class_names = results_dict[task_iii]['__class_names__']
+    if X is not None and labels is not None:
+        projections, _, _ = _compute_biological_axes(X, labels, task_iii, class_names)
+        plot_3d_rotating(
+            projections=projections,
+            class_names=class_names,
+            colors=TASK_COLORS[task_iii],
+            edges=TASK_EDGECOLORS[task_iii],
+            out_path='results/CombiPlots/fig_latent_marginals_3d.gif',
+        )
 
 
 if __name__ == '__main__':
