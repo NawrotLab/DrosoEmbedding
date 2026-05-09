@@ -23,7 +23,6 @@ import json
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 
 from src.utils.helpers import load_all_results, get_style
 from src.visualization.figure_base import apply_style, FONT_SIZES
@@ -198,6 +197,8 @@ def make_figure(all_groups, stats, out_path):
         ax.set_yticks(list(y_pos.values()))
         ax.set_yticklabels([v.capitalize() for v in valences],
                            fontsize=FONT_SIZES['tick'])
+        for lbl, val in zip(ax.get_yticklabels(), valences):
+            lbl.set_color(VALENCE_COLORS[val])
         ax.spines['top'].set_visible(False)
         ax.spines['right'].set_visible(False)
 
@@ -213,13 +214,7 @@ def make_figure(all_groups, stats, out_path):
 
     axes[0].set_ylabel('Valence group', fontsize=FONT_SIZES['label'])
 
-    handles = [mpatches.Patch(color=VALENCE_COLORS[v], label=v.capitalize())
-               for v in valences]
-    fig.legend(handles=handles, loc='upper center', ncol=3,
-               fontsize=FONT_SIZES['legend'], frameon=False,
-               bbox_to_anchor=(0.5, -0.02))
-
-    plt.tight_layout(rect=[0, 0.08, 1, 1])
+    plt.tight_layout()
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
