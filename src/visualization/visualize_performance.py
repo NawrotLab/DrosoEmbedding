@@ -1406,7 +1406,7 @@ def plot_1d_marginal(
             ax.scatter(x, 0.0, c=colors[i], edgecolors=edges[i],
                        linewidth=lw, s=s, zorder=3)
 
-    ax.set_xlim(-xlim * 2.0, xlim * 2.0)
+    ax.set_xlim(-xlim * 1.3, xlim * 1.3)
     ax.set_ylim(-0.25, 0.25)
     if axis_name:
         ax.text(0, -0.10, axis_name, ha='center', va='top',
@@ -1456,12 +1456,20 @@ def plot_2d_projection(
     ax.set_ylim(-lim * 1.8, lim * 1.8)
     ax.set_aspect('equal', adjustable='box')
 
-    if xlabel:
-        ax.text(0, -lim * 1.6, xlabel, ha='center', va='top',
-                fontsize=FONT_SIZES['label'], transform=ax.transData)
-    if ylabel:
-        ax.text(-lim * 1.6, 0, ylabel, ha='right', va='center',
-                fontsize=FONT_SIZES['label'], rotation=90, transform=ax.transData)
+    # Endpoint labels — negative/positive end of each axis
+    _endpoints = {
+        'State':    ('Starved', 'Fed'),
+        'Modality': ('Odor',    'Taste'),
+        'Valence':  ('Avers.',  'App.'),
+    }
+    if xlabel in _endpoints:
+        neg, pos = _endpoints[xlabel]
+        ax.text(-lim, 0, f'{neg}  ', ha='right', va='center', fontsize=FONT_SIZES['annotation'])
+        ax.text( lim, 0, f'  {pos}', ha='left',  va='center', fontsize=FONT_SIZES['annotation'])
+    if ylabel in _endpoints:
+        neg, pos = _endpoints[ylabel]
+        ax.text(0, -lim, neg, ha='center', va='top',    fontsize=FONT_SIZES['annotation'])
+        ax.text(0,  lim, pos, ha='center', va='bottom', fontsize=FONT_SIZES['annotation'])
 
 
 def plot_biological_axes_panel(

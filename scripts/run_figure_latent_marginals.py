@@ -15,8 +15,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from matplotlib.animation import FuncAnimation, PillowWriter
-from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — registers 3D projection
+import plotly.graph_objects as go
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -57,7 +56,7 @@ def plot_figure_marginals(
     # Outer grid: 3 task groups, height proportional to subplot count (1 : 2 : 3).
     # Extra hspace between groups; inner hspace keeps plots within a group tight.
     outer = GridSpec(3, 1, figure=fig,
-                     left=0.03, right=0.99,
+                     left=0.0, right=1.0,
                      top=0.93, bottom=0.20,
                      hspace=0.55,
                      height_ratios=[1, 2, 3])
@@ -175,61 +174,67 @@ def plot_figure_pairwise_2d(
     print(f"Saved: {out_path}")
 
 
-def plot_3d_rotating(
+def plot_3d_interactive(
     projections, class_names, colors, edges,
-    out_path='results/CombiPlots/fig_latent_marginals_3d.gif',
-    fps=20, n_frames=180,
+    out_path='results/CombiPlots/fig_latent_marginals_3d.html',
 ):
-    """Save a rotating 3D scatter of task-iii centroids (State × Modality × Valence).
+    """Save an interactive drag-to-rotate 3D scatter as a standalone HTML file.
 
-    Bicolor markers are not supported in 3D — those classes fall back to their
-    primary fill colour. Open/filled Starved/Fed convention is preserved via
-    edge linewidth.
+    Opens in any browser — no Python required. Bicolor classes fall back to
+    their primary fill colour. Starved classes shown with open markers.
     """
     proj_s = projections['state']
     proj_m = projections['modality']
     proj_v = projections['valence']
 
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection='3d')
-
+    traces = []
     for i, cname in enumerate(class_names):
         is_starved = '(S)' in cname or cname == 'Starved'
-        lw = 2.0 if is_starved else 0.5
-        ax.scatter(
-            float(proj_s[i]), float(proj_m[i]), float(proj_v[i]),
-            c=colors[i], edgecolors=edges[i],
-            s=150, linewidth=lw, depthshade=False, zorder=3,
-        )
+        fill_color = colors[i] if not is_starved else 'rgba(255,255,255,0)'
+        border_color = edges[i]
 
-    ax.set_xlabel('State',    fontsize=FONT_SIZES['label'], labelpad=8)
-    ax.set_ylabel('Modality', fontsize=FONT_SIZES['label'], labelpad=8)
-    ax.set_zlabel('Valence',  fontsize=FONT_SIZES['label'], labelpad=8)
-    ax.tick_params(labelsize=FONT_SIZES['tick'])
+        traces.append(go.Scatter3d(
+            x=[float(proj_s[i])],
+            y=[float(proj_m[i])],
+            z=[float(proj_v[i])],
+            mode='markers',
+            name=cname,
+            marker=dict(
+                size=10,
+                color=fill_color,
+                line=dict(color=border_color, width=3 if is_starved else 1),
+                opacity=0.9,
+            ),
+            hovertemplate=f'<b>{cname}</b><br>State: %{{x:.3f}}<br>Modality: %{{y:.3f}}<br>Valence: %{{z:.3f}}<extra></extra>',
+        ))
 
-    # Draw reference planes through origin
-    lim = max(
-        float(np.abs(proj_s).max()),
-        float(np.abs(proj_m).max()),
-        float(np.abs(proj_v).max()),
-    ) * 1.2
-    ax.set_xlim(-lim, lim)
-    ax.set_ylim(-lim, lim)
-    ax.set_zlim(-lim, lim)
+    # Reference lines through origin
+    lim = float(max(np.abs(proj_s).max(), np.abs(proj_m).max(), np.abs(proj_v).max())) * 1.2
+    for xyz in [
+        dict(x=[-lim, lim], y=[0, 0], z=[0, 0]),
+        dict(x=[0, 0],       y=[-lim, lim], z=[0, 0]),
+        dict(x=[0, 0],       y=[0, 0], z=[-lim, lim]),
+    ]:
+        traces.append(go.Scatter3d(
+            **xyz, mode='lines', showlegend=False,
+            line=dict(color='lightgray', width=2),
+        ))
 
-    ax.plot([-lim, lim], [0, 0], [0, 0], '-', color='gray', lw=0.8, alpha=0.4)
-    ax.plot([0, 0], [-lim, lim], [0, 0], '-', color='gray', lw=0.8, alpha=0.4)
-    ax.plot([0, 0], [0, 0], [-lim, lim], '-', color='gray', lw=0.8, alpha=0.4)
+    fig = go.Figure(data=traces)
+    fig.update_layout(
+        scene=dict(
+            xaxis_title='State',
+            yaxis_title='Modality',
+            zaxis_title='Valence',
+        ),
+        title='iii. State, Modality, Valence — 3D centroid projections',
+        legend=dict(itemsizing='constant'),
+        margin=dict(l=0, r=0, t=40, b=0),
+    )
 
-    def _update(frame):
-        ax.view_init(elev=20, azim=frame * (360 / n_frames))
-        return []
-
-    anim = FuncAnimation(fig, _update, frames=n_frames, interval=1000 // fps)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    anim.save(out_path, writer=PillowWriter(fps=fps))
-    plt.close(fig)
-    print(f"Saved 3D animation: {out_path}")
+    fig.write_html(out_path, include_plotlyjs='cdn')
+    print(f"Saved interactive 3D plot: {out_path}")
 
 
 def main():
@@ -266,12 +271,12 @@ def main():
     class_names = results_dict[task_iii]['__class_names__']
     if X is not None and labels is not None:
         projections, _, _ = _compute_biological_axes(X, labels, task_iii, class_names)
-        plot_3d_rotating(
+        plot_3d_interactive(
             projections=projections,
             class_names=class_names,
             colors=TASK_COLORS[task_iii],
             edges=TASK_EDGECOLORS[task_iii],
-            out_path='results/CombiPlots/fig_latent_marginals_3d.gif',
+            out_path='results/CombiPlots/fig_latent_marginals_3d.html',
         )
 
 
