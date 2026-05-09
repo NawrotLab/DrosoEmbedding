@@ -14,7 +14,7 @@ visualize_performance.py. Marker/colour conventions match figure_latent.
 
 import os
 import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+from matplotlib.gridspec import GridSpec
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -51,10 +51,19 @@ def plot_figure_marginals(
 ):
     fig = plt.figure(figsize=(18, 12))
 
-    outer = GridSpec(3, 1, figure=fig,
+    # Fixed 3-column grid: every subplot occupies exactly one column (1/3 figure width).
+    # Row i   uses col 1 (centered); row ii uses cols 0–1; row iii uses cols 0–2.
+    outer = GridSpec(3, 3, figure=fig,
                      left=0.08, right=0.98,
                      top=0.90, bottom=0.15,
-                     hspace=0.50)
+                     hspace=0.50, wspace=0.35)
+
+    # Col slots per row — row i centered, row ii left-aligned pair, row iii full
+    COL_SLOTS = {
+        'MetabolicState_2':          [1],
+        'State_Modality_6':          [0, 1],
+        'State_Modality_Valence_16': [0, 1, 2],
+    }
 
     row_y_pos = [0.82, 0.55, 0.28]
 
@@ -78,16 +87,13 @@ def plot_figure_marginals(
 
         projections, _, _ = _compute_biological_axes(X, labels, task, class_names)
         axis_keys = TASK_AXES[task]
-        n_ax = len(axis_keys)
 
         fig.text(0.03, row_y_pos[row], task_name,
                  ha='left', va='center', fontsize=FONT_SIZES['title'],
                  rotation=90, weight='bold', transform=fig.transFigure)
 
-        inner = GridSpecFromSubplotSpec(1, n_ax, subplot_spec=outer[row], wspace=0.35)
-
-        for col_idx, ax_key in enumerate(axis_keys):
-            ax = fig.add_subplot(inner[0, col_idx])
+        for col_slot, ax_key in zip(COL_SLOTS[task], axis_keys):
+            ax = fig.add_subplot(outer[row, col_slot])
             plot_1d_marginal(
                 ax=ax,
                 proj=projections[ax_key],

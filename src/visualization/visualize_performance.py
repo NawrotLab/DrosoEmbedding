@@ -1408,7 +1408,9 @@ def plot_1d_marginal(
 
     ax.set_xlim(-xlim * 2.0, xlim * 2.0)
     ax.set_ylim(-0.5, 0.5)
-    ax.set_xlabel(axis_name, fontsize=FONT_SIZES['label'])
+    if axis_name:
+        ax.text(0, -0.18, axis_name, ha='center', va='top',
+                fontsize=FONT_SIZES['label'], transform=ax.transData)
 
 
 def plot_biological_axes_panel(
