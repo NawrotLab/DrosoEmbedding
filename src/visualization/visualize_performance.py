@@ -1368,6 +1368,49 @@ def _add_axis_indicator(ax, axis_names, fontsize=None):
 
 
 
+def plot_1d_marginal(
+    ax: plt.Axes,
+    proj: np.ndarray,
+    class_names: List[str],
+    colors,
+    edges,
+    bicolor_info: Dict = None,
+    axis_name: str = '',
+    s: int = 180,
+) -> None:
+    """Plot class centroids as 1D markers along a single biological axis.
+
+    Horizontal axis = projection value; all points placed at y=0.
+    Marker conventions mirror plot_biological_axes_panel (open = Starved, filled = Fed,
+    split bicolor = Conflicting).
+    """
+    if bicolor_info is None:
+        bicolor_info = {}
+
+    _clean_axis(ax)
+
+    xlim = float(np.abs(proj).max()) * 1.4
+    if xlim == 0:
+        xlim = 1.0
+
+    ax.plot([-xlim, xlim], [0, 0], '-', color='gray', lw=1.2, alpha=0.6, zorder=1)
+    ax.plot(0, 0, '+', color='gray', ms=8, mew=1.5, zorder=2)
+
+    for i, cname in enumerate(class_names):
+        is_starved = '(S)' in cname or cname == 'Starved'
+        lw = 2.0 if is_starved else 0.5
+        x = float(proj[i])
+        if i in bicolor_info:
+            scatter_bicolor(ax, x, 0.0, bicolor_info[i], s=s, linewidth=lw, zorder=3)
+        else:
+            ax.scatter(x, 0.0, c=colors[i], edgecolors=edges[i],
+                       linewidth=lw, s=s, zorder=3)
+
+    ax.set_xlim(-xlim * 2.0, xlim * 2.0)
+    ax.set_ylim(-0.5, 0.5)
+    ax.set_xlabel(axis_name, fontsize=FONT_SIZES['label'])
+
+
 def plot_biological_axes_panel(
     ax,
     X: np.ndarray,
