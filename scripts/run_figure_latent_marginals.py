@@ -20,6 +20,7 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 — registers 3D projectio
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
+    plot_2d_projection,
     _compute_biological_axes,
     draw_legend_panel,
     build_class_styles,
@@ -115,6 +116,65 @@ def plot_figure_marginals(
     print(f"Saved: {out_path}")
 
 
+def plot_figure_pairwise_2d(
+    results_dict, styles, colors, edges,
+    bicolor_info=None,
+    out_path='results/CombiPlots/fig_latent_pairwise_2d.pdf',
+):
+    """3 side-by-side 2D scatter plots for task iii: all pairwise axis combinations."""
+    task = 'State_Modality_Valence_16'
+    run_dict = results_dict.get(task)
+    if run_dict is None:
+        print("Task iii data not found — skipping pairwise 2D figure.")
+        return
+
+    class_names = run_dict['__class_names__']
+    task_bicolor = bicolor_info.get(task, {}) if bicolor_info else {}
+    best_data = run_dict.get('best', {})
+    X = best_data.get('transformer_latent_space')
+    labels = best_data.get('latent_labels')
+    if X is None or labels is None:
+        print("No latent data for task iii — skipping pairwise 2D figure.")
+        return
+
+    projections, _, _ = _compute_biological_axes(X, labels, task, class_names)
+    proj_s = projections['state']
+    proj_m = projections['modality']
+    proj_v = projections['valence']
+
+    pairs = [
+        (proj_s, proj_m, 'State',    'Modality'),
+        (proj_s, proj_v, 'State',    'Valence'),
+        (proj_m, proj_v, 'Modality', 'Valence'),
+    ]
+
+    fig, axes = plt.subplots(1, 3, figsize=(18, 7))
+
+    fig.text(0.53, 0.97, 'iii. State, Modality, Valence — pairwise 2D projections',
+             ha='center', va='top', fontsize=FONT_SIZES['title'], weight='bold')
+
+    for ax, (px, py, xlbl, ylbl) in zip(axes, pairs):
+        plot_2d_projection(
+            ax=ax,
+            proj_x=px, proj_y=py,
+            class_names=class_names,
+            colors=colors[task],
+            edges=edges[task],
+            bicolor_info=task_bicolor,
+            xlabel=xlbl,
+            ylabel=ylbl,
+            s=180,
+        )
+
+    plt.subplots_adjust(left=0.05, right=0.98, top=0.88, bottom=0.18, wspace=0.3)
+    draw_legend_panel(fig, styles, line_y=0.145)
+
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    fig.savefig(out_path, bbox_inches='tight', dpi=300)
+    plt.close(fig)
+    print(f"Saved: {out_path}")
+
+
 def plot_3d_rotating(
     projections, class_names, colors, edges,
     out_path='results/CombiPlots/fig_latent_marginals_3d.gif',
@@ -190,6 +250,12 @@ def main():
         results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES,
         bicolor_info=TASK_BICOLOR_INFO,
         out_path=OUT_PATH,
+    )
+
+    plot_figure_pairwise_2d(
+        results_dict, styles, TASK_COLORS, TASK_EDGECOLORS,
+        bicolor_info=TASK_BICOLOR_INFO,
+        out_path='results/CombiPlots/fig_latent_pairwise_2d.pdf',
     )
 
     # 3D rotating animation for task iii

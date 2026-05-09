@@ -1413,6 +1413,57 @@ def plot_1d_marginal(
                 fontsize=FONT_SIZES['label'], transform=ax.transData)
 
 
+def plot_2d_projection(
+    ax: plt.Axes,
+    proj_x: np.ndarray,
+    proj_y: np.ndarray,
+    class_names: List[str],
+    colors,
+    edges,
+    bicolor_info: Dict = None,
+    xlabel: str = '',
+    ylabel: str = '',
+    s: int = 180,
+) -> None:
+    """Plot class centroids in a 2D plane defined by two biological axes.
+
+    Marker conventions mirror plot_biological_axes_panel (open = Starved,
+    filled = Fed, split bicolor = Conflicting).
+    """
+    if bicolor_info is None:
+        bicolor_info = {}
+
+    _clean_axis(ax)
+
+    all_vals = np.concatenate([np.abs(proj_x), np.abs(proj_y)])
+    lim = float(all_vals.max()) * 1.4 or 1.0
+
+    ax.plot([-lim, lim], [0, 0], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+    ax.plot([0, 0], [-lim, lim], '-', color='gray', lw=1.0, alpha=0.5, zorder=1)
+    ax.plot(0, 0, '+', color='gray', ms=8, mew=1.5, zorder=2)
+
+    for i, cname in enumerate(class_names):
+        is_starved = '(S)' in cname or cname == 'Starved'
+        lw = 2.0 if is_starved else 0.5
+        x, y = float(proj_x[i]), float(proj_y[i])
+        if i in bicolor_info:
+            scatter_bicolor(ax, x, y, bicolor_info[i], s=s, linewidth=lw, zorder=3)
+        else:
+            ax.scatter(x, y, c=colors[i], edgecolors=edges[i],
+                       linewidth=lw, s=s, zorder=3)
+
+    ax.set_xlim(-lim * 1.8, lim * 1.8)
+    ax.set_ylim(-lim * 1.8, lim * 1.8)
+    ax.set_aspect('equal', adjustable='box')
+
+    if xlabel:
+        ax.text(0, -lim * 1.6, xlabel, ha='center', va='top',
+                fontsize=FONT_SIZES['label'], transform=ax.transData)
+    if ylabel:
+        ax.text(-lim * 1.6, 0, ylabel, ha='right', va='center',
+                fontsize=FONT_SIZES['label'], rotation=90, transform=ax.transData)
+
+
 def plot_biological_axes_panel(
     ax,
     X: np.ndarray,
