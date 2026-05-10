@@ -89,13 +89,24 @@ def group_projections(projections, class_names):
     return {k: np.array(v) for k, v in groups.items()}
 
 
-def compute_delta(groups, state):
-    """mean(appetitive) - mean(aversive) for a given state condition."""
-    app = groups.get((state, 'appetitive'), np.array([]))
-    avr = groups.get((state, 'aversive'),   np.array([]))
-    if len(app) == 0 or len(avr) == 0:
+PAIRS = [
+    ('appetitive', 'aversive'),
+    ('appetitive', 'conflict'),
+    ('aversive',   'conflict'),
+]
+PAIR_LABELS = {
+    ('appetitive', 'aversive'): 'app−avr',
+    ('appetitive', 'conflict'): 'app−con',
+    ('aversive',   'conflict'): 'avr−con',
+}
+
+
+def compute_delta(groups, state, val_a='appetitive', val_b='aversive'):
+    a = groups.get((state, val_a), np.array([]))
+    b = groups.get((state, val_b), np.array([]))
+    if len(a) == 0 or len(b) == 0:
         return np.nan
-    return float(app.mean() - avr.mean())
+    return float(a.mean() - b.mean())
 
 
 # ─── Statistics ──────────────────────────────────────────────────────────────
@@ -108,6 +119,7 @@ def bootstrap_ci(values, n=N_BOOTSTRAP, seed=RNG_SEED):
 
 
 def permutation_p(observed_mean, all_run_projs, class_names, state,
+                  val_a='appetitive', val_b='aversive',
                   n=N_PERMUTE, seed=RNG_SEED):
     """One-sided p-value: P(perm_delta >= observed) under shuffled valence labels."""
     rng        = np.random.default_rng(seed)
@@ -117,10 +129,10 @@ def permutation_p(observed_mean, all_run_projs, class_names, state,
     for _ in range(n):
         run_deltas = []
         for projs in all_run_projs:
-            shuffled               = projs.copy()
-            shuffled[state_inds]   = rng.permutation(shuffled[state_inds])
+            shuffled             = projs.copy()
+            shuffled[state_inds] = rng.permutation(shuffled[state_inds])
             g = group_projections(shuffled, class_names)
-            run_deltas.append(compute_delta(g, state))
+            run_deltas.append(compute_delta(g, state, val_a, val_b))
         perm_means.append(np.nanmean(run_deltas))
     return float(np.mean(np.array(perm_means) >= observed_mean))
 
@@ -156,10 +168,9 @@ def load_run_projections(task_entry, class_names):
 def make_figure(all_groups, stats, out_path):
     rng      = np.random.default_rng(RNG_SEED)
     valences = ['appetitive', 'aversive', 'conflict']
-    y_base   = {v: i for i, v in enumerate(valences)}
-    # fed sits slightly above the group centre, starved slightly below
-    state_offset = {'fed': 0.20, 'starved': -0.20}
-    jitter        = 0.07
+    y_base       = {v: i for i, v in enumerate(valences)}
+    state_offset = {'fed': 0.0, 'starved': 0.0}
+    jitter       = 0.10
 
     STATE_STYLE = {
         'fed':     dict(marker='D', ls='-',  mfc_fn=lambda c: c,       mec_fn=lambda c: 'white'),
@@ -226,25 +237,20 @@ def make_figure(all_groups, stats, out_path):
     ax.legend(handles=legend_handles, loc='upper left',
               fontsize=FONT_SIZES['legend'], frameon=False)
 
-    # Δ label between appetitive and aversive rows for each state
+    # Single annotation box at top centre — all 6 pairwise deltas
+    lines = []
     for state in ('fed', 'starved'):
-        s   = stats[state]
-        off = state_offset[state]
-        y_app = y_base['appetitive'] + off
-        y_avr = y_base['aversive']   + off
-        y_mid = (y_app + y_avr) / 2
-        # small bracket
-        ax.annotate('', xy=(1.52, y_app), xytext=(1.52, y_avr),
-                    arrowprops=dict(arrowstyle='<->', color='0.5', lw=1.0),
-                    annotation_clip=False)
-        ax.text(1.57, y_mid,
-                f"Δ={s['mean_delta']:.2f}",
-                ha='left', va='center',
-                fontsize=FONT_SIZES['small'], color='0.3',
-                clip_on=False)
+        parts = [f"{lbl}={stats[state][lbl]['mean_delta']:+.2f}"
+                 for lbl in PAIR_LABELS.values()]
+        lines.append(f"{state.capitalize()}:  " + "   ".join(parts))
+    ax.text(0.5, 0.97, "\n".join(lines),
+            transform=ax.transAxes, ha='center', va='top',
+            fontsize=FONT_SIZES['small'], color='0.3',
+            family='monospace',
+            bbox=dict(boxstyle='round,pad=0.4', facecolor='white',
+                      edgecolor='0.8', alpha=0.85))
 
     plt.tight_layout()
-    plt.subplots_adjust(right=0.82)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
@@ -268,31 +274,29 @@ def main():
 
     all_run_projs_np = np.array(all_run_projs)  # (n_runs, 16)
 
-    # Per-run grouped projections and deltas
+    # Per-run grouped projections
     all_groups = [group_projections(p, class_names) for p in all_run_projs]
-    deltas = {
-        state: np.array([compute_delta(g, state) for g in all_groups])
-        for state in ('fed', 'starved')
-    }
 
-    # Statistics
+    # Statistics — all 3 pairwise deltas × 2 states
     stats = {}
     for state in ('fed', 'starved'):
-        d  = deltas[state]
-        ci = bootstrap_ci(d)
-        p  = permutation_p(float(d.mean()), all_run_projs_np, class_names, state)
-        stats[state] = {
-            'mean_delta':               float(d.mean()),
-            'std_delta':                float(d.std()),
-            'ci_95':                    [float(ci[0]), float(ci[1])],
-            'p_permutation_one_sided':  float(p),
-            'n_runs':                   int(len(d)),
-        }
-        p_str = 'p < 0.001' if p < 0.001 else f'p = {p:.4f}'
+        stats[state] = {}
         print(f"\n{state.upper()}")
-        print(f"  Mean delta (app - avr): {d.mean():.4f} ± {d.std():.4f}")
-        print(f"  95% CI: [{ci[0]:.4f}, {ci[1]:.4f}]")
-        print(f"  Permutation ({p_str})")
+        for val_a, val_b in PAIRS:
+            label = PAIR_LABELS[(val_a, val_b)]
+            d  = np.array([compute_delta(g, state, val_a, val_b) for g in all_groups])
+            ci = bootstrap_ci(d)
+            p  = permutation_p(float(d.mean()), all_run_projs_np, class_names,
+                               state, val_a, val_b)
+            stats[state][label] = {
+                'mean_delta':              float(d.mean()),
+                'std_delta':               float(d.std()),
+                'ci_95':                   [float(ci[0]), float(ci[1])],
+                'p_permutation_one_sided': float(p),
+                'n_runs':                  int(len(d)),
+            }
+            p_str = 'p < 0.001' if p < 0.001 else f'p = {p:.4f}'
+            print(f"  {label}: {d.mean():.4f} ± {d.std():.4f}  CI [{ci[0]:.4f}, {ci[1]:.4f}]  {p_str}")
 
     make_figure(all_groups, stats, OUT_PDF)
 
