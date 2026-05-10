@@ -168,9 +168,9 @@ def load_run_projections(task_entry, class_names):
 def make_figure(all_groups, stats, out_path):
     rng      = np.random.default_rng(RNG_SEED)
     valences = ['appetitive', 'aversive', 'conflict']
-    y_base       = {v: i for i, v in enumerate(valences)}
+    y_base       = {v: i * 0.55 for i, v in enumerate(valences)}
     state_offset = {'fed': 0.0, 'starved': 0.0}
-    jitter       = 0.10
+    jitter       = 0.07
 
     STATE_STYLE = {
         'fed':     dict(marker='D', ls='-',  mfc_fn=lambda c: c,       mec_fn=lambda c: 'white'),
@@ -215,6 +215,8 @@ def make_figure(all_groups, stats, out_path):
                     markeredgecolor=st['mec_fn'](c) if st['marker'] == 'o' else 'white',
                     markeredgewidth=1.2)
 
+    y_top = max(y_base.values()) + 0.85   # headroom for annotation box
+    ax.set_ylim(min(y_base.values()) - 0.35, y_top)
     ax.axvline(0, color='gray', lw=0.8, alpha=0.5, linestyle='--')
     ax.set_xlim(-1.6, 1.6)
     ax.set_xlabel('State-axis projection', fontsize=FONT_SIZES['label'])
