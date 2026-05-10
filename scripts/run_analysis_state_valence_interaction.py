@@ -23,6 +23,7 @@ import json
 import pickle
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 
 from src.utils.helpers import load_all_results, get_style
 from src.visualization.figure_base import apply_style, FONT_SIZES
@@ -155,25 +156,35 @@ def load_run_projections(task_entry, class_names):
 def make_figure(all_groups, stats, out_path):
     rng      = np.random.default_rng(RNG_SEED)
     valences = ['appetitive', 'aversive', 'conflict']
-    y_pos    = {v: i for i, v in enumerate(valences)}
-    jitter   = 0.12
+    y_base   = {v: i for i, v in enumerate(valences)}
+    # fed sits slightly above the group centre, starved slightly below
+    state_offset = {'fed': 0.20, 'starved': -0.20}
+    jitter        = 0.07
 
-    fig, axes = plt.subplots(1, 2, figsize=(12, 5), sharey=True)
+    STATE_STYLE = {
+        'fed':     dict(marker='D', ls='-',  mfc_fn=lambda c: c,       mec_fn=lambda c: 'white'),
+        'starved': dict(marker='o', ls='--', mfc_fn=lambda c: 'white', mec_fn=lambda c: c),
+    }
+
+    fig, ax = plt.subplots(1, 1, figsize=(10, 5))
     fig.suptitle('State-axis projection by valence group',
                  fontsize=FONT_SIZES['title'], weight='bold')
 
-    for ax, state in zip(axes, ('starved', 'fed')):
-        # Jittered points — one per run per valence group
+    for state, st in STATE_STYLE.items():
+        # Jittered run points
         for run_groups in all_groups:
             for val in valences:
                 vals = run_groups.get((state, val), np.array([]))
                 if len(vals) == 0:
                     continue
-                y_jit = y_pos[val] + rng.uniform(-jitter, jitter)
+                y    = y_base[val] + state_offset[state]
+                y_jit = y + rng.uniform(-jitter, jitter)
+                c    = VALENCE_COLORS[val]
                 ax.scatter(vals.mean(), y_jit,
-                           color=VALENCE_COLORS[val], alpha=0.45, s=25, zorder=3)
+                           color=st['mfc_fn'](c), edgecolors=st['mec_fn'](c) if st['marker'] == 'o' else c,
+                           alpha=0.45, s=25, zorder=3, linewidths=0.8)
 
-        # Grand mean + bootstrap CI per valence group
+        # Grand mean + bootstrap CI
         for val in valences:
             run_means = np.array([
                 g.get((state, val), np.array([])) for g in all_groups
@@ -183,38 +194,57 @@ def make_figure(all_groups, stats, out_path):
                 continue
             grand = run_means.mean()
             ci    = bootstrap_ci(run_means)
-            y     = y_pos[val]
-            ax.plot([ci[0], ci[1]], [y, y], '-',
-                    color=VALENCE_COLORS[val], lw=2.5, zorder=4)
-            ax.plot(grand, y, 'D',
-                    color=VALENCE_COLORS[val], ms=8, zorder=5,
-                    markeredgecolor='white', markeredgewidth=1.0)
+            y     = y_base[val] + state_offset[state]
+            c     = VALENCE_COLORS[val]
+            ax.plot([ci[0], ci[1]], [y, y], st['ls'],
+                    color=c, lw=2.5, zorder=4)
+            ax.plot(grand, y, st['marker'],
+                    color=c, ms=8, zorder=5,
+                    markerfacecolor=st['mfc_fn'](c),
+                    markeredgecolor=st['mec_fn'](c) if st['marker'] == 'o' else 'white',
+                    markeredgewidth=1.2)
 
-        ax.axvline(0, color='gray', lw=0.8, alpha=0.5, linestyle='--')
-        ax.set_title(state.capitalize(),
-                     fontsize=FONT_SIZES['subplot_title'], weight='bold')
-        ax.set_xlabel('State-axis projection', fontsize=FONT_SIZES['label'])
-        ax.set_yticks(list(y_pos.values()))
-        ax.set_yticklabels([v.capitalize() for v in valences],
-                           fontsize=FONT_SIZES['tick'])
-        for lbl, val in zip(ax.get_yticklabels(), valences):
-            lbl.set_color(VALENCE_COLORS[val])
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
+    ax.axvline(0, color='gray', lw=0.8, alpha=0.5, linestyle='--')
+    ax.set_xlim(-1.6, 1.6)
+    ax.set_xlabel('State-axis projection', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('Valence group', fontsize=FONT_SIZES['label'])
+    ax.set_yticks(list(y_base.values()))
+    ax.set_yticklabels([v.capitalize() for v in valences],
+                       fontsize=FONT_SIZES['tick'])
+    for lbl, val in zip(ax.get_yticklabels(), valences):
+        lbl.set_color(VALENCE_COLORS[val])
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
 
+    # State legend (fed / starved marker style)
+    legend_handles = [
+        Line2D([0], [0], marker='D', color='0.4', ls='-',  label='Fed',
+               markerfacecolor='0.4', markeredgecolor='white', ms=8, lw=1.8),
+        Line2D([0], [0], marker='o', color='0.4', ls='--', label='Starved',
+               markerfacecolor='white', markeredgecolor='0.4', ms=8, lw=1.8),
+    ]
+    ax.legend(handles=legend_handles, loc='upper left',
+              fontsize=FONT_SIZES['legend'], frameon=False)
+
+    # Δ label between appetitive and aversive rows for each state
+    for state in ('fed', 'starved'):
         s   = stats[state]
-        p   = s['p_permutation_one_sided']
-        p_str = f'p < 0.001' if p < 0.001 else f'p = {p:.3f}'
-        ax.text(0.98, 0.98,
-                f"Δ = {s['mean_delta']:.3f}\n95% CI [{s['ci_95'][0]:.3f}, {s['ci_95'][1]:.3f}]\n{p_str}",
-                transform=ax.transAxes, ha='right', va='top',
-                fontsize=FONT_SIZES['annotation'], color='0.3',
-                bbox=dict(boxstyle='round,pad=0.3', facecolor='white',
-                          edgecolor='0.8', alpha=0.85))
-
-    axes[0].set_ylabel('Valence group', fontsize=FONT_SIZES['label'])
+        off = state_offset[state]
+        y_app = y_base['appetitive'] + off
+        y_avr = y_base['aversive']   + off
+        y_mid = (y_app + y_avr) / 2
+        # small bracket
+        ax.annotate('', xy=(1.52, y_app), xytext=(1.52, y_avr),
+                    arrowprops=dict(arrowstyle='<->', color='0.5', lw=1.0),
+                    annotation_clip=False)
+        ax.text(1.57, y_mid,
+                f"Δ={s['mean_delta']:.2f}",
+                ha='left', va='center',
+                fontsize=FONT_SIZES['small'], color='0.3',
+                clip_on=False)
 
     plt.tight_layout()
+    plt.subplots_adjust(right=0.82)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=300)
     plt.close(fig)
