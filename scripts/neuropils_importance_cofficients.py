@@ -366,7 +366,7 @@ contrast_keys = {
 groups = {
     "Odor":       [0, 1, 2, 3],
     "Taste":      [4, 5, 6, 7],
-    "Multi":      [8, 9, 10, 11, 12, 13, 14, 15],
+    "Combined":      [8, 9, 10, 11, 12, 13, 14, 15],
     "Appetitive": [0, 2, 4, 6, 8, 12],
     "Aversive":   [1, 3, 5, 7, 9, 13],
     "Conflicting":[10, 11, 14, 15],
@@ -484,7 +484,7 @@ logger.info("=" * 60)
 groups = {
     "Odor":       [0, 1, 2, 3],
     "Taste":      [4, 5, 6, 7],
-    "Multi":      [8, 9, 10, 11, 12, 13, 14, 15],
+    "Combined":      [8, 9, 10, 11, 12, 13, 14, 15],
     "Appetitive": [0, 2, 4, 6, 8, 12],
     "Aversive":   [1, 3, 5, 7, 9, 13],
     "Conflicting":[10, 11, 14, 15],
@@ -611,7 +611,7 @@ logger.info("Saved fig4_contrasts_3panel.png")
 
 # 4. Summary barplots per factor
 summary_specs = {
-    "Modality": {"Odor": [0,1,2,3], "Taste": [4,5,6,7], "Multi": [8,9,10,11,12,13,14,15]},
+    "Modality": {"Odor": [0,1,2,3], "Taste": [4,5,6,7], "Combined": [8,9,10,11,12,13,14,15]},
     "State":    {"Starved": [0,1,4,5,8,9,10,11], "Fed": [2,3,6,7,12,13,14,15]},
     "Valence":  {"Appetitive": [0,2,4,6,8,12], "Aversive": [1,3,5,7,9,13], "Mixed": [10,11,14,15]},
 }
