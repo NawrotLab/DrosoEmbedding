@@ -110,9 +110,10 @@ def plot_figure_marginals(
     draw_legend_panel(fig, styles, line_y=0.165)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    fig.savefig(out_path, bbox_inches='tight', dpi=300)
+    for ext in ('pdf', 'png'):
+        fig.savefig(f"{os.path.splitext(out_path)[0]}.{ext}", bbox_inches='tight', dpi=300)
     plt.close(fig)
-    print(f"Saved: {out_path}")
+    print(f"Saved: {out_path} + .png")
 
 
 def plot_figure_pairwise_2d(
@@ -169,9 +170,10 @@ def plot_figure_pairwise_2d(
     draw_legend_panel(fig, styles, line_y=0.145)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    fig.savefig(out_path, bbox_inches='tight', dpi=300)
+    for ext in ('pdf', 'png'):
+        fig.savefig(f"{os.path.splitext(out_path)[0]}.{ext}", bbox_inches='tight', dpi=300)
     plt.close(fig)
-    print(f"Saved: {out_path}")
+    print(f"Saved: {out_path} + .png")
 
 
 def plot_3d_interactive(
