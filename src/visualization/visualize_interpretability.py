@@ -634,7 +634,8 @@ def plot_heatmap_groups_abs(
     if neuropil_names is None:
         neuropil_names = list(group_profiles_abs.columns)
     values = group_profiles_abs.values
-    group_names = list(group_profiles_abs.index)
+    _label_map = {'Multi': 'Combined', 'Valence_Mix': 'Conflict'}
+    group_names = [_label_map.get(n, n) for n in group_profiles_abs.index]
 
     if fontsize_annot is None:
         fontsize_annot = FONT_SIZES['heatmap_cell']
