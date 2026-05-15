@@ -356,6 +356,7 @@ ax_e.set_title(
 )
 path_e = os.path.join(OUT_DIR, 'panel_e_equivalent.pdf')
 fig_e.savefig(path_e, bbox_inches='tight')
+fig_e.savefig(path_e.replace('.pdf', '.png'), dpi=300, bbox_inches='tight')
 plt.close(fig_e)
 logger.info(f'Saved: {path_e}')
 
@@ -408,6 +409,7 @@ for ax_idx, (ax, (panel_key, info)) in enumerate(zip(axes_f, CONTRAST_SPEC.items
 plt.tight_layout()
 path_f = os.path.join(OUT_DIR, 'panel_f_equivalent.pdf')
 fig_f.savefig(path_f, bbox_inches='tight')
+fig_f.savefig(path_f.replace('.pdf', '.png'), dpi=300, bbox_inches='tight')
 plt.close(fig_f)
 logger.info(f'Saved: {path_f}')
 
