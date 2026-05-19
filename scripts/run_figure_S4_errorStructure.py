@@ -43,7 +43,7 @@ apply_style()
 # ════════════════════════════════════════════════
 
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-OUT_DIR = '/mnt/user-data/outputs'
+OUT_DIR = os.path.join('results', 'CombiPlots')
 TASK_KEY = 'State_Modality_Valence_16'
 
 # 16 class names in label order, matching classification_report_dict keys
