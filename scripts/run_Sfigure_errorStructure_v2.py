@@ -27,8 +27,8 @@ This script generates FOUR output figures:
   figS_error_hierarchy          Standalone Panel A: 7-type bars (mean) + per-run dots
   figS_modality_errors          Per-modality error rates: bars (mean) + per-run dots
   figS_perclass_metrics         F1/Prec/Rec by group: bars (mean) + per-run dots
-  figS_integrated_performance   Mean F1 bars split by within/cross error proportion,
-                                50-run mean class dots, within/cross color key
+  figS_integrated_performance   Best-model F1 bars split by within/cross error proportion,
+                                black line = 50-run mean, 50-run scatter dots, color key
   figS_classification_analysis  Combined: Panel A = error hierarchy, Panel B = integrated
 
 Usage (from repo root):
@@ -294,7 +294,8 @@ def _draw_hierarchy_panel(ax, rng):
     """
     Draw the 7-type error hierarchy bar chart onto ax.
     Type display order: 1,2,3,4,6,5,7  (groups single→two→three factor logically).
-    bars = 50-run mean; dots = individual runs; labels at bar bottoms.
+    Bars = best model; black line = 50-run mean; dots = individual runs;
+    % labels at bar bottoms (black, 50-run mean values).
     """
     TYPE_ORDER = [1, 2, 3, 4, 6, 5, 7]
     xlabels = [
@@ -302,12 +303,15 @@ def _draw_hierarchy_panel(ax, rng):
         'Valence\n× State', 'Valence\n× Modality',
         'State\n× Modality', 'Valence × State\n× Modality',
     ]
-    xs     = np.arange(len(TYPE_ORDER))
-    means  = np.array([run_mean[t - 1] for t in TYPE_ORDER])
-    colors = [ERROR_TYPE_COLOURS[t] for t in TYPE_ORDER]
+    xs      = np.arange(len(TYPE_ORDER))
+    heights = np.array([best_pct[t] for t in TYPE_ORDER])    # bars = best model
+    means   = np.array([run_mean[t - 1] for t in TYPE_ORDER])  # line = 50-run mean
+    colors  = [ERROR_TYPE_COLOURS[t] for t in TYPE_ORDER]
+    bar_w   = 0.55
 
-    ax.bar(xs, means, width=0.55, color=colors, alpha=0.75, edgecolor='none', zorder=2)
+    ax.bar(xs, heights, width=bar_w, color=colors, alpha=0.75, edgecolor='none', zorder=2)
 
+    # Per-run dots
     if len(run_pcts) > 0:
         runs_ro = np.column_stack([run_pcts[:, t - 1] for t in TYPE_ORDER])
         for ki, (x, col) in enumerate(zip(xs, colors)):
@@ -316,17 +320,20 @@ def _draw_hierarchy_panel(ax, rng):
             ax.scatter(np.full(len(ys), x) + jitter, ys,
                        s=14, color=col, alpha=0.35, linewidths=0, zorder=4)
 
-    # Labels at bar bottoms (white inside tall bars; colored above tiny bars)
-    for x, h, col in zip(xs, means, colors):
-        in_bar    = h > 2.5
-        label_y   = 0.8  if in_bar else h + 0.5
-        label_col = 'white' if in_bar else col
-        ax.text(x, label_y, f'{h:.1f}%', ha='center', va='bottom',
+    # Black horizontal line at 50-run mean
+    hw = bar_w * 0.88 / 2
+    for x, m in zip(xs, means):
+        ax.plot([x - hw, x + hw], [m, m], color='black', linewidth=1.5, zorder=5)
+
+    # % labels at bar bottoms — 50-run mean, black text
+    for x, m in zip(xs, means):
+        label_y = 0.8 if m > 2.5 else m + 0.3
+        ax.text(x, label_y, f'{m:.1f}%', ha='center', va='bottom',
                 fontsize=FONT_SIZES['small'] - 1, fontweight='bold',
-                color=label_col, zorder=6)
+                color='black', zorder=6)
 
     ax.set_xticks(xs)
-    ax.set_xticklabels(xlabels, fontsize=FONT_SIZES['small'])
+    ax.set_xticklabels(xlabels, fontsize=FONT_SIZES['small'], rotation=35, ha='right')
     ax.set_ylabel('% of total errors', fontsize=FONT_SIZES['label'])
     ax.set_ylim(0, 60)
     ax.set_yticks([0, 20, 40, 60])
@@ -339,9 +346,10 @@ def _draw_hierarchy_panel(ax, rng):
 def _draw_integrated_panel(ax, ax_leg, rng):
     """
     Draw integrated performance + error structure onto ax (main) and ax_leg (legend).
-    Bars: stacked within/cross sections, total height = 50-run mean F1.
-    Black horizontal line at 50-run mean F1 cap.
-    Dots: per-class 50-run mean F1 as styled class symbols.
+    Bars: stacked within/cross sections, total height = best model F1.
+    Black horizontal line = 50-run mean F1.
+    Dots: 50 individual run F1 values (plain colored scatter).
+    % labels at bar bottoms (black, 50-run mean values).
     Legend panel: class symbols above, within/cross color key below.
     """
     xs4    = np.arange(len(MODALITY_ORDER))
@@ -350,35 +358,34 @@ def _draw_integrated_panel(ax, ax_leg, rng):
     for xi, mod in enumerate(MODALITY_ORDER):
         col       = MODALITY_COLOURS[mod]
         col_light = _lighten(col, 0.55)
-        mean_f1   = grp_metric_mean[mod]['f1-score']
+        best_f1   = best_grp_f1[mod]                          # bars = best model
+        mean_f1   = grp_metric_mean[mod]['f1-score']           # line = 50-run mean
         within_p  = modality_stats[mod]['within_pct'] / 100
         cross_p   = modality_stats[mod]['cross_pct']  / 100
-        within_h  = mean_f1 * within_p
-        cross_h   = mean_f1 * cross_p
+        within_h  = best_f1 * within_p
+        cross_h   = best_f1 * cross_p
 
         ax.bar(xi, within_h, width=bar_w4, color=col,       zorder=2)
         ax.bar(xi, cross_h,  width=bar_w4, color=col_light, zorder=2, bottom=within_h)
-        ax.bar(xi, mean_f1,  width=bar_w4, facecolor='none',
+        ax.bar(xi, best_f1,  width=bar_w4, facecolor='none',
                edgecolor=col, linewidth=1.5, zorder=3)
 
-        # Black horizontal line indicating 50-run mean
+        # Black horizontal line at 50-run mean
         hw = bar_w4 * 0.88 / 2
         ax.plot([xi - hw, xi + hw], [mean_f1, mean_f1],
                 color='black', linewidth=2.0, zorder=5)
 
-        ax.text(xi, mean_f1 + 1.5, f'{mean_f1:.1f}%',
+        # % label at bar bottom — 50-run mean, black text
+        ax.text(xi, 2.0, f'{mean_f1:.1f}%',
                 ha='center', va='bottom',
-                fontsize=FONT_SIZES['small'], fontweight='bold', color=col)
+                fontsize=FONT_SIZES['small'], fontweight='bold', color='black')
 
-        # Per-class dots — 50-run mean F1
-        indices = MODALITY_GROUPS[mod]
-        jitter  = rng.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(indices))
-        for k, i_global in enumerate(indices):
-            f1v = cls_f1_mean.get(i_global, np.nan)
-            if np.isnan(f1v):
-                continue
-            _plot_class_symbol(ax, xi + jitter[k], f1v,
-                               class_styles[i_global], markersize=7, zorder=6)
+        # 50-run individual dots (plain colored scatter)
+        run_f1s = run_grp_arr[mod]['f1-score']
+        if len(run_f1s) > 0:
+            jitter = rng.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(run_f1s))
+            ax.scatter(np.full(len(run_f1s), xi) + jitter, run_f1s,
+                       s=14, color=col, alpha=0.40, linewidths=0, zorder=6)
 
     ax.set_xticks(xs4)
     ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['tick'])
@@ -523,6 +530,15 @@ for _i in range(16):
     _vals = [r[CLASS_NAMES[_i]]['f1-score'] * 100
              for r in all_reports if CLASS_NAMES[_i] in r]
     cls_f1_mean[_i] = float(np.mean(_vals)) if _vals else np.nan
+
+# ── Best-model group-level F1 (for integrated figure bars) ────────────────
+best_grp_f1 = {
+    mod: float(np.mean([
+        best_report[CLASS_NAMES[i]]['f1-score'] * 100
+        for i in MODALITY_GROUPS[mod] if CLASS_NAMES[i] in best_report
+    ]))
+    for mod in MODALITY_ORDER
+}
 
 # ── 3×3 modality confusion ────────────────────────────────────────────────
 mod_cm = np.zeros((3, 3))
@@ -691,7 +707,7 @@ print(f'Saved: {stem}.pdf / .png')
 # ════════════════════════════════════════════════
 
 fig1, ax1 = plt.subplots(figsize=(10, 5))
-fig1.subplots_adjust(left=0.09, right=0.97, top=0.92, bottom=0.25)
+fig1.subplots_adjust(left=0.09, right=0.97, top=0.92, bottom=0.32)
 _draw_hierarchy_panel(ax1, np.random.default_rng(42))
 
 stem = os.path.join(OUT_DIR, 'figS_error_hierarchy')
@@ -820,11 +836,11 @@ print(f'Saved: {stem}.pdf / .png')
 # Panel A = error hierarchy  |  Panel B = integrated performance + legend
 # ════════════════════════════════════════════════
 
-fig5 = plt.figure(figsize=(16, 5))
+fig5 = plt.figure(figsize=(16, 5.5))
 gs5  = GridSpec(1, 3, figure=fig5,
-                width_ratios=[2.4, 1.8, 0.7],
+                width_ratios=[2.6, 1.4, 0.7],
                 left=0.06, right=0.99,
-                bottom=0.22, top=0.94,
+                bottom=0.30, top=0.94,
                 wspace=0.38)
 ax5a     = fig5.add_subplot(gs5[0])
 ax5b     = fig5.add_subplot(gs5[1])
