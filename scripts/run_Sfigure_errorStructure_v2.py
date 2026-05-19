@@ -23,10 +23,12 @@ Three-factor
   7  All three           all differ                                          [cross-hierarchy]
 
 This script generates FOUR output figures:
-  figS_errorStructure_v2   Compound panel (A = 7 types, B = per-modality, C = heatmap)
-  figS_error_hierarchy     Standalone Panel A: 7-type bars (mean) + per-run dots
-  figS_modality_errors     Per-modality error rates: bars (mean) + per-run dots
-  figS_perclass_metrics    F1/Prec/Rec by group: bars (mean) + per-run dots
+  figS_errorStructure_v2        Compound panel (A = 7 types, B = per-modality, C = heatmap)
+  figS_error_hierarchy          Standalone Panel A: 7-type bars (mean) + per-run dots
+  figS_modality_errors          Per-modality error rates: bars (mean) + per-run dots
+  figS_perclass_metrics         F1/Prec/Rec by group: bars (mean) + per-run dots
+  figS_integrated_performance   Mean F1 bars split by within/cross error proportion,
+                                per-class symbol dots, vertical class legend
 
 Usage (from repo root):
     python scripts/run_Sfigure_errorStructure_v2.py
@@ -36,14 +38,17 @@ Output:
     results/CombiPlots/figS_error_hierarchy.{pdf,png}
     results/CombiPlots/figS_modality_errors.{pdf,png}
     results/CombiPlots/figS_perclass_metrics.{pdf,png}
+    results/CombiPlots/figS_integrated_performance.{pdf,png}
 """
 
 import gc
 import os
 import pickle
 import sys
+import yaml
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as mcolors
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import blended_transform_factory
@@ -52,6 +57,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.visualization.figure_base import apply_style, FONT_SIZES
 from src.utils.helpers import load_all_results, load_h16_classification_reports
+from src.visualization.visualize_performance import _plot_class_symbol
 
 apply_style()
 
@@ -124,6 +130,18 @@ ERROR_TYPE_LABELS = {
 
 METRICS         = ['f1-score', 'precision', 'recall']
 METRIC_DISPLAY  = {'f1-score': 'F1', 'precision': 'Prec', 'recall': 'Rec'}
+
+# Style keys aligned with CLASS_NAMES index order (for integrated figure)
+STYLE_KEYS_16 = [
+    'starved_odor_positive',      'starved_odor_negative',
+    'fed_odor_positive',          'fed_odor_negative',
+    'starved_taste_positive',     'starved_taste_negative',
+    'fed_taste_positive',         'fed_taste_negative',
+    'starved_odor_pos_taste_pos', 'starved_odor_neg_taste_neg',
+    'starved_odor_neg_taste_pos', 'starved_odor_pos_taste_neg',
+    'fed_odor_pos_taste_pos',     'fed_odor_neg_taste_neg',
+    'fed_odor_neg_taste_pos',     'fed_odor_pos_taste_neg',
+]
 
 # ════════════════════════════════════════════════
 # ERROR CLASSIFICATION
@@ -217,6 +235,53 @@ def _panel_bar_runs(ax, xs, means, run_vals, bar_colors, xlabels, ylabel,
     return max_h
 
 
+def _draw_vertical_legend(ax, all_styles):
+    """Vertical class-symbol legend panel (Fed / Stv columns, grouped by modality)."""
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis('off')
+
+    ms = 9
+    fs = FONT_SIZES['small']
+    x_label, x_fed, x_stv = 0.02, 0.72, 0.90
+
+    legend_groups = [
+        ('Odor',  MODALITY_COLOURS['Odor'], [
+            ('O app',       'fed_odor_positive',      'starved_odor_positive'),
+            ('O avr',       'fed_odor_negative',       'starved_odor_negative'),
+        ]),
+        ('Taste', MODALITY_COLOURS['Taste'], [
+            ('T app',       'fed_taste_positive',      'starved_taste_positive'),
+            ('T avr',       'fed_taste_negative',       'starved_taste_negative'),
+        ]),
+        ('O+T',   MODALITY_COLOURS['Combined'], [
+            ('OT app',         'fed_odor_pos_taste_pos',  'starved_odor_pos_taste_pos'),
+            ('OT avr',         'fed_odor_neg_taste_neg',  'starved_odor_neg_taste_neg'),
+            (r'T$^+$O$^-$',    'fed_odor_neg_taste_pos',  'starved_odor_neg_taste_pos'),
+            (r'T$^-$O$^+$',    'fed_odor_pos_taste_neg',  'starved_odor_pos_taste_neg'),
+        ]),
+    ]
+
+    y = 0.97
+    ax.text(x_fed, y, 'Fed', ha='center', va='center', fontsize=fs, fontweight='bold', color='0.3')
+    ax.text(x_stv, y, 'Stv', ha='center', va='center', fontsize=fs, fontweight='bold', color='0.3')
+
+    y = 0.90
+    for grp_name, grp_col, items in legend_groups:
+        ax.text(x_label, y, grp_name, ha='left', va='center',
+                fontsize=fs, fontweight='bold', color=grp_col)
+        y -= 0.07
+        for label, fed_key, stv_key in items:
+            ax.text(x_label + 0.04, y, label, ha='left', va='center', fontsize=fs, color='0.3')
+            _plot_class_symbol(ax, x_fed, y, all_styles.get(fed_key, {}), markersize=ms, zorder=5)
+            _plot_class_symbol(ax, x_stv, y, all_styles.get(stv_key, {}), markersize=ms, zorder=5)
+            y -= 0.065
+        y -= 0.01
+
+    ax.text(0.5, max(0.04, y + 0.01), u'● Fed   ○ Stv',
+            ha='center', va='center', fontsize=fs - 1, color='0.5')
+
+
 # ════════════════════════════════════════════════
 # LOAD DATA
 # ════════════════════════════════════════════════
@@ -258,6 +323,13 @@ print(f'Loaded {len(all_cms)} run confusion matrices.')
 print('Loading H16 classification reports …')
 all_reports = load_h16_classification_reports(entry)
 print(f'Loaded {len(all_reports)} classification reports.')
+
+# ── Class styles + best-model per-class report (for integrated figure) ─────
+_styles_path = os.path.join('src', 'visualization', 'styles.yaml')
+with open(_styles_path, 'r') as _f:
+    all_styles  = yaml.safe_load(_f)['styles']
+class_styles = [all_styles.get(k, {}) for k in STYLE_KEYS_16]
+best_report  = entry['best']['classification_report_dict']
 
 # ════════════════════════════════════════════════
 # COMPUTE STATISTICS
@@ -612,4 +684,90 @@ stem = os.path.join(OUT_DIR, 'figS_perclass_metrics')
 fig3.savefig(stem + '.pdf', dpi=300, bbox_inches='tight')
 fig3.savefig(stem + '.png', dpi=300, bbox_inches='tight')
 plt.close(fig3)
+print(f'Saved: {stem}.pdf / .png')
+
+# ════════════════════════════════════════════════
+# FIGURE 4: figS_integrated_performance
+# Stacked bars: height = group mean F1 (50-run mean)
+# Bottom section (darker)  = within-modality error proportion of F1
+# Top section (lighter)    = cross-modality error proportion of F1
+# Dots = per-class F1 from best model, drawn as styled class symbols
+# Right panel = vertical class legend
+# ════════════════════════════════════════════════
+
+def _lighten(hex_color, amount=0.55):
+    """Mix color with white by `amount` (0 = original, 1 = white)."""
+    r, g, b = mcolors.to_rgb(hex_color)
+    return (r + (1 - r) * amount, g + (1 - g) * amount, b + (1 - b) * amount)
+
+
+fig4 = plt.figure(figsize=(9, 5))
+gs4  = GridSpec(1, 2, figure=fig4,
+                width_ratios=[3.5, 1],
+                left=0.10, right=0.99,
+                bottom=0.12, top=0.94,
+                wspace=0.06)
+ax4     = fig4.add_subplot(gs4[0])
+ax4_leg = fig4.add_subplot(gs4[1])
+
+rng4  = np.random.default_rng(42)
+xs4   = np.arange(len(MODALITY_ORDER))
+bar_w4 = 0.55
+
+for xi, mod in enumerate(MODALITY_ORDER):
+    col        = MODALITY_COLOURS[mod]
+    col_light  = _lighten(col, 0.55)
+    mean_f1    = grp_metric_mean[mod]['f1-score']          # already in %
+    within_p   = modality_stats[mod]['within_pct'] / 100   # fraction
+    cross_p    = modality_stats[mod]['cross_pct']  / 100
+
+    within_h = mean_f1 * within_p
+    cross_h  = mean_f1 * cross_p
+
+    # Bottom section — within-modality (darker)
+    ax4.bar(xi, within_h, width=bar_w4, color=col,       zorder=2, label='_nolegend_')
+    # Top section — cross-modality (lighter)
+    ax4.bar(xi, cross_h,  width=bar_w4, color=col_light, zorder=2,
+            bottom=within_h, label='_nolegend_')
+    # Outline at total height
+    ax4.bar(xi, mean_f1,  width=bar_w4, facecolor='none',
+            edgecolor=col, linewidth=1.5, zorder=3)
+
+    # Total F1 label above bar
+    ax4.text(xi, mean_f1 + 1.5, f'{mean_f1:.1f}%',
+             ha='center', va='bottom',
+             fontsize=FONT_SIZES['small'], fontweight='bold', color=col)
+
+    # Per-class F1 dots (best-model, styled class symbols)
+    indices = MODALITY_GROUPS[mod]
+    jitter  = rng4.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(indices))
+    for k, i_global in enumerate(indices):
+        cls_f1 = best_report.get(CLASS_NAMES[i_global], {}).get('f1-score', np.nan)
+        if np.isnan(cls_f1):
+            continue
+        _plot_class_symbol(ax4, xi + jitter[k], cls_f1 * 100,
+                           class_styles[i_global], markersize=7, zorder=5)
+
+# Within / cross legend patches (bottom-left)
+within_patch = mpatches.Patch(color='#888888',                  label='Within-modality errors')
+cross_patch  = mpatches.Patch(color=_lighten('#888888', 0.55),  label='Cross-modality errors')
+ax4.legend(handles=[within_patch, cross_patch],
+           fontsize=FONT_SIZES['small'] - 1, frameon=False,
+           loc='lower right')
+
+ax4.set_xticks(xs4)
+ax4.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['tick'])
+ax4.set_ylabel('F1 score (%)', fontsize=FONT_SIZES['label'])
+ax4.set_ylim(0, 115)
+ax4.set_yticks(np.arange(0, 101, 20))
+ax4.spines['top'].set_visible(False)
+ax4.spines['right'].set_visible(False)
+ax4.tick_params(axis='x', length=0)
+
+_draw_vertical_legend(ax4_leg, all_styles)
+
+stem = os.path.join(OUT_DIR, 'figS_integrated_performance')
+fig4.savefig(stem + '.pdf', dpi=300, bbox_inches='tight')
+fig4.savefig(stem + '.png', dpi=300, bbox_inches='tight')
+plt.close(fig4)
 print(f'Saved: {stem}.pdf / .png')
