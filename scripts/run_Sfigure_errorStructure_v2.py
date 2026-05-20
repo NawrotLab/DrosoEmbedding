@@ -59,7 +59,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 from src.visualization.figure_base import apply_style, FONT_SIZES
 from src.utils.helpers import load_all_results, load_h16_classification_reports
-from src.visualization.visualize_performance import _plot_class_symbol
+from src.visualization.visualize_performance import _plot_class_symbol, draw_legend_panel
 
 apply_style()
 
@@ -343,11 +343,12 @@ def _draw_hierarchy_panel(ax, rng):
     ax.tick_params(axis='x', length=0)
 
 
-def _draw_integrated_panel(ax, ax_leg, rng):
+def _draw_integrated_panel(ax, rng):
     """
     Draw integrated performance panel: 9 grouped bars (3 modalities × 3 metrics).
     Bars: stacked within/cross sections, height = best-model value.
     Black line = 50-run mean. Dots = per-class 50-run means, colored by class style.
+    Legend is drawn separately via draw_legend_panel + _draw_extra_legend_items.
     """
     METRIC_ORDER  = ['f1-score', 'precision', 'recall']
     METRIC_LABELS = {'f1-score': 'F1', 'precision': 'Prec', 'recall': 'Rec'}
@@ -434,21 +435,44 @@ def _draw_integrated_panel(ax, ax_leg, rng):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    # Class symbol legend (top of right panel)
-    _draw_vertical_legend(ax_leg, all_styles)
 
-    # Within / Cross color key below class symbols
-    for row, (label, fc) in enumerate([
-        ('Within-mod.', '#888888'),
-        ('Cross-mod.',  _lighten('#888888', 0.55)),
-    ]):
-        y_r = 0.08 - row * 0.05
-        ax_leg.add_patch(mpatches.Rectangle(
-            (0.02, y_r - 0.015), 0.15, 0.03,
-            facecolor=fc, edgecolor='none', clip_on=False,
-        ))
-        ax_leg.text(0.20, y_r, label, ha='left', va='center',
-                    fontsize=FONT_SIZES['small'] - 1, color='0.4', clip_on=False)
+def _draw_extra_legend_items(fig, ax_rect):
+    """
+    Draw the figure-specific legend items (mean line + within/cross swatches)
+    into a small axes panel, vertically aligned with draw_legend_panel rows.
+    """
+    ax = fig.add_axes(ax_rect)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis('off')
+
+    fs  = FONT_SIZES['legend_panel']
+    col = '0.3'
+
+    # Align to the same y positions draw_legend_panel uses
+    y_header = 0.95
+    y_row1   = 0.65   # aligns with Fed row
+    y_row2   = 0.42
+    y_row3   = 0.18
+
+    ax.text(0.50, y_header, 'Key', ha='center', va='center',
+            fontsize=fs, fontweight='bold', color='0.2')
+
+    # 50-run mean line
+    ax.plot([0.05, 0.22], [y_row1, y_row1], color='black', linewidth=1.5,
+            solid_capstyle='butt', clip_on=False)
+    ax.text(0.26, y_row1, '50-run mean', ha='left', va='center', fontsize=fs, color=col)
+
+    # Within-modality swatch
+    ax.add_patch(mpatches.Rectangle((0.05, y_row2 - 0.06), 0.15, 0.12,
+                                    facecolor='#888888', edgecolor='none', clip_on=False))
+    ax.text(0.26, y_row2, 'Within-mod.', ha='left', va='center', fontsize=fs, color=col)
+
+    # Cross-modality swatch (lightened)
+    ax.add_patch(mpatches.Rectangle((0.05, y_row3 - 0.06), 0.15, 0.12,
+                                    facecolor=_lighten('#888888', 0.55),
+                                    edgecolor='none', clip_on=False))
+    ax.text(0.26, y_row3, 'Cross-mod.', ha='left', va='center', fontsize=fs, color=col)
 
 
 # ════════════════════════════════════════════════
@@ -877,12 +901,13 @@ print(f'Saved: {stem}.pdf / .png')
 # FIGURE 4: figS_integrated_performance
 # ════════════════════════════════════════════════
 
-fig4 = plt.figure(figsize=(9, 5))
-gs4  = GridSpec(1, 2, figure=fig4, width_ratios=[3.5, 1],
-                left=0.10, right=0.99, bottom=0.30, top=0.94, wspace=0.06)
-ax4     = fig4.add_subplot(gs4[0])
-ax4_leg = fig4.add_subplot(gs4[1])
-_draw_integrated_panel(ax4, ax4_leg, np.random.default_rng(42))
+fig4 = plt.figure(figsize=(9, 5.5))
+gs4  = GridSpec(1, 1, figure=fig4,
+                left=0.10, right=0.99, bottom=0.32, top=0.94)
+ax4 = fig4.add_subplot(gs4[0])
+_draw_integrated_panel(ax4, np.random.default_rng(42))
+draw_legend_panel(fig4, all_styles, line_y=0.29, ax_rect=[0.03, 0.015, 0.70, 0.25])
+_draw_extra_legend_items(fig4, ax_rect=[0.74, 0.015, 0.23, 0.25])
 
 stem = os.path.join(OUT_DIR, 'figS_integrated_performance')
 fig4.savefig(stem + '.pdf', dpi=300, bbox_inches='tight')
@@ -896,21 +921,22 @@ print(f'Saved: {stem}.pdf / .png')
 # ════════════════════════════════════════════════
 
 fig5 = plt.figure(figsize=(16, 5.5))
-gs5  = GridSpec(1, 3, figure=fig5,
-                width_ratios=[2.6, 1.4, 0.7],
+gs5  = GridSpec(1, 2, figure=fig5,
+                width_ratios=[2.6, 1.4],
                 left=0.06, right=0.99,
-                bottom=0.30, top=0.94,
+                bottom=0.32, top=0.94,
                 wspace=0.38)
-ax5a     = fig5.add_subplot(gs5[0])
-ax5b     = fig5.add_subplot(gs5[1])
-ax5b_leg = fig5.add_subplot(gs5[2])
+ax5a = fig5.add_subplot(gs5[0])
+ax5b = fig5.add_subplot(gs5[1])
 
 _draw_hierarchy_panel(ax5a, np.random.default_rng(42))
-_draw_integrated_panel(ax5b, ax5b_leg, np.random.default_rng(42))
+_draw_integrated_panel(ax5b, np.random.default_rng(42))
+draw_legend_panel(fig5, all_styles, line_y=0.29, ax_rect=[0.03, 0.015, 0.70, 0.25])
+_draw_extra_legend_items(fig5, ax_rect=[0.74, 0.015, 0.23, 0.25])
 
 ax5a.text(-0.08, 1.04, 'A', transform=ax5a.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
-ax5b.text(-0.14, 1.04, 'B', transform=ax5b.transAxes,
+ax5b.text(-0.12, 1.04, 'B', transform=ax5b.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 stem = os.path.join(OUT_DIR, 'figS_classification_analysis')
