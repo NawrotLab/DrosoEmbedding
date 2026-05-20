@@ -133,6 +133,8 @@ ax.set_xlim(0, 800)
 ax.set_ylim(0.5, 2.5)
 ax.spines['top'].set_visible(False)
 ax.spines['right'].set_visible(False)
+ax.spines['left'].set_bounds(0.5, 2.5)
+ax.spines['bottom'].set_bounds(0, 800)
 ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
 
 ax.legend(handles=legend_handles, fontsize=FONT_SIZES['legend'],
