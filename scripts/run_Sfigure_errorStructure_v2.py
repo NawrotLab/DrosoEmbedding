@@ -371,8 +371,6 @@ def _draw_integrated_panel(ax, rng):
         'recall':    best_grp_rec,
     }
 
-    trans = blended_transform_factory(ax.transData, ax.transAxes)
-
     for mod in MODALITY_ORDER:
         col    = MODALITY_COLOURS[mod]
         col_lt = _lighten(col, 0.55)
@@ -406,18 +404,11 @@ def _draw_integrated_panel(ax, rng):
                                        cls_mean_by_metric[metric][cls_i],
                                        class_styles[cls_i], markersize=5, zorder=6)
 
-            # Rotated metric label + mean below x-axis (like figS_perclass_metrics)
-            ax.text(x_bar, -0.02, f'{METRIC_LABELS[metric]} {mean_val:.0f}%',
-                    ha='center', va='top', rotation=90,
-                    fontsize=FONT_SIZES['small'] - 1, color=col,
-                    transform=trans, clip_on=False)
-
-    # Modality group name labels below metric labels
-    for mod in MODALITY_ORDER:
-        ax.text(grp_cx[mod], -0.22, mod,
-                ha='center', va='top',
-                fontsize=FONT_SIZES['label'], color=MODALITY_COLOURS[mod],
-                fontweight='bold', transform=trans, clip_on=False)
+            # Metric label + mean inside bar at the bottom, black
+            ax.text(x_bar, 51, f'{METRIC_LABELS[metric]}\n{mean_val:.0f}%',
+                    ha='center', va='bottom',
+                    fontsize=FONT_SIZES['small'] - 2, fontweight='bold',
+                    color='black', zorder=7)
 
     # Vertical group separators
     for a_grp, b_grp in [('Odor', 'Taste'), ('Taste', 'Combined')]:
@@ -427,11 +418,12 @@ def _draw_integrated_panel(ax, rng):
     x_margin = BAR_W * 1.5
     ax.set_xlim(grp_cx['Odor'] - grp_span / 2 - x_margin,
                 grp_cx['Combined'] + grp_span / 2 + x_margin)
-    ax.set_ylim(50, 105)
+    ax.set_ylim(50, 100)
     ax.set_yticks(np.arange(50, 101, 10))
-    ax.set_xticks([])
+    ax.set_xticks([grp_cx[mod] for mod in MODALITY_ORDER])
+    ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['small'])
     ax.tick_params(axis='x', length=0)
-    ax.set_ylabel('Score (%)', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('Accuracy', fontsize=FONT_SIZES['label'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -718,7 +710,7 @@ if len(run_pcts) > 0:
     ax_a.legend(handles=[mean_line], fontsize=FONT_SIZES['small'] - 1,
                 frameon=False, loc='upper left')
 
-ax_a.text(-0.08, 1.04, 'A', transform=ax_a.transAxes,
+ax_a.text(-0.08, 1.04, 'a', transform=ax_a.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 # ── Panel B ────────────────────────────────────────────────────────────────
@@ -749,7 +741,7 @@ within_patch = mpatches.Patch(color='#888888', alpha=0.65, label='Within-modalit
 cross_patch  = mpatches.Patch(color='#888888', alpha=0.25, label='Cross-modality')
 ax_b.legend(handles=[within_patch, cross_patch],
             fontsize=FONT_SIZES['small'] - 1, frameon=False, loc='upper left')
-ax_b.text(-0.22, 1.04, 'B', transform=ax_b.transAxes,
+ax_b.text(-0.22, 1.04, 'b', transform=ax_b.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 # ── Panel C ────────────────────────────────────────────────────────────────
@@ -774,7 +766,7 @@ for tick, mod in zip(ax_c.get_xticklabels(), MODALITY_ORDER):
     tick.set_color(MODALITY_COLOURS[mod])
 for tick, mod in zip(ax_c.get_yticklabels(), MODALITY_ORDER):
     tick.set_color(MODALITY_COLOURS[mod])
-ax_c.text(-0.34, 1.04, 'C', transform=ax_c.transAxes,
+ax_c.text(-0.34, 1.04, 'c', transform=ax_c.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -934,9 +926,9 @@ _draw_integrated_panel(ax5b, np.random.default_rng(42))
 draw_legend_panel(fig5, all_styles, line_y=0.29, ax_rect=[0.03, 0.015, 0.70, 0.25])
 _draw_extra_legend_items(fig5, ax_rect=[0.74, 0.015, 0.23, 0.25])
 
-ax5a.text(-0.08, 1.04, 'A', transform=ax5a.transAxes,
+ax5a.text(-0.08, 1.04, 'a', transform=ax5a.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
-ax5b.text(-0.12, 1.04, 'B', transform=ax5b.transAxes,
+ax5b.text(-0.12, 1.04, 'b', transform=ax5b.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 stem = os.path.join(OUT_DIR, 'figS_classification_analysis')
