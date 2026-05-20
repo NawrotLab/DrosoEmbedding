@@ -91,7 +91,7 @@ for task_key in TASK_ORDER:
 # FIGURE
 # ════════════════════════════════════════════════
 
-SMOOTH_WIN = 5   # moving-average window (epochs)
+SMOOTH_WIN = 10   # moving-average window (epochs)
 
 def _smooth(values, window):
     if not values or window < 2:
