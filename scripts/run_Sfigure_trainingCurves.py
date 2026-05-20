@@ -21,9 +21,9 @@ import pickle
 import sys
 from pathlib import Path
 
+import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
-from matplotlib.gridspec import GridSpec
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
@@ -91,43 +91,50 @@ for task_key in TASK_ORDER:
 # FIGURE
 # ════════════════════════════════════════════════
 
-fig = plt.figure(figsize=(14, 4.5))
-gs  = GridSpec(1, 3, figure=fig,
-               left=0.07, right=0.98, top=0.88, bottom=0.18,
-               wspace=0.32)
+SMOOTH_WIN = 7   # moving-average window (epochs)
 
-PANEL_LABELS = ['a', 'b', 'c']
+def _smooth(values, window):
+    if not values or window < 2:
+        return values
+    kernel = np.ones(window) / window
+    return np.convolve(values, kernel, mode='valid').tolist()
 
-for pi, task_key in enumerate(TASK_ORDER):
-    ax   = fig.add_subplot(gs[pi])
+
+fig, ax = plt.subplots(figsize=(8, 5))
+fig.subplots_adjust(left=0.11, right=0.97, top=0.93, bottom=0.22)
+
+legend_handles = []
+
+for task_key in TASK_ORDER:
     meta = TASK_META[task_key]
     col  = meta['color']
     d    = task_data.get(task_key, {})
-    tl   = d.get('train')
-    vl   = d.get('val')
+    tl   = _smooth(d.get('train'), SMOOTH_WIN)
+    vl   = _smooth(d.get('val'),   SMOOTH_WIN)
 
     if tl:
-        ax.plot(tl, color=col, linewidth=2.0, label='Train')
+        ax.plot(tl, color=col, linewidth=2.0)
     if vl:
-        ax.plot(vl, color=col, linewidth=2.0, linestyle='--', label='Validation')
+        ax.plot(vl, color=col, linewidth=2.0, linestyle='--')
 
-    ax.set_xlabel('Epoch', fontsize=FONT_SIZES['label'])
-    ax.set_ylabel('Loss',  fontsize=FONT_SIZES['label'])
-    ax.set_title(meta['label'], fontsize=FONT_SIZES['subplot_title'], pad=6)
-    ax.spines['top'].set_visible(False)
-    ax.spines['right'].set_visible(False)
-    ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
-    ax.text(-0.10, 1.06, PANEL_LABELS[pi], transform=ax.transAxes,
-            fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
+    legend_handles.append(
+        mlines.Line2D([], [], color=col, linewidth=2.0, label=meta['label'])
+    )
 
-# ── Shared legend ─────────────────────────────────────────────────────────
-train_line = mlines.Line2D([], [], color='0.4', linewidth=2.0,
-                           linestyle='-',  label='Training loss')
-val_line   = mlines.Line2D([], [], color='0.4', linewidth=2.0,
-                           linestyle='--', label='Validation loss')
-fig.legend(handles=[train_line, val_line],
-           loc='lower center', ncol=2, fontsize=FONT_SIZES['legend'],
-           frameon=False, bbox_to_anchor=(0.5, 0.00))
+# Style entries for train / val
+legend_handles += [
+    mlines.Line2D([], [], color='0.4', linewidth=1.5, linestyle='-',  label='Training'),
+    mlines.Line2D([], [], color='0.4', linewidth=1.5, linestyle='--', label='Validation'),
+]
+
+ax.set_xlabel('Epoch', fontsize=FONT_SIZES['label'])
+ax.set_ylabel('Loss',  fontsize=FONT_SIZES['label'])
+ax.spines['top'].set_visible(False)
+ax.spines['right'].set_visible(False)
+ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
+
+ax.legend(handles=legend_handles, fontsize=FONT_SIZES['legend'],
+          frameon=False, loc='upper right', ncol=1)
 
 # ── Save ──────────────────────────────────────────────────────────────────
 os.makedirs(OUT_DIR, exist_ok=True)
