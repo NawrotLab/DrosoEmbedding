@@ -380,11 +380,12 @@ def _draw_integrated_panel(ax, ax_leg, rng):
                 ha='center', va='bottom',
                 fontsize=FONT_SIZES['small'], fontweight='bold', color='black')
 
-        # 50-run individual dots (plain colored scatter)
-        run_f1s = run_grp_arr[mod]['f1-score']
-        if len(run_f1s) > 0:
-            jitter = rng.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(run_f1s))
-            ax.scatter(np.full(len(run_f1s), xi) + jitter, run_f1s,
+        # Per-class mean F1 dots (one dot per class, each = mean across 50 runs)
+        cls_means = np.array([cls_f1_mean[i] for i in MODALITY_GROUPS[mod]
+                              if not np.isnan(cls_f1_mean[i])])
+        if len(cls_means) > 0:
+            jitter = rng.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(cls_means))
+            ax.scatter(np.full(len(cls_means), xi) + jitter, cls_means,
                        s=14, color=col, alpha=0.40, linewidths=0, zorder=6)
 
     ax.set_xticks(xs4)
