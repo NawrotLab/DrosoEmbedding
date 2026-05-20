@@ -345,57 +345,94 @@ def _draw_hierarchy_panel(ax, rng):
 
 def _draw_integrated_panel(ax, ax_leg, rng):
     """
-    Draw integrated performance + error structure onto ax (main) and ax_leg (legend).
-    Bars: stacked within/cross sections, total height = best model F1.
-    Black horizontal line = 50-run mean F1.
-    Dots: 50 individual run F1 values (plain colored scatter).
-    % labels at bar bottoms (black, 50-run mean values).
-    Legend panel: class symbols above, within/cross color key below.
+    Draw integrated performance panel: 9 grouped bars (3 modalities × 3 metrics).
+    Bars: stacked within/cross sections, height = best-model value.
+    Black line = 50-run mean. Dots = per-class 50-run means, colored by class style.
     """
-    xs4    = np.arange(len(MODALITY_ORDER))
-    bar_w4 = 0.55
+    METRIC_ORDER  = ['f1-score', 'precision', 'recall']
+    METRIC_LABELS = {'f1-score': 'F1', 'precision': 'Prec', 'recall': 'Rec'}
+    BAR_W    = 0.20
+    GRP_GAP  = 0.32
+    grp_span = len(METRIC_ORDER) * BAR_W
+    grp_step = grp_span + GRP_GAP
+    grp_cx   = {mod: i * grp_step for i, mod in enumerate(MODALITY_ORDER)}
+    met_off  = {m: (j - (len(METRIC_ORDER) - 1) / 2) * BAR_W
+                for j, m in enumerate(METRIC_ORDER)}
 
-    for xi, mod in enumerate(MODALITY_ORDER):
-        col       = MODALITY_COLOURS[mod]
-        col_light = _lighten(col, 0.55)
-        best_f1   = best_grp_f1[mod]                          # bars = best model
-        mean_f1   = grp_metric_mean[mod]['f1-score']           # line = 50-run mean
-        within_p  = modality_stats[mod]['within_pct'] / 100
-        cross_p   = modality_stats[mod]['cross_pct']  / 100
-        within_h  = best_f1 * within_p
-        cross_h   = best_f1 * cross_p
+    cls_mean_by_metric = {
+        'f1-score':  cls_f1_mean,
+        'precision': cls_prec_mean,
+        'recall':    cls_rec_mean,
+    }
+    best_grp_by_metric = {
+        'f1-score':  best_grp_f1,
+        'precision': best_grp_prec,
+        'recall':    best_grp_rec,
+    }
 
-        ax.bar(xi, within_h, width=bar_w4, color=col,       zorder=2)
-        ax.bar(xi, cross_h,  width=bar_w4, color=col_light, zorder=2, bottom=within_h)
-        ax.bar(xi, best_f1,  width=bar_w4, facecolor='none',
-               edgecolor=col, linewidth=1.5, zorder=3)
+    trans = blended_transform_factory(ax.transData, ax.transAxes)
 
-        # Black horizontal line at 50-run mean
-        hw = bar_w4 * 0.88 / 2
-        ax.plot([xi - hw, xi + hw], [mean_f1, mean_f1],
-                color='black', linewidth=2.0, zorder=5)
+    for mod in MODALITY_ORDER:
+        col    = MODALITY_COLOURS[mod]
+        col_lt = _lighten(col, 0.55)
+        w_frac = modality_stats[mod]['within_pct'] / 100
+        c_frac = modality_stats[mod]['cross_pct']  / 100
 
-        # % label at bar bottom — 50-run mean, black text
-        ax.text(xi, 2.0, f'{mean_f1:.1f}%',
-                ha='center', va='bottom',
-                fontsize=FONT_SIZES['small'], fontweight='bold', color='black')
+        for metric in METRIC_ORDER:
+            x_bar    = grp_cx[mod] + met_off[metric]
+            best_val = best_grp_by_metric[metric][mod]
+            mean_val = grp_metric_mean[mod][metric]
+            hw       = BAR_W * 0.88 / 2
 
-        # Per-class mean F1 dots (one dot per class, each = mean across 50 runs)
-        cls_means = np.array([cls_f1_mean[i] for i in MODALITY_GROUPS[mod]
-                              if not np.isnan(cls_f1_mean[i])])
-        if len(cls_means) > 0:
-            jitter = rng.uniform(-bar_w4 * 0.30, bar_w4 * 0.30, size=len(cls_means))
-            ax.scatter(np.full(len(cls_means), xi) + jitter, cls_means,
-                       s=14, color=col, alpha=0.40, linewidths=0, zorder=6)
+            ax.bar(x_bar, best_val * w_frac, width=BAR_W * 0.88,
+                   color=col, zorder=2)
+            ax.bar(x_bar, best_val * c_frac, width=BAR_W * 0.88,
+                   color=col_lt, zorder=2, bottom=best_val * w_frac)
+            ax.bar(x_bar, best_val, width=BAR_W * 0.88,
+                   facecolor='none', edgecolor=col, linewidth=1.0, zorder=3)
 
-    ax.set_xticks(xs4)
-    ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['tick'])
-    ax.set_ylabel('F1 score (%)', fontsize=FONT_SIZES['label'])
-    ax.set_ylim(0, 115)
-    ax.set_yticks(np.arange(0, 101, 20))
+            # Black 50-run mean line (matching Panel A linewidth)
+            ax.plot([x_bar - hw, x_bar + hw], [mean_val, mean_val],
+                    color='black', linewidth=1.5, zorder=5)
+
+            # Per-class dots colored by class style (filled=Fed, open=Starved)
+            valid_idx = [i for i in MODALITY_GROUPS[mod]
+                         if not np.isnan(cls_mean_by_metric[metric][i])]
+            if valid_idx:
+                jitter = rng.uniform(-BAR_W * 0.28, BAR_W * 0.28, size=len(valid_idx))
+                for k, cls_i in enumerate(valid_idx):
+                    _plot_class_symbol(ax, x_bar + jitter[k],
+                                       cls_mean_by_metric[metric][cls_i],
+                                       class_styles[cls_i], markersize=5, zorder=6)
+
+            # Rotated metric label + mean below x-axis (like figS_perclass_metrics)
+            ax.text(x_bar, -0.02, f'{METRIC_LABELS[metric]} {mean_val:.0f}%',
+                    ha='center', va='top', rotation=90,
+                    fontsize=FONT_SIZES['small'] - 1, color=col,
+                    transform=trans, clip_on=False)
+
+    # Modality group name labels below metric labels
+    for mod in MODALITY_ORDER:
+        ax.text(grp_cx[mod], -0.22, mod,
+                ha='center', va='top',
+                fontsize=FONT_SIZES['label'], color=MODALITY_COLOURS[mod],
+                fontweight='bold', transform=trans, clip_on=False)
+
+    # Vertical group separators
+    for a_grp, b_grp in [('Odor', 'Taste'), ('Taste', 'Combined')]:
+        sep = (grp_cx[a_grp] + grp_cx[b_grp]) / 2
+        ax.axvline(sep, color='#CCCCCC', linewidth=0.8, zorder=1)
+
+    x_margin = BAR_W * 1.5
+    ax.set_xlim(grp_cx['Odor'] - grp_span / 2 - x_margin,
+                grp_cx['Combined'] + grp_span / 2 + x_margin)
+    ax.set_ylim(50, 105)
+    ax.set_yticks(np.arange(50, 101, 10))
+    ax.set_xticks([])
+    ax.tick_params(axis='x', length=0)
+    ax.set_ylabel('Score (%)', fontsize=FONT_SIZES['label'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.tick_params(axis='x', length=0)
 
     # Class symbol legend (top of right panel)
     _draw_vertical_legend(ax_leg, all_styles)
@@ -538,6 +575,27 @@ best_grp_f1 = {
         best_report[CLASS_NAMES[i]]['f1-score'] * 100
         for i in MODALITY_GROUPS[mod] if CLASS_NAMES[i] in best_report
     ]))
+    for mod in MODALITY_ORDER
+}
+
+# ── Per-class 50-run mean Precision and Recall ─────────────────────────────
+cls_prec_mean = {}
+cls_rec_mean  = {}
+for _i in range(16):
+    _prec = [r[CLASS_NAMES[_i]]['precision'] * 100 for r in all_reports if CLASS_NAMES[_i] in r]
+    _rec  = [r[CLASS_NAMES[_i]]['recall']    * 100 for r in all_reports if CLASS_NAMES[_i] in r]
+    cls_prec_mean[_i] = float(np.mean(_prec)) if _prec else np.nan
+    cls_rec_mean[_i]  = float(np.mean(_rec))  if _rec  else np.nan
+
+# ── Best-model group-level Precision and Recall ────────────────────────────
+best_grp_prec = {
+    mod: float(np.mean([best_report[CLASS_NAMES[i]]['precision'] * 100
+                        for i in MODALITY_GROUPS[mod] if CLASS_NAMES[i] in best_report]))
+    for mod in MODALITY_ORDER
+}
+best_grp_rec = {
+    mod: float(np.mean([best_report[CLASS_NAMES[i]]['recall'] * 100
+                        for i in MODALITY_GROUPS[mod] if CLASS_NAMES[i] in best_report]))
     for mod in MODALITY_ORDER
 }
 
@@ -821,7 +879,7 @@ print(f'Saved: {stem}.pdf / .png')
 
 fig4 = plt.figure(figsize=(9, 5))
 gs4  = GridSpec(1, 2, figure=fig4, width_ratios=[3.5, 1],
-                left=0.10, right=0.99, bottom=0.12, top=0.94, wspace=0.06)
+                left=0.10, right=0.99, bottom=0.30, top=0.94, wspace=0.06)
 ax4     = fig4.add_subplot(gs4[0])
 ax4_leg = fig4.add_subplot(gs4[1])
 _draw_integrated_panel(ax4, ax4_leg, np.random.default_rng(42))
