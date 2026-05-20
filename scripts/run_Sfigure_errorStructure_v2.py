@@ -423,7 +423,7 @@ def _draw_integrated_panel(ax, rng):
     ax.set_xticks([grp_cx[mod] for mod in MODALITY_ORDER])
     ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['small'], rotation=35, ha='right')
     ax.tick_params(axis='x', length=0)
-    ax.set_ylabel('Accuracy', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('Accuracy [%]', fontsize=FONT_SIZES['label'])
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -914,17 +914,17 @@ print(f'Saved: {stem}.pdf / .png')
 
 fig5 = plt.figure(figsize=(14, 7))
 gs5  = GridSpec(1, 2, figure=fig5,
-                width_ratios=[2.6, 1.4],
+                width_ratios=[2.6, 1],
                 left=0.06, right=0.99,
-                bottom=0.38, top=0.94,
+                bottom=0.43, top=0.94,
                 wspace=0.38)
 ax5a = fig5.add_subplot(gs5[0])
 ax5b = fig5.add_subplot(gs5[1])
 
 _draw_hierarchy_panel(ax5a, np.random.default_rng(42))
 _draw_integrated_panel(ax5b, np.random.default_rng(42))
-draw_legend_panel(fig5, all_styles, line_y=0.34, ax_rect=[0.03, 0.02, 0.78, 0.28])
-_draw_extra_legend_items(fig5, ax_rect=[0.82, 0.02, 0.16, 0.28])
+draw_legend_panel(fig5, all_styles, line_y=0.3, ax_rect=[0.03, 0.02, 0.78, 0.25])
+_draw_extra_legend_items(fig5, ax_rect=[0.82, 0.02, 0.16, 0.25])
 
 ax5a.text(-0.08, 1.04, 'a', transform=ax5a.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
