@@ -105,15 +105,21 @@ fig.subplots_adjust(left=0.11, right=0.97, top=0.93, bottom=0.22)
 
 legend_handles = []
 
+# First pass: all training lines (below)
 for task_key in TASK_ORDER:
     meta = TASK_META[task_key]
     col  = meta['color']
     d    = task_data.get(task_key, {})
     tl   = _smooth(d.get('train'), SMOOTH_WIN)
-    vl   = _smooth(d.get('val'),   SMOOTH_WIN)
-
     if tl:
         ax.plot(tl, color=col, linewidth=2.0, alpha=0.4)
+
+# Second pass: all validation lines (on top)
+for task_key in TASK_ORDER:
+    meta = TASK_META[task_key]
+    col  = meta['color']
+    d    = task_data.get(task_key, {})
+    vl   = _smooth(d.get('val'), SMOOTH_WIN)
     if vl:
         ax.plot(vl, color=col, linewidth=2.0, alpha=1.0)
 
