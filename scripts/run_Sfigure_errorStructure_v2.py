@@ -404,10 +404,10 @@ def _draw_integrated_panel(ax, rng):
                                        cls_mean_by_metric[metric][cls_i],
                                        class_styles[cls_i], markersize=5, zorder=6)
 
-            # Metric label + mean inside bar at the bottom, black
-            ax.text(x_bar, 51, f'{METRIC_LABELS[metric]}\n{mean_val:.0f}%',
-                    ha='center', va='bottom',
-                    fontsize=FONT_SIZES['small'] - 2, fontweight='bold',
+            # Metric label + mean: vertical, rising from x-axis up inside bar
+            ax.text(x_bar, 50.5, f'{METRIC_LABELS[metric]}  {mean_val:.0f}%',
+                    ha='center', va='bottom', rotation=90,
+                    fontsize=FONT_SIZES['small'], fontweight='bold',
                     color='black', zorder=7)
 
     # Vertical group separators
@@ -421,7 +421,7 @@ def _draw_integrated_panel(ax, rng):
     ax.set_ylim(50, 100)
     ax.set_yticks(np.arange(50, 101, 10))
     ax.set_xticks([grp_cx[mod] for mod in MODALITY_ORDER])
-    ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['small'])
+    ax.set_xticklabels(MODALITY_ORDER, fontsize=FONT_SIZES['small'], rotation=35, ha='right')
     ax.tick_params(axis='x', length=0)
     ax.set_ylabel('Accuracy', fontsize=FONT_SIZES['label'])
     ax.spines['top'].set_visible(False)
@@ -912,19 +912,19 @@ print(f'Saved: {stem}.pdf / .png')
 # Panel A = error hierarchy  |  Panel B = integrated performance + legend
 # ════════════════════════════════════════════════
 
-fig5 = plt.figure(figsize=(16, 5.5))
+fig5 = plt.figure(figsize=(14, 7))
 gs5  = GridSpec(1, 2, figure=fig5,
                 width_ratios=[2.6, 1.4],
                 left=0.06, right=0.99,
-                bottom=0.32, top=0.94,
+                bottom=0.38, top=0.94,
                 wspace=0.38)
 ax5a = fig5.add_subplot(gs5[0])
 ax5b = fig5.add_subplot(gs5[1])
 
 _draw_hierarchy_panel(ax5a, np.random.default_rng(42))
 _draw_integrated_panel(ax5b, np.random.default_rng(42))
-draw_legend_panel(fig5, all_styles, line_y=0.29, ax_rect=[0.03, 0.015, 0.70, 0.25])
-_draw_extra_legend_items(fig5, ax_rect=[0.74, 0.015, 0.23, 0.25])
+draw_legend_panel(fig5, all_styles, line_y=0.34, ax_rect=[0.03, 0.02, 0.78, 0.28])
+_draw_extra_legend_items(fig5, ax_rect=[0.82, 0.02, 0.16, 0.28])
 
 ax5a.text(-0.08, 1.04, 'a', transform=ax5a.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
