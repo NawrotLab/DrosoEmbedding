@@ -113,9 +113,9 @@ for task_key in TASK_ORDER:
     vl   = _smooth(d.get('val'),   SMOOTH_WIN)
 
     if tl:
-        ax.plot(tl, color=col, linewidth=2.0, alpha=1.0)
+        ax.plot(tl, color=col, linewidth=2.0, alpha=0.4)
     if vl:
-        ax.plot(vl, color=col, linewidth=2.0, alpha=0.4)
+        ax.plot(vl, color=col, linewidth=2.0, alpha=1.0)
 
     legend_handles.append(
         mlines.Line2D([], [], color=col, linewidth=2.0, label=meta['label'])
@@ -123,8 +123,8 @@ for task_key in TASK_ORDER:
 
 # Style entries for train / val
 legend_handles += [
-    mlines.Line2D([], [], color='0.4', linewidth=1.5, alpha=1.0, label='Training'),
-    mlines.Line2D([], [], color='0.4', linewidth=1.5, alpha=0.4, label='Validation'),
+    mlines.Line2D([], [], color='0.4', linewidth=1.5, alpha=0.4, label='Training'),
+    mlines.Line2D([], [], color='0.4', linewidth=1.5, alpha=1.0, label='Validation'),
 ]
 
 ax.set_xlabel('Epoch', fontsize=FONT_SIZES['label'])
