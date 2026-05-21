@@ -70,14 +70,22 @@ def _load_best_pkl(task: str) -> dict:
 
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -> None:
-    """Add a centered directional label below a 1D marginal plot.
+    """Add directional end-labels and centered axis name to a 1D marginal plot.
 
-    Displays as '← neg   pos →' centered below the axis line.
+    End-labels (e.g. Starved/Fed) are placed at the tips of the axis line.
+    The axis name is placed centered above the line as a title.
+    line_extent mirrors the value computed inside plot_1d_marginal.
     """
+    line_extent = float(np.abs(proj).max()) * 1.4
     neg, pos = _AXIS_ENDPOINTS.get(axis_display, ('', ''))
-    if neg or pos:
-        ax.set_xlabel(f'← {neg}   {pos} →', ha='center',
-                      fontsize=FONT_SIZES['annotation'])
+    if neg:
+        ax.text(-line_extent, 0, f'{neg}  ', ha='right', va='center',
+                fontsize=FONT_SIZES['annotation'])
+    if pos:
+        ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
+                fontsize=FONT_SIZES['annotation'])
+    ax.set_xlim(-line_extent * 2.0, line_extent * 2.0)
+    ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
 
 
 def plot_sfigure_latent_interactions(
@@ -130,11 +138,10 @@ def plot_sfigure_latent_interactions(
             colors=colors[TASK_II],
             edges=edges[TASK_II],
             bicolor_info=bi_ii,
-            axis_name='',   # suppressed — L-indicator used below instead
+            axis_name='',
             s=180,
         )
         _add_1d_endpoint_labels(ax, proj_ii[key], display)
-        _add_axis_indicator(ax, [display])
 
     # ── Panel b — task iii, 3 × 1D ────────────────────────────────────────
     fig.text(panel_x, title_y[1], 'b',
@@ -157,7 +164,6 @@ def plot_sfigure_latent_interactions(
             s=180,
         )
         _add_1d_endpoint_labels(ax, proj_iii[key], display)
-        _add_axis_indicator(ax, [display])
 
     # ── Panel c — task iii, 3 × 2D pairwise ───────────────────────────────
     fig.text(panel_x, title_y[2], 'c',
