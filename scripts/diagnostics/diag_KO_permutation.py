@@ -47,7 +47,7 @@ apply_style()
 # ── constants ─────────────────────────────────────────────────────────────────
 
 TASK        = 'State_Modality_Valence_16'
-BASE_RUNS   = os.path.join('results', '_chkpt_runs')
+BASE_RUNS   = os.path.join('results', 'chkpt_runs')
 RUN_PREFIX  = f'{TASK}_C16_E16_H16_'       # X = 1..50
 N_RUNS      = 50
 
