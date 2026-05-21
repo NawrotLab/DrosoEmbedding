@@ -200,7 +200,7 @@ def plot_sfigure_latent_interactions(
         _add_axis_indicator(ax, [xlbl, ylbl])
 
     # ── legend ─────────────────────────────────────────────────────────────
-    draw_legend_panel(fig, styles, line_y=0.20)
+    draw_legend_panel(fig, styles, line_y=0.18)
 
     # ── save ───────────────────────────────────────────────────────────────
     save_figure(fig, out_path)
