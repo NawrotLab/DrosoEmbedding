@@ -1,15 +1,20 @@
 """
 Diagnostic: Per-class accuracy drop under neuropil knockouts
 =============================================================
-Runs the best C16 model on the normal test set (baseline), then on each of
-the 12 neuropil KO datasets.  Computes ΔAccuracy = baseline − KO per class,
-saves a CSV and a heatmap (16 classes × 12 neuropils).
+For each of the N trained C16/E16/H16 model runs:
+  1. Baseline forward pass on the normal test set → per-class accuracy
+  2. 12 neuropil KO forward passes → per-class accuracy each
+  3. ΔAccuracy = baseline − KO per class
+
+Aggregates mean and std of ΔAccuracy across all runs.
+Saves a CSV and a heatmap (16 classes × 12 neuropils, values = mean ΔAcc).
 
 Usage (from repo root):
     python scripts/diagnostics/diag_KO_permutation.py
 
 Outputs:
-    results/diagnostics/KO_permutation/KO_delta_accuracy.csv
+    results/diagnostics/KO_permutation/KO_delta_accuracy_mean.csv
+    results/diagnostics/KO_permutation/KO_delta_accuracy_std.csv
     results/CombiPlots/pdfs/diag_KO_permutation.pdf
     results/CombiPlots/pngs/diag_KO_permutation.png
 """
@@ -41,6 +46,10 @@ apply_style()
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
+TASK           = 'State_Modality_Valence_16'
+RUN_PATTERN    = 'C16_E16_H16_*.pkl'       # H16 runs only
+BASE_RESULTS   = os.path.join('results', '_chkpt_finals')
+
 NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 
@@ -54,7 +63,7 @@ NUM_WORKERS = 4
 
 def per_class_accuracy(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> np.ndarray:
     """Row-normalised confusion matrix diagonal → (n_classes,) accuracy array."""
-    counts  = np.zeros((n_classes, n_classes), dtype=np.int64)
+    counts = np.zeros((n_classes, n_classes), dtype=np.int64)
     for t, p in zip(y_true, y_pred):
         counts[t, p] += 1
     row_sums = counts.sum(axis=1)
@@ -77,8 +86,8 @@ def make_loader(X, Y, model_params, allTs_path):
 def ko_allTs_path(base_allTs_path: str, neuropil: str) -> str:
     """Derive KO allTs path from baseline.
 
-    baseline:  {allTs_base}/meanZ_allTs
-    KO:        {allTs_base}/meanZ_allTs_KO_{neuropil}
+    baseline: {allTs_base}/meanZ_allTs
+    KO:       {allTs_base}/meanZ_allTs_KO_{neuropil}
     """
     parent = os.path.dirname(base_allTs_path.rstrip('/'))
     return os.path.join(parent, f'meanZ_allTs_KO_{neuropil}')
@@ -103,87 +112,123 @@ def main():
     logger = setup_logger(task_name='diag_KO_permutation',
                           log_dir='logs/diag_KO_permutation')
 
-    # ── config & paths ────────────────────────────────────────────────────────
-    config = load_config()
-    paths        = config['paths']
-    model_params = config['model']['parameters']
+    # ── find all H16 run pkl files ────────────────────────────────────────────
+    runs_dir = Path(BASE_RESULTS) / TASK / 'runs'
+    run_pkls = sorted(runs_dir.glob(RUN_PATTERN))
+    if not run_pkls:
+        raise FileNotFoundError(f'No run pkl files found in {runs_dir} matching {RUN_PATTERN}')
+    logger.info(f'Found {len(run_pkls)} runs in {runs_dir}')
 
-    # Restore training config (contains derived paths and class names)
-    with open(f"{paths['results_root']}/config.pkl", 'rb') as fh:
-        config = pickle.load(fh)
+    # ── load base config (shared across all runs) ─────────────────────────────
+    base_config  = load_config()
+    model_params = base_config['model']['parameters']
+    device       = base_config['device']
 
-    device      = config['device']
-    class_names = config['data']['classes']
+    # Restore training config to get class names and allTs_path
+    with open(f"{base_config['paths']['results_root']}/config.pkl", 'rb') as fh:
+        train_config = pickle.load(fh)
+
+    class_names = train_config['data']['classes']
     n_classes   = len(class_names)
-    allTs_base  = config['paths']['allTs_path']
+    allTs_base  = train_config['paths']['allTs_path']
 
-    logger.info(f"Task: {config['data']['task']}, {n_classes} classes")
-    logger.info(f"allTs_path (baseline): {allTs_base}")
+    logger.info(f'Task: {TASK} | {n_classes} classes | {len(NEUROPILS)} neuropils')
+    logger.info(f'allTs_path (baseline): {allTs_base}')
 
-    # ── test split ────────────────────────────────────────────────────────────
-    with open(paths['pickle_path'], 'rb') as fh:
+    # ── load test split (same for all runs — split is fixed by task) ──────────
+    with open(base_config['paths']['pickle_path'], 'rb') as fh:
         _, _, X_test, _, _, Y_test = pickle.load(fh)
-    logger.info(f"Test samples (raw): {len(X_test)}")
+    logger.info(f'Test samples (raw): {len(X_test)}')
 
-    # ── load model once ───────────────────────────────────────────────────────
-    classifier, *_ = load_model(CNN_Transformer, model_params,
-                                paths['models'], device, logger)
-    if classifier is None:
-        raise FileNotFoundError('Trained model checkpoint not found.')
-    classifier.eval()
+    # Pre-build KO test path lists (path rewriting is run-independent)
+    X_test_ko = {}
+    for neuropil in NEUROPILS:
+        cfg_ko = ko_config(train_config, neuropil)
+        X_test_ko[neuropil] = paths2neuropilpaths(list(X_test), cfg_ko)
 
-    # ── baseline ──────────────────────────────────────────────────────────────
-    logger.info('Running baseline ...')
-    loader_base  = make_loader(X_test, Y_test, model_params, allTs_base)
-    y_pred_base, y_true = get_predictions(classifier, loader_base, device)
-    acc_base = per_class_accuracy(y_true, y_pred_base, n_classes)
-    logger.info(f'Baseline mean accuracy: {np.nanmean(acc_base):.3f}')
+    # Warn once about missing KO directories
+    missing = [n for n in NEUROPILS
+               if not Path(ko_allTs_path(allTs_base, n)).exists()]
+    if missing:
+        logger.warning(f'KO data directories not found, will skip: {missing}')
 
-    # ── per-neuropil KO ───────────────────────────────────────────────────────
-    delta = np.full((n_classes, len(NEUROPILS)), np.nan)  # rows=classes, cols=neuropils
+    # ── outer loop: one model per run ─────────────────────────────────────────
+    all_deltas = []   # list of (n_classes, n_neuropils) arrays, one per run
 
-    for j, neuropil in enumerate(NEUROPILS):
-        logger.info(f'KO: {neuropil} ...')
+    for pkl_path in run_pkls:
+        run_id     = pkl_path.stem   # e.g. C16_E16_H16_42
+        models_dir = str(Path(base_config['paths']['results_root']).parent /
+                         f'{TASK}_{run_id}' / 'models') + '/'
 
-        cfg_ko       = ko_config(config, neuropil)
-        allTs_ko     = cfg_ko['paths']['allTs_path']
-        X_test_ko    = paths2neuropilpaths(list(X_test), cfg_ko)
-
-        if not Path(allTs_ko).exists():
-            logger.warning(f'KO data directory not found: {allTs_ko} — skipping.')
+        if not Path(models_dir).exists():
+            logger.warning(f'Model dir not found for {run_id}, skipping.')
             continue
 
-        loader_ko        = make_loader(X_test_ko, Y_test, model_params, allTs_ko)
-        y_pred_ko, _     = get_predictions(classifier, loader_ko, device)
-        acc_ko           = per_class_accuracy(y_true, y_pred_ko, n_classes)
-        delta[:, j]      = acc_base - acc_ko
-        logger.info(f'  Mean ΔAcc: {np.nanmean(delta[:, j]):.4f}')
+        logger.info(f'── Run {run_id} ──')
 
-    # ── save CSV ──────────────────────────────────────────────────────────────
-    df = pd.DataFrame(delta * 100,          # convert to percentage points
-                      index=class_names,
-                      columns=NEUROPILS)
-    csv_path = os.path.join(OUT_DIAG, 'KO_delta_accuracy.csv')
-    df.to_csv(csv_path)
-    logger.info(f'Saved CSV → {csv_path}')
+        # Load model
+        classifier, *_ = load_model(CNN_Transformer, model_params,
+                                     models_dir, device, logger)
+        if classifier is None:
+            logger.warning(f'  Checkpoint missing for {run_id}, skipping.')
+            continue
+        classifier.eval()
 
-    # ── heatmap ───────────────────────────────────────────────────────────────
-    vmax = np.nanpercentile(np.abs(delta * 100), 95)
+        # Baseline
+        loader_base      = make_loader(X_test, Y_test, model_params, allTs_base)
+        y_pred_base, y_true = get_predictions(classifier, loader_base, device)
+        acc_base         = per_class_accuracy(y_true, y_pred_base, n_classes)
+        logger.info(f'  Baseline mean acc: {np.nanmean(acc_base):.3f}')
+
+        # 12 KO runs
+        delta_i = np.full((n_classes, len(NEUROPILS)), np.nan)
+        for j, neuropil in enumerate(NEUROPILS):
+            if neuropil in missing:
+                continue
+            allTs_ko  = ko_allTs_path(allTs_base, neuropil)
+            loader_ko = make_loader(X_test_ko[neuropil], Y_test, model_params, allTs_ko)
+            y_pred_ko, _ = get_predictions(classifier, loader_ko, device)
+            acc_ko        = per_class_accuracy(y_true, y_pred_ko, n_classes)
+            delta_i[:, j] = acc_base - acc_ko
+
+        all_deltas.append(delta_i)
+        del classifier
+        torch.cuda.empty_cache()
+
+    if not all_deltas:
+        raise RuntimeError('No runs completed successfully.')
+
+    logger.info(f'Completed {len(all_deltas)} / {len(run_pkls)} runs.')
+
+    # ── aggregate ─────────────────────────────────────────────────────────────
+    stack      = np.stack(all_deltas, axis=0)   # (n_runs, n_classes, n_neuropils)
+    delta_mean = np.nanmean(stack, axis=0) * 100  # percentage points
+    delta_std  = np.nanstd(stack,  axis=0) * 100
+
+    # ── save CSVs ─────────────────────────────────────────────────────────────
+    df_mean = pd.DataFrame(delta_mean, index=class_names, columns=NEUROPILS)
+    df_std  = pd.DataFrame(delta_std,  index=class_names, columns=NEUROPILS)
+    df_mean.to_csv(os.path.join(OUT_DIAG, 'KO_delta_accuracy_mean.csv'))
+    df_std.to_csv( os.path.join(OUT_DIAG, 'KO_delta_accuracy_std.csv'))
+    logger.info(f'Saved CSVs → {OUT_DIAG}')
+
+    # ── heatmap (mean ΔAccuracy) ───────────────────────────────────────────────
+    vmax = np.nanpercentile(np.abs(delta_mean), 95)
 
     fig, ax = plt.subplots(figsize=(14, 8))
     sns.heatmap(
-        df,
+        df_mean,
         ax=ax,
         cmap='RdBu_r',
         center=0,
         vmin=-vmax, vmax=vmax,
         annot=True, fmt='.1f',
         linewidths=0.3,
-        cbar_kws={'label': 'ΔAccuracy  (baseline − KO)  [pp]'},
+        cbar_kws={'label': 'Mean ΔAccuracy  (baseline − KO)  [pp]'},
     )
     ax.set_title(
-        'Per-class accuracy drop under neuropil knockouts\n'
-        f'({config["data"]["task"]})',
+        f'Per-class accuracy drop under neuropil knockouts\n'
+        f'({TASK}, n={len(all_deltas)} runs)',
         fontsize=FONT_SIZES['title'],
     )
     ax.set_xlabel('Neuropil knocked out', fontsize=FONT_SIZES['label'])
