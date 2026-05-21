@@ -15,6 +15,10 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 # Run script
 python -m scripts.figures.run_sfigure_latent_interactions
-python -m scripts.figures.run_sfigure_training_curves
-python -m scripts.figures.run_sfigure_error_structure
-python -m scripts.figures.run_sfigure_expDesign
+# python -m scripts.figures.run_sfigure_training_curves
+# python -m scripts.figures.run_sfigure_error_structure
+# python -m scripts.figures.run_sfigure_expDesign
+# python -m scripts.figures.run_figure_overview
+# python -m scripts.figures.run_figure_latent
+# python -m scripts.figures.run_figure_accuracy
+# python -m scripts.figures.run_figure_interpretability

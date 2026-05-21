@@ -33,7 +33,7 @@ from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH,
 apply_style()
 
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-OUT_PATH = 'results/CombiPlots/fig_Sfigure_latent_interactions.pdf'
+OUT_PATH = 'results/CombiPlots/figS_figure_latent_interactions.pdf'
 
 TASK_II  = 'State_Modality_6'
 TASK_III = 'State_Modality_Valence_16'
@@ -79,7 +79,7 @@ def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str,
     if pos:
         ax.text(0.99, 0.5, f'  {pos}', ha='right', va='center',
                 fontsize=FONT_SIZES['annotation'], transform=ax.transAxes)
-    ax.axhline(0, xmin=0.03, xmax=0.99, color='gray', lw=0.8, alpha=0.6, zorder=0)
+    ax.axhline(0, xmin=0.08, xmax=0.95, color='gray', lw=0.8, alpha=0.6, zorder=0)
     ax.set_xlim(-line_extent * xlim_scale, line_extent * xlim_scale)
     ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
 
@@ -138,7 +138,7 @@ def plot_sfigure_latent_interactions(
             s=180,
         )
         ax.lines[0].remove()  # drop plot_1d_marginal's short line; axhline replaces it
-        _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.3)
+        _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.4)
 
     # ── Panel b — task iii, 3 × 1D ────────────────────────────────────────
     fig.text(panel_x, title_y[1], 'b',
