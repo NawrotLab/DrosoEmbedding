@@ -70,13 +70,7 @@ def _load_best_pkl(task: str) -> dict:
 
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -> None:
-    """Add directional end-labels and centered axis name to a 1D marginal plot.
-
-    End-labels (e.g. Starved/Fed) are placed at the tips of the axis line.
-    The axis name is placed centered above the line as a title.
-    line_extent mirrors the value computed inside plot_1d_marginal.
-    """
-    line_extent = float(np.abs(proj).max()) * 1.4
+    line_extent = 1.0           # ← fixed; proj is expected pre-normalised to ±1
     neg, pos = _AXIS_ENDPOINTS.get(axis_display, ('', ''))
     if neg:
         ax.text(-line_extent, 0, f'{neg}  ', ha='right', va='center',
@@ -84,9 +78,10 @@ def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -
     if pos:
         ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
                 fontsize=FONT_SIZES['annotation'])
-    ax.axhline(0, color='gray', lw=1.2, alpha=0.6, zorder=0)
+    ax.plot([-line_extent, line_extent], [0, 0],
+            color='gray', lw=1.2, alpha=0.6, zorder=0)
+    ax.set_xlim(-line_extent, line_extent)   # padding for label text
     ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
-
 
 def plot_sfigure_latent_interactions(
     best_ii, best_iii,
