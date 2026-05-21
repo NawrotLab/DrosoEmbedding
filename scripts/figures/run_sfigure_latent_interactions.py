@@ -156,7 +156,7 @@ def plot_sfigure_latent_interactions(
     for i, (key, display) in enumerate(TASK_AXES[TASK_III]):
         ax = fig.add_subplot(inner_b[i, 0])
         pos = ax.get_position()
-        ax.set_position([0.02, pos.y0, 0.96, pos.height])
+        ax.set_position([0.02, pos.y0 - 0.03, 0.96, pos.height])
         plot_1d_marginal(
             ax=ax,
             proj=proj_iii[key],
