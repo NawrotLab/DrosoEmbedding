@@ -70,20 +70,14 @@ def _load_best_pkl(task: str) -> dict:
 
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -> None:
-    """Add directional end-labels to a 1D marginal plot and expand xlim to fit them.
+    """Add a centered directional label below a 1D marginal plot.
 
-    Must be called after plot_1d_marginal so the axis is already clean.
-    line_extent mirrors the value computed inside plot_1d_marginal.
+    Displays as '← neg   pos →' centered below the axis line.
     """
-    line_extent = float(np.abs(proj).max()) * 1.4
     neg, pos = _AXIS_ENDPOINTS.get(axis_display, ('', ''))
-    if neg:
-        ax.text(-line_extent, 0, f'{neg}  ', ha='right', va='center',
-                fontsize=FONT_SIZES['annotation'])
-    if pos:
-        ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
-                fontsize=FONT_SIZES['annotation'])
-    ax.set_xlim(-line_extent * 2.0, line_extent * 2.0)
+    if neg or pos:
+        ax.set_xlabel(f'← {neg}   {pos} →', ha='center',
+                      fontsize=FONT_SIZES['annotation'])
 
 
 def plot_sfigure_latent_interactions(
@@ -105,7 +99,7 @@ def plot_sfigure_latent_interactions(
 
     # ── figure & outer grid ────────────────────────────────────────────────
     # height_ratios [2, 3, 5]: a gets 2 units, b gets 3 units, c = a + b = 5 units
-    fig = plt.figure(figsize=(FIGURE_WIDTH, 18))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 14))
 
     outer = GridSpec(
         3, 1, figure=fig,
