@@ -14,9 +14,11 @@ _add_axis_indicator, draw_legend_panel from visualize_performance.
 """
 
 import os
+import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+from pathlib import Path
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -24,9 +26,8 @@ from src.visualization.visualize_performance import (
     _compute_biological_axes,
     _add_axis_indicator,
     draw_legend_panel,
-    build_class_styles,
 )
-from src.utils.helpers import load_all_results, get_style
+from src.utils.helpers import get_style
 from src.visualization.figure_base import apply_style, FONT_SIZES
 
 apply_style()
@@ -50,12 +51,29 @@ _AXIS_ENDPOINTS = {
     'Valence':  ('Avers.',  'App.'),
 }
 
+_BEST_KEYS = {'transformer_latent_space', 'latent_labels'}
+
+
+def _load_best_pkl(task: str) -> dict:
+    """Load only the keys we need from the most recent best pkl for a task.
+
+    Bypasses load_all_results (which walks all run pkls) since this figure
+    only needs the best checkpoint for two tasks.
+    """
+    best_dir = Path(BASE_RESULTS_DIR) / task / 'best'
+    pkls = sorted(best_dir.glob('*.pkl'), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not pkls:
+        raise FileNotFoundError(f"No best pkl found in {best_dir}")
+    with pkls[0].open('rb') as f:
+        data = pickle.load(f)
+    return {k: data[k] for k in _BEST_KEYS if k in data}
+
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -> None:
     """Add directional end-labels to a 1D marginal plot and expand xlim to fit them.
 
     Must be called after plot_1d_marginal so the axis is already clean.
-    xlim value mirrors the line extent computed inside plot_1d_marginal.
+    line_extent mirrors the value computed inside plot_1d_marginal.
     """
     line_extent = float(np.abs(proj).max()) * 1.4
     neg, pos = _AXIS_ENDPOINTS.get(axis_display, ('', ''))
@@ -65,27 +83,19 @@ def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -
     if pos:
         ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
                 fontsize=FONT_SIZES['annotation'])
-    # widen xlim so the text isn't clipped
     ax.set_xlim(-line_extent * 2.0, line_extent * 2.0)
 
 
 def plot_sfigure_latent_interactions(
-    results_dict, styles, colors, edges, shapes,
+    best_ii, best_iii,
+    class_ii, class_iii,
+    styles, colors, edges,
     bicolor_info=None,
     out_path=OUT_PATH,
 ):
-    # ── data ──────────────────────────────────────────────────────────────
-    run_ii  = results_dict[TASK_II]
-    run_iii = results_dict[TASK_III]
-
-    best_ii  = run_ii.get('best', {})
-    best_iii = run_iii.get('best', {})
-
-    X_ii,  labels_ii  = best_ii.get('transformer_latent_space'),  best_ii.get('latent_labels')
-    X_iii, labels_iii = best_iii.get('transformer_latent_space'), best_iii.get('latent_labels')
-
-    class_ii  = run_ii['__class_names__']
-    class_iii = run_iii['__class_names__']
+    # ── projections ────────────────────────────────────────────────────────
+    X_ii,  labels_ii  = best_ii['transformer_latent_space'],  best_ii['latent_labels']
+    X_iii, labels_iii = best_iii['transformer_latent_space'], best_iii['latent_labels']
 
     bi_ii  = bicolor_info.get(TASK_II,  {}) if bicolor_info else {}
     bi_iii = bicolor_info.get(TASK_III, {}) if bicolor_info else {}
@@ -198,23 +208,20 @@ def plot_sfigure_latent_interactions(
 
 
 def main():
-    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = \
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, _, TASK_BICOLOR_INFO = \
         get_style(style="styles")
 
-    results_dict = load_all_results(
-        BASE_RESULTS_DIR, TASK_CLASS_NAMES,
-        fixed_trf_for_E=16, fixed_cnn_for_H=16,
-        only_cnn_dim=16,
-    )
-
-    for task, result in results_dict.items():
-        result['__class_styles__'] = build_class_styles(
-            TASK_COLORS[task], TASK_EDGECOLORS[task], TASK_SHAPES[task],
-            TASK_BICOLOR_INFO.get(task, {})
-        )
+    best_ii  = _load_best_pkl(TASK_II)
+    best_iii = _load_best_pkl(TASK_III)
 
     plot_sfigure_latent_interactions(
-        results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES,
+        best_ii=best_ii,
+        best_iii=best_iii,
+        class_ii=TASK_CLASS_NAMES[TASK_II],
+        class_iii=TASK_CLASS_NAMES[TASK_III],
+        styles=styles,
+        colors=TASK_COLORS,
+        edges=TASK_EDGECOLORS,
         bicolor_info=TASK_BICOLOR_INFO,
         out_path=OUT_PATH,
     )
