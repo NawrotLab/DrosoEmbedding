@@ -104,6 +104,57 @@ def ko_config(base_cfg: dict, neuropil: str) -> dict:
     return cfg
 
 
+def find_common_valid_entries(
+    X_test: list,
+    Y_test: list,
+    model_params: dict,
+    allTs_base: str,
+    available_ko_dirs: list,
+) -> tuple:
+    """Filter (X_test, Y_test) to sequences whose frames exist in baseline + every KO dir.
+
+    Replicates CustomDataset._get_sequence_paths logic so the loaders built from
+    the returned lists will never silently drop samples, guaranteeing that
+    baseline and all KO predictions are aligned.
+    """
+    seq_len   = model_params['seq_len']
+    seq_steps = model_params['seq_steps']
+
+    valid_X, valid_Y = [], []
+    for path, label in zip(X_test, Y_test):
+        path = str(path)
+        recording = path.split('/')[-2]
+        try:
+            start = int(path.split('_')[-1].split('.')[0])
+        except ValueError:
+            continue
+
+        frames = list(range(start, start + (seq_len - 1) * seq_steps + 1, seq_steps))
+
+        # check baseline
+        if not all(
+            (Path(allTs_base) / recording / f'{recording}_{f}.tiff').exists()
+            for f in frames
+        ):
+            continue
+
+        # check every available KO dir (recording name is the same in each)
+        ok = True
+        for ko_dir in available_ko_dirs:
+            if not all(
+                (Path(ko_dir) / recording / f'{recording}_{f}.tiff').exists()
+                for f in frames
+            ):
+                ok = False
+                break
+
+        if ok:
+            valid_X.append(path)
+            valid_Y.append(label)
+
+    return valid_X, valid_Y
+
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -142,17 +193,33 @@ def main():
         _, _, X_test, _, _, Y_test = pickle.load(fh)
     logger.info(f'Test samples (raw): {len(X_test)}')
 
-    # Pre-build KO test path lists (path rewriting is run-independent)
-    X_test_ko = {}
-    for neuropil in NEUROPILS:
-        cfg_ko = ko_config(train_config, neuropil)
-        X_test_ko[neuropil] = paths2neuropilpaths(list(X_test), cfg_ko)
-
-    # Warn once about missing KO directories
+    # Identify missing KO directories first
     missing = [n for n in NEUROPILS
                if not Path(ko_allTs_path(allTs_base, n)).exists()]
     if missing:
         logger.warning(f'KO data directories not found, will skip: {missing}')
+
+    available_ko_dirs = [ko_allTs_path(allTs_base, n)
+                         for n in NEUROPILS if n not in missing]
+
+    # Pre-filter: keep only sequences whose frames exist in baseline + every KO dir.
+    # This guarantees all loaders produce the same number of samples in the same
+    # order, so per-class accuracy arrays are aligned across baseline and all KOs.
+    logger.info('Pre-filtering test set to sequences present in all KO dirs...')
+    X_test, Y_test = find_common_valid_entries(
+        list(X_test), list(Y_test), model_params, allTs_base, available_ko_dirs
+    )
+    logger.info(f'Test samples after filtering: {len(X_test)}')
+    if not X_test:
+        raise RuntimeError('No valid test samples remain after intersection filter.')
+
+    # Pre-build KO test path lists on the filtered set
+    X_test_ko = {}
+    for neuropil in NEUROPILS:
+        if neuropil in missing:
+            continue
+        cfg_ko = ko_config(train_config, neuropil)
+        X_test_ko[neuropil] = paths2neuropilpaths(list(X_test), cfg_ko)
 
     # ── outer loop: one model per run ─────────────────────────────────────────
     all_deltas = []   # list of (n_classes, n_neuropils) arrays, one per run
@@ -174,13 +241,13 @@ def main():
             continue
         classifier.eval()
 
-        # Baseline
-        loader_base      = make_loader(X_test, Y_test, model_params, allTs_base)
+        # Baseline — uses the filtered test set; no samples will be dropped
+        loader_base         = make_loader(X_test, Y_test, model_params, allTs_base)
         y_pred_base, y_true = get_predictions(classifier, loader_base, device)
-        acc_base         = per_class_accuracy(y_true, y_pred_base, n_classes)
+        acc_base            = per_class_accuracy(y_true, y_pred_base, n_classes)
         logger.info(f'  Baseline mean acc: {np.nanmean(acc_base):.3f}')
 
-        # 12 KO runs
+        # 12 KO runs — same filtered set, guaranteed aligned with baseline
         delta_i = np.full((n_classes, len(NEUROPILS)), np.nan)
         for j, neuropil in enumerate(NEUROPILS):
             if neuropil in missing:
