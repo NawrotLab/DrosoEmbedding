@@ -74,15 +74,23 @@ def apply_style():
 def save_figure(fig, out_path, formats=('pdf', 'png'), dpi=DPI):
     """Save figure to all requested formats, then close it.
 
+    Each format is written into a subfolder named after the extension
+    (e.g. pdfs/, pngs/, svgs/) inside the base output directory.
+
     Args:
         fig:      matplotlib Figure to save.
         out_path: Path with any extension — the extension is replaced per format.
         formats:  Tuple of format strings, e.g. ('pdf', 'png') or ('pdf', 'png', 'svg').
         dpi:      Resolution for raster formats.
     """
-    stem = os.path.splitext(out_path)[0]
-    os.makedirs(os.path.dirname(stem) or '.', exist_ok=True)
+    base_dir = os.path.dirname(os.path.splitext(out_path)[0]) or '.'
+    name     = os.path.splitext(os.path.basename(out_path))[0]
+    saved = []
     for ext in formats:
-        fig.savefig(f"{stem}.{ext}", bbox_inches='tight', dpi=dpi, format=ext)
+        out_dir = os.path.join(base_dir, f"{ext}s")
+        os.makedirs(out_dir, exist_ok=True)
+        path = os.path.join(out_dir, f"{name}.{ext}")
+        fig.savefig(path, bbox_inches='tight', dpi=dpi, format=ext)
+        saved.append(path)
     plt.close(fig)
-    print(f"Saved: {stem} ({', '.join(formats)})")
+    print(f"Saved: {', '.join(saved)}")
