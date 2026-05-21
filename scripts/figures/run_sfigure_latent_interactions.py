@@ -80,7 +80,7 @@ def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -
                 fontsize=FONT_SIZES['annotation'])
     ax.plot([-line_extent, line_extent], [0, 0],
             color='gray', lw=1.2, alpha=0.6, zorder=0)
-    ax.set_xlim(-line_extent, line_extent)   # padding for label text
+    ax.set_xlim(-line_extent * 1.5, line_extent * 1.5)
     ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
 
 def plot_sfigure_latent_interactions(
