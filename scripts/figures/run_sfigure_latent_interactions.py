@@ -84,7 +84,7 @@ def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -
     if pos:
         ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
                 fontsize=FONT_SIZES['annotation'])
-    ax.set_xlim(-line_extent * 2.0, line_extent * 2.0)
+    ax.axhline(0, color='gray', lw=1.2, alpha=0.6, zorder=0)
     ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
 
 
@@ -130,9 +130,8 @@ def plot_sfigure_latent_interactions(
     inner_a = GridSpecFromSubplotSpec(2, 1, subplot_spec=outer[0], hspace=0.55)
 
     for i, (key, display) in enumerate(TASK_AXES[TASK_II]):
-        ax = fig.add_subplot(inner_a[i, 0])
-        pos = ax.get_position()
-        ax.set_position([0.02, pos.y0, 0.96, pos.height])
+        bbox = inner_a[i, 0].get_position(fig)
+        ax = fig.add_axes([0.01, bbox.y0, 0.98, bbox.height])
         plot_1d_marginal(
             ax=ax,
             proj=proj_ii[key],
@@ -154,9 +153,8 @@ def plot_sfigure_latent_interactions(
     inner_b = GridSpecFromSubplotSpec(3, 1, subplot_spec=outer[1], hspace=0.55)
 
     for i, (key, display) in enumerate(TASK_AXES[TASK_III]):
-        ax = fig.add_subplot(inner_b[i, 0])
-        pos = ax.get_position()
-        ax.set_position([0.02, pos.y0 - 0.05, 0.96, pos.height])
+        bbox = inner_b[i, 0].get_position(fig)
+        ax = fig.add_axes([0.01, bbox.y0 - 0.05, 0.98, bbox.height])
         plot_1d_marginal(
             ax=ax,
             proj=proj_iii[key],
@@ -200,7 +198,7 @@ def plot_sfigure_latent_interactions(
         _add_axis_indicator(ax, [xlbl, ylbl])
 
     # ── legend ─────────────────────────────────────────────────────────────
-    draw_legend_panel(fig, styles, line_y=0.18)
+    draw_legend_panel(fig, styles, line_y=0.17)
 
     # ── save ───────────────────────────────────────────────────────────────
     save_figure(fig, out_path)
