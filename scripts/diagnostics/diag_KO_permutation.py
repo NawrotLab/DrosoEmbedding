@@ -46,9 +46,10 @@ apply_style()
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-TASK           = 'State_Modality_Valence_16'
-RUN_PATTERN    = 'C16_E16_H16_*.pkl'       # H16 runs only
-BASE_RESULTS   = os.path.join('results', '_chkpt_finals')
+TASK        = 'State_Modality_Valence_16'
+BASE_RUNS   = os.path.join('results', '_chkpt_runs')
+RUN_PREFIX  = f'{TASK}_C16_E16_H16_'       # X = 1..50
+N_RUNS      = 50
 
 NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
@@ -112,16 +113,17 @@ def main():
     logger = setup_logger(task_name='diag_KO_permutation',
                           log_dir='logs/diag_KO_permutation')
 
-    # ── find all H16 run pkl files ────────────────────────────────────────────
-    runs_dir = Path(BASE_RESULTS) / TASK / 'runs'
-    run_pkls = sorted(runs_dir.glob(RUN_PATTERN))
-    if not run_pkls:
-        raise FileNotFoundError(f'No run pkl files found in {runs_dir} matching {RUN_PATTERN}')
-    logger.info(f'Found {len(run_pkls)} runs in {runs_dir}')
+    # ── enumerate run directories ─────────────────────────────────────────────
+    run_dirs = [Path(BASE_RUNS) / f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
+    run_dirs = [d for d in run_dirs if d.exists()]
+    if not run_dirs:
+        raise FileNotFoundError(f'No run directories found under {BASE_RUNS} matching {RUN_PREFIX}*')
+    logger.info(f'Found {len(run_dirs)} run directories')
 
     # ── load base config (shared across all runs) ─────────────────────────────
     base_config  = load_config()
     model_params = base_config['model']['parameters']
+
     device       = base_config['device']
 
     # Restore training config to get class names and allTs_path
@@ -155,22 +157,20 @@ def main():
     # ── outer loop: one model per run ─────────────────────────────────────────
     all_deltas = []   # list of (n_classes, n_neuropils) arrays, one per run
 
-    for pkl_path in run_pkls:
-        run_id     = pkl_path.stem   # e.g. C16_E16_H16_42
-        models_dir = str(Path(base_config['paths']['results_root']).parent /
-                         f'{TASK}_{run_id}' / 'models') + '/'
+    for run_dir in run_dirs:
+        models_dir = str(run_dir / 'models' / 'best') + '/'
 
         if not Path(models_dir).exists():
-            logger.warning(f'Model dir not found for {run_id}, skipping.')
+            logger.warning(f'models/best not found in {run_dir}, skipping.')
             continue
 
-        logger.info(f'── Run {run_id} ──')
+        logger.info(f'── Run {run_dir.name} ──')
 
         # Load model
         classifier, *_ = load_model(CNN_Transformer, model_params,
                                      models_dir, device, logger)
         if classifier is None:
-            logger.warning(f'  Checkpoint missing for {run_id}, skipping.')
+            logger.warning(f'  Checkpoint missing in {run_dir.name}, skipping.')
             continue
         classifier.eval()
 
