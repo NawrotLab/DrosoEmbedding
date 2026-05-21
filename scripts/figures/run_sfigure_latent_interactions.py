@@ -127,7 +127,7 @@ def plot_sfigure_latent_interactions(
 
     for i, (key, display) in enumerate(TASK_AXES[TASK_II]):
         bbox = inner_a[i, 0].get_position(fig)
-        ax = fig.add_axes([0.01, bbox.y0, 0.98, bbox.height])
+        ax = fig.add_axes([0.008, bbox.y0, 0.995, bbox.height])
         plot_1d_marginal(
             ax=ax,
             proj=proj_ii[key],
@@ -138,7 +138,7 @@ def plot_sfigure_latent_interactions(
             axis_name='',
             s=180,
         )
-        _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.0)
+        _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.3)
 
     # ── Panel b — task iii, 3 × 1D ────────────────────────────────────────
     fig.text(panel_x, title_y[1], 'b',
@@ -161,7 +161,7 @@ def plot_sfigure_latent_interactions(
             axis_name='',
             s=180,
         )
-        _add_1d_endpoint_labels(ax, proj_iii[key], display, xlim_scale=2.0)
+        _add_1d_endpoint_labels(ax, proj_iii[key], display, xlim_scale=2.2)
 
     # ── Panel c — task iii, 3 × 2D pairwise ───────────────────────────────
     fig.text(panel_x, title_y[2], 'c',
