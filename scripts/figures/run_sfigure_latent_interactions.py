@@ -69,18 +69,19 @@ def _load_best_pkl(task: str) -> dict:
     return {k: data[k] for k in _BEST_KEYS if k in data}
 
 
-def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str) -> None:
-    line_extent = 1.0           # ← fixed; proj is expected pre-normalised to ±1
+def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str,
+                            xlim_scale: float = 1.5) -> None:
+    line_extent = 1.0
     neg, pos = _AXIS_ENDPOINTS.get(axis_display, ('', ''))
     if neg:
-        ax.text(-line_extent, 0, f'{neg}  ', ha='right', va='center',
-                fontsize=FONT_SIZES['annotation'])
+        ax.text(0.01, 0.5, f'{neg}  ', ha='left', va='center',
+                fontsize=FONT_SIZES['annotation'], transform=ax.transAxes)
     if pos:
-        ax.text( line_extent, 0, f'  {pos}', ha='left',  va='center',
-                fontsize=FONT_SIZES['annotation'])
+        ax.text(0.99, 0.5, f'  {pos}', ha='right', va='center',
+                fontsize=FONT_SIZES['annotation'], transform=ax.transAxes)
     ax.plot([-line_extent, line_extent], [0, 0],
             color='gray', lw=1.2, alpha=0.6, zorder=0)
-    ax.set_xlim(-line_extent * 1.5, line_extent * 1.5)
+    ax.set_xlim(-line_extent * xlim_scale, line_extent * xlim_scale)
     ax.set_title(axis_display, ha='center', fontsize=FONT_SIZES['label'], pad=4)
 
 def plot_sfigure_latent_interactions(
@@ -137,7 +138,7 @@ def plot_sfigure_latent_interactions(
             axis_name='',
             s=180,
         )
-        _add_1d_endpoint_labels(ax, proj_ii[key], display)
+        _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.0)
 
     # ── Panel b — task iii, 3 × 1D ────────────────────────────────────────
     fig.text(panel_x, title_y[1], 'b',
@@ -160,7 +161,7 @@ def plot_sfigure_latent_interactions(
             axis_name='',
             s=180,
         )
-        _add_1d_endpoint_labels(ax, proj_iii[key], display)
+        _add_1d_endpoint_labels(ax, proj_iii[key], display, xlim_scale=2.0)
 
     # ── Panel c — task iii, 3 × 2D pairwise ───────────────────────────────
     fig.text(panel_x, title_y[2], 'c',
