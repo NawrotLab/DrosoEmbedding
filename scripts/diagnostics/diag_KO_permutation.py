@@ -198,7 +198,7 @@ def main():
     if not all_deltas:
         raise RuntimeError('No runs completed successfully.')
 
-    logger.info(f'Completed {len(all_deltas)} / {len(run_pkls)} runs.')
+    logger.info(f'Completed {len(all_deltas)} / {len(run_dirs)} runs.')
 
     # ── aggregate ─────────────────────────────────────────────────────────────
     stack      = np.stack(all_deltas, axis=0)   # (n_runs, n_classes, n_neuropils)
