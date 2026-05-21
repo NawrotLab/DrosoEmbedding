@@ -11,7 +11,7 @@ import matplotlib
 # from pdf2image import convert_from_path
 import fitz  # pymupdf
 
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
@@ -118,7 +118,7 @@ layout = [
 
 fig, axes = plt.subplot_mosaic(
     layout,
-    figsize=(18, 12),
+    figsize=(FIGURE_WIDTH, 12),
     gridspec_kw={'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5]}
 )
 
@@ -157,6 +157,4 @@ shrink = 0.9
 cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
 new_w, new_h = pos.width * shrink, pos.height * shrink
 axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
-plt.savefig('results/CombiPlots/fig_overview.png', format='png', dpi=500, bbox_inches='tight', pad_inches=0.1)
-plt.savefig('results/CombiPlots/fig_overview.svg', format='svg', dpi=500, bbox_inches='tight', pad_inches=0.1)
-plt.savefig('results/CombiPlots/fig_overview.pdf', format='pdf', dpi=500, bbox_inches='tight', pad_inches=0.1)
+save_figure(fig, 'results/CombiPlots/fig_overview.pdf', formats=('png', 'svg', 'pdf'), dpi=500)

@@ -27,7 +27,7 @@ import matplotlib.lines as mlines
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
 
 apply_style()
 
@@ -149,7 +149,4 @@ ax.legend(handles=legend_handles, fontsize=FONT_SIZES['legend'],
 # ── Save ──────────────────────────────────────────────────────────────────
 os.makedirs(OUT_DIR, exist_ok=True)
 stem = os.path.join(OUT_DIR, 'figS_training_curves')
-fig.savefig(stem + '.pdf', dpi=300, bbox_inches='tight')
-fig.savefig(stem + '.png', dpi=300, bbox_inches='tight')
-plt.close(fig)
-print(f'\nSaved: {stem}.pdf / .png')
+save_figure(fig, stem + '.pdf')

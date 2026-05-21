@@ -20,7 +20,7 @@ from PIL import Image
 import tifffile
 import cairosvg
 
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
 apply_style()
@@ -336,7 +336,7 @@ def build_figure():
 
     # ── Layout ────────────────────────────────────────────────────────────
     n_rows = len(GROUPINGS)
-    fig = plt.figure(figsize=(18, 9))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 9))
 
     outer = gridspec.GridSpec(
         1, 2, figure=fig,
@@ -437,12 +437,7 @@ def build_figure():
     fig.text(0.295, 0.97, 'c', **lkw)
 
     # ── Save ──────────────────────────────────────────────────────────────
-    out = f'{OUTPUT_BASE}_S{SEED}'
-    for ext in ('svg', 'pdf', 'png'):
-        fig.savefig(f'{out}.{ext}', bbox_inches='tight', dpi=300)
-        print(f"Saved → {out}.{ext}")
-    plt.close(fig)
-    print("Done.")
+    save_figure(fig, f'{OUTPUT_BASE}_S{SEED}.pdf', formats=('svg', 'pdf', 'png'))
 
 
 if __name__ == '__main__':

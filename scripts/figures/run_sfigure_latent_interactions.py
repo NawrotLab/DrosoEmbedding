@@ -28,7 +28,7 @@ from src.visualization.visualize_performance import (
     draw_legend_panel,
 )
 from src.utils.helpers import get_style
-from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
@@ -105,12 +105,12 @@ def plot_sfigure_latent_interactions(
 
     # ── figure & outer grid ────────────────────────────────────────────────
     # height_ratios [2, 3, 5]: a gets 2 units, b gets 3 units, c = a + b = 5 units
-    fig = plt.figure(figsize=(18, 22))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 18))
 
     outer = GridSpec(
         3, 1, figure=fig,
         left=0.06, right=0.96,
-        top=0.93, bottom=0.12,
+        top=0.93, bottom=0.15,
         hspace=0.50,
         height_ratios=[2, 3, 5],
     )
@@ -196,15 +196,10 @@ def plot_sfigure_latent_interactions(
         _add_axis_indicator(ax, [xlbl, ylbl])
 
     # ── legend ─────────────────────────────────────────────────────────────
-    draw_legend_panel(fig, styles, line_y=0.09)
+    draw_legend_panel(fig, styles, line_y=0.11)
 
     # ── save ───────────────────────────────────────────────────────────────
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    stem = os.path.splitext(out_path)[0]
-    for ext in ('pdf', 'png'):
-        fig.savefig(f"{stem}.{ext}", bbox_inches='tight', dpi=300)
-    plt.close(fig)
-    print(f"Saved: {stem}.pdf + .png")
+    save_figure(fig, out_path)
 
 
 def main():

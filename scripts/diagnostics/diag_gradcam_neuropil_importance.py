@@ -93,7 +93,7 @@ CONTRAST_SPEC = {
     },
 }
 
-# Ridge reference data produced by neuropils_importance_cofficients.py
+# Ridge reference data produced by scripts/analysis/run_neuropil_importance.py
 RIDGE_DATADIR = '/rhomes/aabdel/DrosoEmbedding/results/Neuropil_Importance/aktuell/data'
 
 RANK_FLAG_THRESHOLD = 4   # flag neuropils whose rank shifts by this many positions

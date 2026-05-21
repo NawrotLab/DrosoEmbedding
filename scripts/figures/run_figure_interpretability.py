@@ -59,7 +59,7 @@ from src.visualization.visualize_interpretability import (
     load_image,
     add_panel_label
 )
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
@@ -215,7 +215,7 @@ print_element_sizes(
 
 logger.info("Assembling figure (new 2×3 layout, independent row widths)...")
 
-fig = plt.figure(figsize=(18, 13))
+fig = plt.figure(figsize=(FIGURE_WIDTH, 13))
 
 # ── Two independent GridSpecs — one per row ────────────────
 #    They share left/right/hspace margins but have their own
@@ -326,24 +326,5 @@ plot_contrasts_horizontal(
 # SAVE
 # ════════════════════════════════════════════════
 
-os.makedirs(OUT_DIR, exist_ok=True)
-
-png_path = os.path.join(OUT_DIR, f"{OUT_STEM}.png")
-svg_path = os.path.join(OUT_DIR, f"{OUT_STEM}.svg")
-pdf_path = os.path.join(OUT_DIR, f"{OUT_STEM}.pdf")
-eps_path = os.path.join(OUT_DIR, f"{OUT_STEM}.eps")
-
-plt.savefig(png_path, dpi=300, bbox_inches='tight')
-logger.info(f"Saved PNG : {png_path}")
-
-plt.savefig(svg_path, format='svg', bbox_inches='tight')
-logger.info(f"Saved SVG : {svg_path}")
-
-plt.savefig(eps_path, format='eps', bbox_inches='tight')
-logger.info(f"Saved EPS : {eps_path}")
-
-plt.savefig(pdf_path, format='pdf', bbox_inches='tight')
-logger.info(f"Saved PDF : {pdf_path}")
-
-plt.close()
+save_figure(fig, os.path.join(OUT_DIR, f"{OUT_STEM}.pdf"), formats=('png', 'svg', 'eps', 'pdf'))
 logger.info("Done.")

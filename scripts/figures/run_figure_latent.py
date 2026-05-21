@@ -22,7 +22,7 @@ from src.visualization.visualize_performance import (
 )
 from src.utils.helpers import load_all_results, get_style
 from src.utils.logger import setup_logger
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH, FigureConfig
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, TASK_CONFIG, save_figure
 
 apply_style()
 
@@ -34,7 +34,7 @@ apply_style()
 def _setup_figure() -> Tuple[plt.Figure, GridSpec]:
     """Set up the figure and grid layout."""
 
-    fig = plt.figure(figsize=(18, 17))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 17))
 
     gs = GridSpec(3, 4, figure=fig,
                  left=0.08, right=0.98,
@@ -133,7 +133,7 @@ def plot_figure_latent(
                                    color=list(colors.values())[row], row=row,
                                    primary_family=primary_family,
                                    overlay_alt_family=False, best_dim=best_dim,
-                                   baseline=FigureConfig.TASK_CONFIG.get(task, {}).get('baseline'))
+                                   baseline=TASK_CONFIG.get(task, {}).get('baseline'))
 
     # Draw legend panel at bottom of figure
     draw_legend_panel(fig, styles, line_y=0.155)
@@ -141,18 +141,9 @@ def plot_figure_latent(
     # Save figure
     if logger:
         logger.debug(f"Saving figure to {out_path}")
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    plt.savefig(out_path, dpi=300, bbox_inches='tight', pad_inches=0.15)
-    plt.savefig(out_path.replace('.png', '.svg'), dpi=300, format='svg', bbox_inches='tight', pad_inches=0.15)
-    plt.savefig(out_path.replace('.png', '.pdf'), dpi=300, format='pdf', bbox_inches='tight', pad_inches=0.15)
-    if logger:
-        logger.info(f"Saved SVG : {out_path.replace('.png', '.svg')}")
-        logger.info(f"Saved PDF : {out_path.replace('.png', '.pdf')}")
-    plt.close()
+    save_figure(fig, out_path, formats=('png', 'svg', 'pdf'))
     if logger:
         logger.info(f"Figure saved to {out_path}")
-    else:
-        print(f"Figure saved to {out_path}")
 
 
 # ──────────────────────────────────────────────

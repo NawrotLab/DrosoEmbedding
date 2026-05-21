@@ -25,7 +25,7 @@ from src.visualization.visualize_performance import (
     build_class_styles,
 )
 from src.utils.helpers import load_all_results, get_style
-from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
@@ -51,7 +51,7 @@ def plot_figure_marginals(
     bicolor_info=None,
     out_path=OUT_PATH,
 ):
-    fig = plt.figure(figsize=(18, 18))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 18))
 
     # Outer grid: 3 task groups, height proportional to subplot count (1 : 2 : 3).
     # Extra hspace between groups; inner hspace keeps plots within a group tight.
@@ -109,11 +109,7 @@ def plot_figure_marginals(
 
     draw_legend_panel(fig, styles, line_y=0.165)
 
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    for ext in ('pdf', 'png'):
-        fig.savefig(f"{os.path.splitext(out_path)[0]}.{ext}", bbox_inches='tight', dpi=300)
-    plt.close(fig)
-    print(f"Saved: {out_path} + .png")
+    save_figure(fig, out_path)
 
 
 def plot_figure_pairwise_2d(
@@ -148,7 +144,7 @@ def plot_figure_pairwise_2d(
         (proj_m, proj_v, 'Modality', 'Valence'),
     ]
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 7))
+    fig, axes = plt.subplots(1, 3, figsize=(FIGURE_WIDTH, 7))
 
     fig.text(0.53, 0.97, 'iii. State, Modality, Valence — pairwise 2D projections',
              ha='center', va='top', fontsize=FONT_SIZES['title'], weight='bold')
@@ -169,11 +165,7 @@ def plot_figure_pairwise_2d(
     plt.subplots_adjust(left=0.05, right=0.98, top=0.88, bottom=0.18, wspace=0.3)
     draw_legend_panel(fig, styles, line_y=0.145)
 
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    for ext in ('pdf', 'png'):
-        fig.savefig(f"{os.path.splitext(out_path)[0]}.{ext}", bbox_inches='tight', dpi=300)
-    plt.close(fig)
-    print(f"Saved: {out_path} + .png")
+    save_figure(fig, out_path)
 
 
 def plot_3d_interactive(

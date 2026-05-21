@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from src.visualization.visualize_performance import plot_confusion_matrix, plot_f1_comparison, plot_precision_recall_comparison, get_class_style, plot_model_stats, draw_legend_panel, build_class_styles
 from src.utils.helpers import load_all_results, get_style, load_h16_classification_reports
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
@@ -32,7 +32,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     """Main plotting function for the horizontal accuracy figure."""
     
     # Create figure with 4 rows (colorbar + 3 tasks) and appropriate columns
-    fig = plt.figure(figsize=(18, 16))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 16))
     
     # Main grid for the tasks (3 rows, 3 columns)
     # Adjust the height to make space for the colorbar and titles
@@ -171,13 +171,7 @@ def plot_figure_accuracy(results_dict, styles, out_path='results/CombiPlots/fig_
     # Adjust layout to accommodate the colorbar and legends
     plt.subplots_adjust(left=0.1, right=0.98, top=0.88, bottom=0.17)
     
-    # Save figure
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    plt.savefig(out_path, dpi=300, bbox_inches='tight')
-    plt.savefig(out_path.replace('.png', '.svg'), dpi=300, format='svg', bbox_inches='tight', pad_inches=0.15)
-    plt.savefig(out_path.replace('.png', '.pdf'), dpi=300, format='pdf', bbox_inches='tight', pad_inches=0.15)
-    plt.close()
-    print(f"Figure saved to {out_path}")
+    save_figure(fig, out_path, formats=('png', 'svg', 'pdf'))
 
 def main():
     print(f"Python: {sys.executable}")

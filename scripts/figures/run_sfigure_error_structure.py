@@ -50,7 +50,7 @@ from matplotlib.gridspec import GridSpec
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
 from src.utils.helpers import load_all_results, load_h16_classification_reports
 from src.visualization.visualize_performance import _plot_class_symbol, draw_legend_panel
 
@@ -598,7 +598,4 @@ ax5b.text(-0.12, 1.04, 'b', transform=ax5b.transAxes,
           fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='bottom')
 
 stem = os.path.join(OUT_DIR, 'figS_classification_analysis')
-fig5.savefig(stem + '.pdf', dpi=300, bbox_inches='tight')
-fig5.savefig(stem + '.png', dpi=300, bbox_inches='tight')
-plt.close(fig5)
-print(f'Saved: {stem}.pdf / .png')
+save_figure(fig5, stem + '.pdf')
