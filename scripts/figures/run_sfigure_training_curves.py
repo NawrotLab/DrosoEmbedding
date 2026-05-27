@@ -3,8 +3,8 @@ Supplementary Figure — Training & Validation Curves (v2)
 =========================================================
 Two-panel figure showing mean ± 1 SD across all 50 H16 runs per task.
 
-Panel A (top):  training loss (solid) + validation loss (dashed) with shaded bands
-Panel B (bottom): validation accuracy (dashed) with shaded band
+Panel a (top):  training loss (solid) + validation loss (dashed) with shaded bands
+Panel b (bottom): validation accuracy (dashed) with shaded band
 
 Usage (from repo root):
     python scripts/figures/run_sfigure_training_curves.py
@@ -33,7 +33,11 @@ BASE_RESULTS_DIR = Path('results') / '_chkpt_finals'
 OUT_DIR          = Path('results') / 'CombiPlots'
 FIGURE_STEM      = 'figS_training_curves_v2'
 
-SHORT_RUN_THRESHOLD = 500  # epochs — flagged to console but included
+SHORT_RUN_THRESHOLD  = 500   # epochs — flagged to console but included
+MIN_RUNS_FOR_XLIM    = 10    # clip x-axis to last epoch with ≥ this many runs
+X_MAX_HARD           = 1000  # absolute x-axis ceiling
+Y_MAX_LOSS           = 3.0
+Y_MAX_ACC            = 100
 
 TASKS = [
     {
@@ -59,7 +63,7 @@ TASKS = [
 # ── Data loading ──────────────────────────────────────────────────────────────
 
 def _load_runs(task):
-    """Load all pkl runs for a task; return dict of metric → (n_runs × min_epochs) array."""
+    """Load all pkl runs for a task; return dict of metric → (n_runs × max_epochs) array."""
     runs_dir = BASE_RESULTS_DIR / task['folder'] / 'runs'
     pkls = sorted(runs_dir.glob(f"{task['pkl_prefix']}*.pkl"))
     if not pkls:
@@ -96,20 +100,54 @@ def _load_runs(task):
     return result
 
 
+# ── Load all tasks and compute x-axis clip ────────────────────────────────────
+
+all_mats = {}
+for task in TASKS:
+    print(f"\nLoading {task['folder']} …")
+    mats = _load_runs(task)
+    all_mats[task['folder']] = mats
+
+    if not mats or 'train_loss' not in mats:
+        continue
+
+    mat      = mats['train_loss']
+    lengths  = (~np.isnan(mat)).sum(axis=1)  # actual epoch count per run
+    n_contrib_final = int((~np.isnan(mat[:, -1])).sum())
+    print(f"  {task['name']} | n_runs={len(lengths)} | "
+          f"mean={lengths.mean():.0f}±{lengths.std():.0f} | "
+          f"min={int(lengths.min())} | max={int(lengths.max())} | "
+          f"runs at final epoch={n_contrib_final}")
+
+# Determine x-axis clip: last epoch where ≥ MIN_RUNS_FOR_XLIM runs contribute in every task
+x_clip_per_task = []
+for task in TASKS:
+    mat = all_mats.get(task['folder'], {}).get('train_loss')
+    if mat is None:
+        continue
+    n_contrib = (~np.isnan(mat)).sum(axis=0)
+    valid_epochs = np.where(n_contrib >= MIN_RUNS_FOR_XLIM)[0]
+    if len(valid_epochs):
+        x_clip_per_task.append(int(valid_epochs[-1]))
+
+x_max = min(x_clip_per_task) if x_clip_per_task else X_MAX_HARD
+x_max = min(x_max, X_MAX_HARD)
+print(f"\nX-axis clipped to epoch {x_max} "
+      f"(≥{MIN_RUNS_FOR_XLIM} runs across all tasks, hard cap {X_MAX_HARD})")
+
 # ── Figure ────────────────────────────────────────────────────────────────────
 
 fig, (ax_loss, ax_acc) = plt.subplots(
     2, 1, figsize=(10, 8), sharex=True,
     gridspec_kw=dict(hspace=0.06),
 )
-fig.subplots_adjust(left=0.10, right=0.97, top=0.94, bottom=0.09)
+fig.subplots_adjust(left=0.12, right=0.97, top=0.94, bottom=0.09)
 
 legend_task_handles = []
 
 for task in TASKS:
-    col = task['color']
-    print(f"\nLoading {task['folder']} …")
-    mats = _load_runs(task)
+    col  = task['color']
+    mats = all_mats.get(task['folder'], {})
     if not mats:
         continue
 
@@ -125,7 +163,7 @@ for task in TASKS:
             ax = ax_loss
         else:
             if not is_val:
-                continue  # panel B: val_acc only
+                continue  # panel b: val_acc only
             ax = ax_acc
 
         ax.plot(epochs, mean, color=col, linewidth=1.8, linestyle=ls)
@@ -136,32 +174,37 @@ for task in TASKS:
         mlines.Line2D([], [], color=col, linewidth=2.0, label=task['name'])
     )
 
-# ── Axis styling ──────────────────────────────────────────────────────────────
-for ax in (ax_loss, ax_acc):
+# ── Axis limits and spine clipping ────────────────────────────────────────────
+ax_loss.set_xlim(0, x_max)
+ax_loss.set_ylim(0, Y_MAX_LOSS)
+ax_acc.set_xlim(0, x_max)
+ax_acc.set_ylim(0, Y_MAX_ACC)
+
+for ax, ymin, ymax in [(ax_loss, 0, Y_MAX_LOSS), (ax_acc, 0, Y_MAX_ACC)]:
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
+    ax.spines['left'].set_bounds(ymin, ymax)
+    ax.spines['bottom'].set_bounds(0, x_max)
     ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
 
 ax_loss.set_ylabel('Cross-Entropy Loss',  fontsize=FONT_SIZES['label'])
 ax_acc.set_ylabel('Validation Accuracy',  fontsize=FONT_SIZES['label'])
 ax_acc.set_xlabel('Epoch',                fontsize=FONT_SIZES['label'])
 
-# Panel labels
-ax_loss.text(-0.07, 1.02, 'a.', transform=ax_loss.transAxes,
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
-ax_acc.text(-0.07, 1.02,  'b.', transform=ax_acc.transAxes,
-            fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
+# Panel labels (left-aligned title, outside axes)
+ax_loss.set_title('a.', loc='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+ax_acc.set_title( 'b.', loc='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 
-# ── Legend (task colours + solid/dashed key) ──────────────────────────────────
+# ── Legend in panel b, lower-left ─────────────────────────────────────────────
 style_handles = [
     mlines.Line2D([], [], color='0.4', linewidth=1.5, linestyle='-',  label='Training'),
     mlines.Line2D([], [], color='0.4', linewidth=1.5, linestyle='--', label='Validation'),
 ]
-ax_loss.legend(
+ax_acc.legend(
     handles=legend_task_handles + style_handles,
     fontsize=FONT_SIZES['legend'],
     frameon=False,
-    loc='upper right',
+    loc='lower left',
 )
 
 # ── Save ──────────────────────────────────────────────────────────────────────
