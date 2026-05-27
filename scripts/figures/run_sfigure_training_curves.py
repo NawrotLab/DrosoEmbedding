@@ -191,9 +191,11 @@ ax_loss.set_ylabel('Cross-Entropy Loss',  fontsize=FONT_SIZES['label'])
 ax_acc.set_ylabel('Validation Accuracy',  fontsize=FONT_SIZES['label'])
 ax_acc.set_xlabel('Epoch',                fontsize=FONT_SIZES['label'])
 
-# Panel labels (left-aligned title, outside axes)
-ax_loss.set_title('a.', loc='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-ax_acc.set_title( 'b.', loc='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+# Panel labels (outside left spine via axes-fraction transform)
+ax_loss.text(-0.12, 1.02, 'a.', transform=ax_loss.transAxes,
+             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
+ax_acc.text( -0.12, 1.02, 'b.', transform=ax_acc.transAxes,
+             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
 
 # ── Legend in panel b, lower-left ─────────────────────────────────────────────
 style_handles = [
@@ -204,7 +206,7 @@ ax_acc.legend(
     handles=legend_task_handles + style_handles,
     fontsize=FONT_SIZES['legend'],
     frameon=False,
-    loc='lower left',
+    loc='lower right',
 )
 
 # ── Save ──────────────────────────────────────────────────────────────────────
