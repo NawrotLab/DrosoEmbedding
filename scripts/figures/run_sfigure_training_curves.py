@@ -83,13 +83,16 @@ def _load_runs(task):
         except Exception as e:
             print(f"  [WARN] {pkl_path.name}: {e}")
 
-    # Truncate every run to the shortest run for that metric (no extrapolation)
+    # Pad shorter runs with NaN up to the longest run; use nanmean/nanstd at plot time
     result = {}
     for k, arrays in raw.items():
         if not arrays:
             continue
-        min_len = min(len(a) for a in arrays)
-        result[k] = np.stack([a[:min_len] for a in arrays])  # (n_runs, min_len)
+        max_len = max(len(a) for a in arrays)
+        padded = np.full((len(arrays), max_len), np.nan)
+        for i, a in enumerate(arrays):
+            padded[i, :len(a)] = a
+        result[k] = padded  # (n_runs, max_len)
     return result
 
 
@@ -113,8 +116,8 @@ for task in TASKS:
     for metric, mat in mats.items():
         n_epochs = mat.shape[1]
         epochs   = np.arange(n_epochs)
-        mean     = mat.mean(axis=0)
-        std      = mat.std(axis=0)
+        mean     = np.nanmean(mat, axis=0)
+        std      = np.nanstd(mat, axis=0)
         is_val   = metric.startswith('val')
         ls       = '--' if is_val else '-'
 
@@ -139,14 +142,14 @@ for ax in (ax_loss, ax_acc):
     ax.spines['right'].set_visible(False)
     ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
 
-ax_loss.set_ylabel('Loss',                fontsize=FONT_SIZES['label'])
+ax_loss.set_ylabel('Cross-Entropy Loss',  fontsize=FONT_SIZES['label'])
 ax_acc.set_ylabel('Validation Accuracy',  fontsize=FONT_SIZES['label'])
 ax_acc.set_xlabel('Epoch',                fontsize=FONT_SIZES['label'])
 
 # Panel labels
-ax_loss.text(-0.07, 1.02, 'A', transform=ax_loss.transAxes,
+ax_loss.text(-0.07, 1.02, 'a.', transform=ax_loss.transAxes,
              fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
-ax_acc.text(-0.07, 1.02,  'B', transform=ax_acc.transAxes,
+ax_acc.text(-0.07, 1.02,  'b.', transform=ax_acc.transAxes,
             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
 
 # ── Legend (task colours + solid/dashed key) ──────────────────────────────────
