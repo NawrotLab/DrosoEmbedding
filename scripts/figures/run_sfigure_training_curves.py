@@ -41,19 +41,19 @@ Y_MAX_ACC            = 100
 
 TASKS = [
     {
-        'name':       'i.  State (2-class)',
+        'name':       'i.  State',
         'folder':     'MetabolicState_2',
         'pkl_prefix': 'C2_E16_H16_',
         'color':      '#0072B2',
     },
     {
-        'name':       'ii.  State × Modality (6-class)',
+        'name':       'ii.  State × Modality',
         'folder':     'State_Modality_6',
         'pkl_prefix': 'C6_E16_H16_',
         'color':      '#D55E00',
     },
     {
-        'name':       'iii.  State × Modality × Valence (16-class)',
+        'name':       'iii.  State × Modality × Valence',
         'folder':     'State_Modality_Valence_16',
         'pkl_prefix': 'C16_E16_H16_',
         'color':      '#009E73',
@@ -119,27 +119,23 @@ for task in TASKS:
           f"min={int(lengths.min())} | max={int(lengths.max())} | "
           f"runs at final epoch={n_contrib_final}")
 
-# Determine x-axis clip: last epoch where ≥ MIN_RUNS_FOR_XLIM runs contribute in every task
-x_clip_per_task = []
+# Diagnostic: last epoch where ≥ MIN_RUNS_FOR_XLIM runs still contribute
 for task in TASKS:
     mat = all_mats.get(task['folder'], {}).get('train_loss')
     if mat is None:
         continue
     n_contrib = (~np.isnan(mat)).sum(axis=0)
     valid_epochs = np.where(n_contrib >= MIN_RUNS_FOR_XLIM)[0]
-    if len(valid_epochs):
-        x_clip_per_task.append(int(valid_epochs[-1]))
+    clip = int(valid_epochs[-1]) if len(valid_epochs) else 0
+    print(f"  {task['folder']}: ≥{MIN_RUNS_FOR_XLIM} runs up to epoch {clip}")
 
-x_max = min(x_clip_per_task) if x_clip_per_task else X_MAX_HARD
-x_max = min(x_max, X_MAX_HARD)
-print(f"\nX-axis clipped to epoch {x_max} "
-      f"(≥{MIN_RUNS_FOR_XLIM} runs across all tasks, hard cap {X_MAX_HARD})")
+x_max = X_MAX_HARD
 
 # ── Figure ────────────────────────────────────────────────────────────────────
 
 fig, (ax_loss, ax_acc) = plt.subplots(
     2, 1, figsize=(10, 8), sharex=True,
-    gridspec_kw=dict(hspace=0.06),
+    gridspec_kw=dict(hspace=0.25),
 )
 fig.subplots_adjust(left=0.12, right=0.97, top=0.94, bottom=0.09)
 
