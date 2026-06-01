@@ -24,7 +24,7 @@ import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
-from src.visualization.figure_base import apply_style, FONT_SIZES, PAGE_WIDTH
+from src.visualization.figure_base import apply_style, FONT_SIZES
 
 apply_style()
 
