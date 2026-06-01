@@ -277,10 +277,10 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
             _plot_class_symbol(ax, x_model + jit_m[k], f1,
                                c_styles[k], markersize=5, zorder=5)
 
-        # Plain grey dots on control bar
-        for f1, jit in zip(f1_ctrl, jit_c):
-            ax.scatter(x_ctrl + jit, f1, s=12, color='#b7bec4',
-                       alpha=0.7, linewidths=0, zorder=4)
+        # Per-class colored dots on control bar (same symbols as model bar)
+        for k, f1 in enumerate(f1_ctrl):
+            _plot_class_symbol(ax, x_ctrl + jit_c[k], f1,
+                               c_styles[k], markersize=5, zorder=4)
 
     ax.set_xticks([grp_cx[t] for t in TASK_ORDER])
     ax.set_xticklabels(
