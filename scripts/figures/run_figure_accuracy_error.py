@@ -200,9 +200,15 @@ def _error_type_pct_16(cm):
 
 # ── Data loaders ───────────────────────────────────────────────────────────────
 
-def _load_h16_cms(entry, n_classes):
-    """Load H16 run confusion matrices from disk (full pkl needed)."""
-    cms = []
+def _load_h16_reports_and_cms(entry, n_classes):
+    """Single-pass loader: open each H16 pkl once and extract both
+    classification_report_dict and confusion_matrix.
+
+    Returns (reports, cms) — avoids two separate passes over the same files.
+    Only call for tasks that actually need confusion matrices (6- and 16-class).
+    For tasks that only need reports, use load_h16_classification_reports instead.
+    """
+    reports, cms = [], []
     for run in entry.get('runs', {}).get('H16', []):
         path = run.get('path')
         if path is None:
@@ -210,14 +216,17 @@ def _load_h16_cms(entry, n_classes):
         try:
             with open(path, 'rb') as f:
                 data = pickle.load(f)
-            cm = data.get('confusion_matrix')
+            rpt = data.get('classification_report_dict')
+            cm  = data.get('confusion_matrix')
+            if rpt is not None:
+                reports.append(rpt)
             if cm is not None and np.array(cm).shape == (n_classes, n_classes):
                 cms.append(np.array(cm))
             del data
             gc.collect()
         except Exception as e:
             print(f'  [WARN] {path}: {e}')
-    return cms
+    return reports, cms
 
 
 # ── Panel draw functions ───────────────────────────────────────────────────────
@@ -364,14 +373,26 @@ all_reports_dict  = {}
 class_styles_dict = {}
 h16_cms_dict      = {}
 
+# Tasks that need confusion matrices (panels c, d). MetabolicState_2 only
+# needs classification reports (panel b), so skip the extra CM load there.
+NEEDS_CMS = {'State_Modality_6', 'State_Modality_Valence_16'}
+
 for task in TASK_ORDER:
     entry = results[task]
     n_cls = len(TASK_CLASS_NAMES[task])
 
-    reports = load_h16_classification_reports(entry)
+    if task in NEEDS_CMS:
+        # Single pass: load both report and CM from each H16 pkl
+        reports, cms = _load_h16_reports_and_cms(entry, n_cls)
+        h16_cms_dict[task] = cms
+        print(f'  {task}: {len(reports)} reports, {len(cms)} CMs (single pass)')
+    else:
+        reports = load_h16_classification_reports(entry)
+        h16_cms_dict[task] = []
+        print(f'  {task}: {len(reports)} reports (no CMs needed)')
+
     all_reports_dict[task] = reports
     entry['__h16_reports__'] = reports
-    print(f'  {task}: {len(reports)} H16 classification reports')
 
     cs = build_class_styles(
         TASK_COLORS[task], TASK_EDGECOLORS[task], TASK_SHAPES[task],
@@ -379,10 +400,6 @@ for task in TASK_ORDER:
     )
     class_styles_dict[task] = cs
     entry['__class_styles__'] = cs
-
-    cms = _load_h16_cms(entry, n_cls)
-    h16_cms_dict[task] = cms
-    print(f'  {task}: {len(cms)} H16 confusion matrices')
 
 # ── Error hierarchy statistics ─────────────────────────────────────────────────
 
