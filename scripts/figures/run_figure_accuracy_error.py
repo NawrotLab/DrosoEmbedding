@@ -244,41 +244,47 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
         c_styles    = class_styles_dict[task]
         ctrl_rpt    = entry['control']['classification_report_dict']
 
-        f1_ctrl  = [ctrl_rpt[cn]['f1-score'] for cn in class_names]
-        f1_model = [
+        best_rpt  = entry['best']['classification_report_dict']
+
+        # Bar height = best-model F1 (single run); matches pattern in panels c/d
+        f1_ctrl_bar  = [ctrl_rpt[cn]['f1-score'] for cn in class_names]
+        f1_model_bar = [best_rpt[cn]['f1-score']  for cn in class_names]
+
+        # Mean line = 50-run mean F1; dots show per-class 50-run means
+        f1_model_mean = [
             float(np.mean([r[cn]['f1-score'] for r in all_reports if cn in r]))
             for cn in class_names
         ]
-        mean_f1_ctrl  = float(np.mean(f1_ctrl))
-        mean_f1_model = float(np.mean(f1_model))
+        mean_f1_ctrl  = float(np.mean(f1_ctrl_bar))
+        mean_f1_model_bar  = float(np.mean(f1_model_bar))
+        mean_f1_model_line = float(np.mean(f1_model_mean))
 
         cx      = grp_cx[task]
         x_ctrl  = cx - bar_w / 2
         x_model = cx + bar_w / 2
         hw      = bar_w * 0.88 / 2
 
-        ax.bar(x_ctrl,  mean_f1_ctrl,  width=bar_w * 0.88,
+        ax.bar(x_ctrl,  mean_f1_ctrl,       width=bar_w * 0.88,
                edgecolor='#b7bec4', facecolor='none', linewidth=2, zorder=2)
-        ax.bar(x_model, mean_f1_model, width=bar_w * 0.88,
+        ax.bar(x_model, mean_f1_model_bar,  width=bar_w * 0.88,
                edgecolor='#094c80', facecolor='none', linewidth=2, zorder=2)
 
-        # 50-run mean line
-        ax.plot([x_ctrl  - hw, x_ctrl  + hw], [mean_f1_ctrl,  mean_f1_ctrl],
+        # 50-run mean line (model: separate from bar; control: same value, still drawn)
+        ax.plot([x_ctrl  - hw, x_ctrl  + hw], [mean_f1_ctrl,       mean_f1_ctrl],
                 color='black', linewidth=1.5, zorder=4)
-        ax.plot([x_model - hw, x_model + hw], [mean_f1_model, mean_f1_model],
+        ax.plot([x_model - hw, x_model + hw], [mean_f1_model_line, mean_f1_model_line],
                 color='black', linewidth=1.5, zorder=4)
 
         n_cls = len(class_names)
         jit_m = rng.uniform(-bar_w * 0.28, bar_w * 0.28, size=n_cls)
         jit_c = rng.uniform(-bar_w * 0.28, bar_w * 0.28, size=n_cls)
 
-        # Per-class colored dots on model bar
-        for k, f1 in enumerate(f1_model):
+        # Per-class colored dots: 50-run mean on model bar, single-run on control bar
+        for k, f1 in enumerate(f1_model_mean):
             _plot_class_symbol(ax, x_model + jit_m[k], f1,
                                c_styles[k], markersize=5, zorder=5)
 
-        # Per-class colored dots on control bar (same symbols as model bar)
-        for k, f1 in enumerate(f1_ctrl):
+        for k, f1 in enumerate(f1_ctrl_bar):
             _plot_class_symbol(ax, x_ctrl + jit_c[k], f1,
                                c_styles[k], markersize=5, zorder=4)
 
@@ -467,8 +473,8 @@ gs_outer = GridSpec(
     2, 1, figure=fig,
     height_ratios=[1.3, 1.0],
     left=0.06, right=0.97,
-    top=0.94, bottom=0.18,
-    hspace=0.28,
+    top=0.94, bottom=0.24,
+    hspace=0.18,
 )
 
 # ── Panel a: 3 confusion matrices + colorbar ──────────────────────────────────
@@ -546,7 +552,7 @@ ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
 ax_d.text(  -0.10, 1.04, 'd.', transform=ax_d.transAxes,   **_label_kw)
 
 # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
-draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
+draw_legend_panel(fig, styles, line_y=0.21, ax_rect=[0.03, 0.02, 0.77, 0.13])
 _draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
 
 # ── Save ──────────────────────────────────────────────────────────────────────
