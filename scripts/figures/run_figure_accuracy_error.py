@@ -293,17 +293,12 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
-    # Ctrl / Model legend
-    ctrl_patch  = mpatches.Rectangle((0, 0), 1, 1, fill=False,
-                                     edgecolor='#b7bec4', linewidth=2)
-    model_patch = mpatches.Rectangle((0, 0), 1, 1, fill=False,
-                                     edgecolor='#094c80', linewidth=2)
-    ax.legend([ctrl_patch, model_patch], ['Control', 'Model'],
-              fontsize=FONT_SIZES['legend'], frameon=False, loc='upper right')
 
-
-def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels, rng):
+def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels, rng,
+                         xtick_rotation=35, xtick_fontsize=None):
     """Shared bar-chart core used by panels c and d."""
+    if xtick_fontsize is None:
+        xtick_fontsize = FONT_SIZES['small']
     bar_w = 0.55
     hw    = bar_w * 0.88 / 2
 
@@ -327,8 +322,8 @@ def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels,
                 color='black', zorder=6)
 
     ax.set_xticks(xs)
-    ax.set_xticklabels(xlabels, fontsize=FONT_SIZES['small'],
-                       rotation=35, ha='right')
+    ax.set_xticklabels(xlabels, fontsize=xtick_fontsize,
+                       rotation=xtick_rotation, ha='right')
     ax.set_ylabel('% of total errors', fontsize=FONT_SIZES['label'])
     ax.set_ylim(0, 60)
     ax.set_yticks([0, 20, 40, 60])
@@ -354,7 +349,44 @@ def _draw_hierarchy_16(ax, best_pct, run_pcts, run_mean, rng):
     colors  = [ERR16_COLOURS[t] for t in ERR16_TYPE_ORDER]
     cols    = np.column_stack([run_pcts[:, t - 1] for t in ERR16_TYPE_ORDER]) \
               if len(run_pcts) > 0 else None
-    _draw_hierarchy_bars(ax, xs, heights, means, cols, colors, ERR16_XLABELS, rng)
+    # 45° rotation + smaller font to keep the 7-label last label from clipping
+    _draw_hierarchy_bars(ax, xs, heights, means, cols, colors, ERR16_XLABELS, rng,
+                         xtick_rotation=45, xtick_fontsize=FONT_SIZES['small'] - 2)
+
+
+def _draw_extra_legend(fig, ax_rect):
+    """Add Control bar, Model bar, and 50-run mean line to the shared legend area."""
+    ax = fig.add_axes(ax_rect)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.axis('off')
+
+    fs  = FONT_SIZES['legend_panel']
+    col = '0.3'
+
+    y_header = 0.95
+    y_ctrl   = 0.68
+    y_model  = 0.42
+    y_mean   = 0.16
+
+    ax.text(0.50, y_header, 'Key', ha='center', va='center',
+            fontsize=fs, fontweight='bold', color='0.2')
+
+    ax.add_patch(mpatches.Rectangle(
+        (0.05, y_ctrl - 0.07), 0.18, 0.14,
+        fill=False, edgecolor='#b7bec4', linewidth=2, clip_on=False,
+    ))
+    ax.text(0.30, y_ctrl, 'Control', ha='left', va='center', fontsize=fs, color=col)
+
+    ax.add_patch(mpatches.Rectangle(
+        (0.05, y_model - 0.07), 0.18, 0.14,
+        fill=False, edgecolor='#094c80', linewidth=2, clip_on=False,
+    ))
+    ax.text(0.30, y_model, 'Model', ha='left', va='center', fontsize=fs, color=col)
+
+    ax.plot([0.05, 0.23], [y_mean, y_mean], color='black', linewidth=1.5,
+            solid_capstyle='butt', clip_on=False)
+    ax.text(0.30, y_mean, '50-run mean', ha='left', va='center', fontsize=fs, color=col)
 
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -435,16 +467,16 @@ gs_outer = GridSpec(
     2, 1, figure=fig,
     height_ratios=[1.3, 1.0],
     left=0.06, right=0.97,
-    top=0.94, bottom=0.14,
-    hspace=0.42,
+    top=0.94, bottom=0.18,
+    hspace=0.28,
 )
 
 # ── Panel a: 3 confusion matrices + colorbar ──────────────────────────────────
-# Width proportional to n_classes (equal cell size) + narrow colorbar
+# Equal physical axis widths for all three matrices; narrow colorbar on right
 gs_top = GridSpecFromSubplotSpec(
     1, 4, subplot_spec=gs_outer[0],
-    width_ratios=[1.0, 3.0, 8.0, 0.25],
-    wspace=0.18,
+    width_ratios=[1.0, 1.0, 1.0, 0.12],
+    wspace=0.20,
 )
 ax_cm2  = fig.add_subplot(gs_top[0])
 ax_cm6  = fig.add_subplot(gs_top[1])
@@ -452,7 +484,7 @@ ax_cm16 = fig.add_subplot(gs_top[2])
 ax_cbar = fig.add_subplot(gs_top[3])
 
 _cm_axes     = [ax_cm2, ax_cm6, ax_cm16]
-_cm_labeling = ['y_axis', 'y_axis', 'none']  # dots on y for 2- and 6-class
+_cm_labeling = ['x_axis', 'x_axis', 'x_axis']  # class symbols on x-axis (bottom) only
 
 for ax_cm, task, sub_lbl, axis_lbl in zip(
     _cm_axes, TASK_ORDER, CM_SUB_LABELS, _cm_labeling
@@ -513,8 +545,9 @@ ax_b.text(  -0.18, 1.04, 'b.', transform=ax_b.transAxes,   **_label_kw)
 ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
 ax_d.text(  -0.10, 1.04, 'd.', transform=ax_d.transAxes,   **_label_kw)
 
-# ── Shared legend (fig_accuracy_v7 style) ─────────────────────────────────────
-draw_legend_panel(fig, styles, line_y=0.12, ax_rect=[0.03, 0.01, 0.95, 0.10])
+# ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
+draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
+_draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
 
 # ── Save ──────────────────────────────────────────────────────────────────────
 os.makedirs(OUT_DIR, exist_ok=True)
