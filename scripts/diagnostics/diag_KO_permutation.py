@@ -282,6 +282,12 @@ def main():
     # ── heatmap (mean ΔAccuracy) ───────────────────────────────────────────────
     vmax = np.nanpercentile(np.abs(delta_mean), 95)
 
+    TITLE_FS = 20
+    LABEL_FS = 16
+    TICK_FS  = 14
+    ANNOT_FS = 12
+    CBAR_FS  = 14
+
     fig, ax = plt.subplots(figsize=(14, 8))
     sns.heatmap(
         df_mean,
@@ -290,17 +296,21 @@ def main():
         center=0,
         vmin=-vmax, vmax=vmax,
         annot=True, fmt='.1f',
+        annot_kws={'size': ANNOT_FS},
         linewidths=0.3,
-        cbar_kws={'label': 'Mean ΔAccuracy  (baseline − KO)  [pp]'},
+        cbar_kws={'label': 'Mean ΔAccuracy (baseline − KO) [pp]', 'shrink': 0.8},
     )
     ax.set_title(
-        f'Per-class accuracy drop under neuropil knockouts\n'
-        f'({TASK}, n={len(all_deltas)} runs)',
-        fontsize=FONT_SIZES['title'],
+        f'Per-class accuracy drop under neuropil knockouts  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS,
+        pad=14,
     )
-    ax.set_xlabel('Neuropil knocked out', fontsize=FONT_SIZES['label'])
-    ax.set_ylabel('Class',                fontsize=FONT_SIZES['label'])
-    ax.tick_params(axis='both', labelsize=FONT_SIZES['tick'])
+    ax.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax.set_ylabel('Behavioural class',    fontsize=LABEL_FS, labelpad=8)
+    ax.tick_params(axis='both', labelsize=TICK_FS)
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=CBAR_FS)
+    cbar.ax.yaxis.label.set_size(CBAR_FS)
     plt.tight_layout()
 
     save_figure(fig, os.path.join(OUT_PLOT, 'diag_KO_permutation.pdf'),
