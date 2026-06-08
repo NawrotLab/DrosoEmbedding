@@ -71,7 +71,6 @@ def main(logger, config):
 
 
     for idx, nifti in tqdm(enumerate(niftis[nii_start_indx:])):
-        logger.info(nifti)
         idx = idx+nii_start_indx
         file_name = nifti.split('/')[-1].split('.')[0]
         nii_recNR = file_name.split('_')[-1]
@@ -80,7 +79,7 @@ def main(logger, config):
             continue
 
         if file_name in id_times_dict.keys():
-            logger.info(f'\n Processing {file_name}...')
+            logger.info(f'Processing {file_name} ({nifti})')
             output_dir = f'{path_output}/{file_name}'
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
