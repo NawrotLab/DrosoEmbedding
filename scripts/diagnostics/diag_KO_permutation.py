@@ -206,6 +206,7 @@ def main():
     # This guarantees all loaders produce the same number of samples in the same
     # order, so per-class accuracy arrays are aligned across baseline and all KOs.
     # per-class counts before filtering
+    raw_X = list(X_test)
     raw_Y = list(Y_test)
     raw_counts = {i: raw_Y.count(i) for i in range(n_classes)}
 
@@ -228,26 +229,57 @@ def main():
         elif after < before:
             logger.info(f'  Class {i} "{name}": {before} → {after} samples after filter')
 
-    # for dropped classes, identify which KO dirs are responsible
-    if dropped_classes:
-        logger.warning('Diagnosing which KO dirs drop the affected classes...')
-        raw_X_test_full = list(X_test) if X_test else []
-        # reload raw lists from pickle to re-run per-neuropil check
-        with open(base_config['paths']['pickle_path'], 'rb') as fh:
-            _, _, _Xr, _, _, _Yr = pickle.load(fh)
-        _Xr, _Yr = list(_Xr), list(_Yr)
-        dropped_X = [p for p, y in zip(_Xr, _Yr) if y in dropped_classes]
-        dropped_Y = [y for y in _Yr if y in dropped_classes]
-        for ko_dir in available_ko_dirs:
-            surviving, _ = find_common_valid_entries(
-                dropped_X, dropped_Y, model_params, allTs_base, [ko_dir]
+    # ── KO coverage report: per-neuropil missing recordings ──────────────────
+    seq_len   = model_params['seq_len']
+    seq_steps = model_params['seq_steps']
+
+    # baseline-valid indices (frames exist in baseline dir)
+    baseline_valid_idx = []
+    for i, path in enumerate(raw_X):
+        path = str(path)
+        recording = path.split('/')[-2]
+        try:
+            start = int(path.split('_')[-1].split('.')[0])
+        except ValueError:
+            continue
+        frames = list(range(start, start + (seq_len - 1) * seq_steps + 1, seq_steps))
+        if all((Path(allTs_base) / recording / f'{recording}_{f}.tiff').exists() for f in frames):
+            baseline_valid_idx.append(i)
+    n_baseline = len(baseline_valid_idx)
+
+    logger.info(f'KO preprocessing coverage report ({n_baseline} baseline-valid samples):')
+    for neuropil in NEUROPILS:
+        ko_dir = ko_allTs_path(allTs_base, neuropil)
+        if neuropil in missing:
+            logger.warning(f'  {neuropil:<6} — directory missing entirely, needs full preprocessing')
+            continue
+
+        dropped_cls  = set()
+        missing_recs = set()
+        for i in baseline_valid_idx:
+            path = str(raw_X[i])
+            recording = path.split('/')[-2]
+            try:
+                start = int(path.split('_')[-1].split('.')[0])
+            except ValueError:
+                continue
+            frames = list(range(start, start + (seq_len - 1) * seq_steps + 1, seq_steps))
+            if not all((Path(ko_dir) / recording / f'{recording}_{f}.tiff').exists() for f in frames):
+                dropped_cls.add(raw_Y[i])
+                missing_recs.add(recording)
+
+        if not missing_recs:
+            logger.info(f'  {neuropil:<6} — OK, all baseline recordings present')
+        else:
+            affected = ', '.join(class_names[c] for c in sorted(dropped_cls))
+            logger.warning(
+                f'  {neuropil:<6} — {len(missing_recs)} recordings missing '
+                f'| classes affected: {affected}'
             )
-            if len(surviving) < len(dropped_X):
-                neuropil_name = Path(ko_dir).name.replace('meanZ_allTs_KO_', '')
-                logger.warning(
-                    f'  KO dir "{neuropil_name}" drops '
-                    f'{len(dropped_X) - len(surviving)}/{len(dropped_X)} affected samples'
-                )
+            out_file = os.path.join(OUT_DIAG, f'missing_recordings_KO_{neuropil}.txt')
+            with open(out_file, 'w') as fh:
+                fh.write('\n'.join(sorted(missing_recs)))
+            logger.info(f'           → missing recording list saved to {out_file}')
 
     # Pre-build KO test path lists on the filtered set
     X_test_ko = {}
@@ -293,6 +325,20 @@ def main():
             y_pred_ko, _ = get_predictions(classifier, loader_ko, device)
             acc_ko        = per_class_accuracy(y_true, y_pred_ko, n_classes)
             delta_i[:, j] = acc_base - acc_ko
+            mean_delta_pp = np.nanmean(delta_i[:, j]) * 100
+            logger.info(
+                f'  KO {neuropil:<6} acc={np.nanmean(acc_ko):.3f}  '
+                f'Δ={mean_delta_pp:+.2f} pp'
+            )
+
+        # rank neuropils by mean |Δ| across classes for this run
+        mean_abs_delta = np.nanmean(np.abs(delta_i), axis=0) * 100
+        ranked = sorted(
+            [(NEUROPILS[j], mean_abs_delta[j]) for j in range(len(NEUROPILS)) if not np.isnan(mean_abs_delta[j])],
+            key=lambda x: x[1], reverse=True,
+        )
+        top3 = ', '.join(f'{n} ({v:.2f} pp)' for n, v in ranked[:3])
+        logger.info(f'  Top neuropils: {top3}')
 
         all_deltas.append(delta_i)
         del classifier
@@ -302,6 +348,17 @@ def main():
         raise RuntimeError('No runs completed successfully.')
 
     logger.info(f'Completed {len(all_deltas)} / {len(run_dirs)} runs.')
+
+    # aggregate neuropil ranking across all runs
+    stack_preview = np.stack(all_deltas, axis=0)
+    mean_abs_all  = np.nanmean(np.abs(stack_preview), axis=(0, 1)) * 100
+    ranked_all = sorted(
+        [(NEUROPILS[j], mean_abs_all[j]) for j in range(len(NEUROPILS)) if not np.isnan(mean_abs_all[j])],
+        key=lambda x: x[1], reverse=True,
+    )
+    logger.info('Neuropil ranking by mean |ΔAcc| across all runs and classes:')
+    for rank, (name, val) in enumerate(ranked_all, 1):
+        logger.info(f'  {rank:2d}. {name:<6}  {val:.2f} pp')
 
     # ── aggregate ─────────────────────────────────────────────────────────────
     stack      = np.stack(all_deltas, axis=0)   # (n_runs, n_classes, n_neuropils)
