@@ -205,6 +205,10 @@ def main():
     # Pre-filter: keep only sequences whose frames exist in baseline + every KO dir.
     # This guarantees all loaders produce the same number of samples in the same
     # order, so per-class accuracy arrays are aligned across baseline and all KOs.
+    # per-class counts before filtering
+    raw_Y = list(Y_test)
+    raw_counts = {i: raw_Y.count(i) for i in range(n_classes)}
+
     logger.info('Pre-filtering test set to sequences present in all KO dirs...')
     X_test, Y_test = find_common_valid_entries(
         list(X_test), list(Y_test), model_params, allTs_base, available_ko_dirs
@@ -212,6 +216,38 @@ def main():
     logger.info(f'Test samples after filtering: {len(X_test)}')
     if not X_test:
         raise RuntimeError('No valid test samples remain after intersection filter.')
+
+    # report which classes lost all samples
+    filtered_counts = {i: list(Y_test).count(i) for i in range(n_classes)}
+    dropped_classes = []
+    for i, name in enumerate(class_names):
+        before, after = raw_counts[i], filtered_counts[i]
+        if after == 0 and before > 0:
+            logger.warning(f'  Class {i} "{name}": ALL {before} samples dropped by KO filter')
+            dropped_classes.append(i)
+        elif after < before:
+            logger.info(f'  Class {i} "{name}": {before} → {after} samples after filter')
+
+    # for dropped classes, identify which KO dirs are responsible
+    if dropped_classes:
+        logger.warning('Diagnosing which KO dirs drop the affected classes...')
+        raw_X_test_full = list(X_test) if X_test else []
+        # reload raw lists from pickle to re-run per-neuropil check
+        with open(base_config['paths']['pickle_path'], 'rb') as fh:
+            _, _, _Xr, _, _, _Yr = pickle.load(fh)
+        _Xr, _Yr = list(_Xr), list(_Yr)
+        dropped_X = [p for p, y in zip(_Xr, _Yr) if y in dropped_classes]
+        dropped_Y = [y for y in _Yr if y in dropped_classes]
+        for ko_dir in available_ko_dirs:
+            surviving, _ = find_common_valid_entries(
+                dropped_X, dropped_Y, model_params, allTs_base, [ko_dir]
+            )
+            if len(surviving) < len(dropped_X):
+                neuropil_name = Path(ko_dir).name.replace('meanZ_allTs_KO_', '')
+                logger.warning(
+                    f'  KO dir "{neuropil_name}" drops '
+                    f'{len(dropped_X) - len(surviving)}/{len(dropped_X)} affected samples'
+                )
 
     # Pre-build KO test path lists on the filtered set
     X_test_ko = {}
