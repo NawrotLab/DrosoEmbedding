@@ -145,7 +145,9 @@ def main():
         )
 
     model_params = config_train["model"]["parameters"]
-    paths = config_train["paths"]
+    paths = dict(config_train["paths"])
+    paths["models"] = str(results_root / "models") + "/"
+    paths["visualizations"] = str(results_root / "visualizations") + "/"
     batch_size = args.batch_size or config_train["training"]["batch_size"]
 
     with open(paths["pickle_path"], "rb") as f:
