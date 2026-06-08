@@ -50,6 +50,13 @@ def main(logger, config):
                 niftis.append(root + '/' + nii)
     niftis = sorted(niftis)
 
+    recordings_file = os.environ.get('RECORDINGS_FILE')
+    recording_filter = None
+    if recordings_file:
+        with open(recordings_file) as f:
+            recording_filter = {line.strip() for line in f if line.strip()}
+        logger.info(f'Recording filter active: {len(recording_filter)} recordings from {recordings_file}')
+
     with open(config['paths']['peakIDs_Times_All'], 'rb') as file:
         id_times_dict = pickle.load(file)
 
@@ -69,6 +76,8 @@ def main(logger, config):
         file_name = nifti.split('/')[-1].split('.')[0]
         nii_recNR = file_name.split('_')[-1]
 
+        if recording_filter and file_name not in recording_filter:
+            continue
 
         if file_name in id_times_dict.keys():
             logger.info(f'\n Processing {file_name}...')
