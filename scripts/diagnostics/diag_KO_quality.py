@@ -31,6 +31,7 @@ import tifffile
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from src.utils.config_loader import load_config
+from src.utils.logger import setup_logger
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
@@ -80,10 +81,10 @@ def avg(stat_list: list, key: str) -> float:
     return float(np.mean(vals)) if vals else float('nan')
 
 
-def section(title: str):
-    print(f'\n{"─" * 64}')
-    print(f'  {title}')
-    print(f'{"─" * 64}')
+def section(title: str, logger):
+    logger.info('─' * 64)
+    logger.info(f'  {title}')
+    logger.info('─' * 64)
 
 
 def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
@@ -158,7 +159,8 @@ def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
     out_path = os.path.join(out_dir, 'ko_image_examples.png')
     fig.savefig(out_path, dpi=150, bbox_inches='tight')
     plt.close(fig)
-    print(f'  KO image grid saved → {out_path}')
+    # caller's logger not in scope here — use print for this one line
+    print(f'KO image grid saved → {out_path}')
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
@@ -174,6 +176,9 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
     rng = random.Random(RANDOM_SEED)
 
+    log_tag = f'diag_KO_quality{"_" + variant if variant else ""}'
+    logger  = setup_logger(task_name=log_tag, log_dir='logs/diag_KO_quality')
+
     config       = load_config()
     baseline_dir = Path(config['paths']['allTs_path'])
 
@@ -181,18 +186,19 @@ def main():
         p.name for p in baseline_dir.iterdir()
         if p.is_dir() and any(p.glob('*.tiff'))
     }
-    print(f'Baseline : {baseline_dir}')
-    print(f'Recordings in baseline: {len(baseline_recs)}')
+    logger.info(f'Variant  : {variant if variant else "zero-fill (default)"}')
+    logger.info(f'Baseline : {baseline_dir}')
+    logger.info(f'Recordings in baseline: {len(baseline_recs)}')
 
     rows = []
 
     for neuropil in NEUROPILS:
         ko_dir = ko_path(baseline_dir, neuropil, variant)
-        section(f'{neuropil}  →  {ko_dir}')
+        section(f'{neuropil}  →  {ko_dir}', logger)
 
         # ── 1. Completeness ───────────────────────────────────────────────────
         if not ko_dir.exists():
-            print('  [MISSING] KO directory does not exist — needs full preprocessing')
+            logger.warning('  [MISSING] KO directory does not exist — needs full preprocessing')
             rows.append({'neuropil': neuropil, 'status': 'MISSING_DIR'})
             continue
 
@@ -203,14 +209,14 @@ def main():
         missing  = sorted(baseline_recs - ko_recs)
         extra    = sorted(ko_recs - baseline_recs)
 
-        print(f'  KO recordings : {len(ko_recs)} / {len(baseline_recs)} baseline')
+        logger.info(f'  KO recordings : {len(ko_recs)} / {len(baseline_recs)} baseline')
         if missing:
             preview = ', '.join(missing[:8]) + (f'  … (+{len(missing)-8} more)' if len(missing) > 8 else '')
-            print(f'  [WARNING] {len(missing)} recordings missing from KO: {preview}')
+            logger.warning(f'  {len(missing)} recordings missing from KO: {preview}')
         else:
-            print('  Completeness  : OK')
+            logger.info('  Completeness  : OK')
         if extra:
-            print(f'  [INFO] {len(extra)} recordings in KO not in baseline: {", ".join(extra[:5])}')
+            logger.info(f'  {len(extra)} recordings in KO not in baseline: {", ".join(extra[:5])}')
 
         # ── 2. Frame count ────────────────────────────────────────────────────
         common = sorted(baseline_recs & ko_recs)
@@ -224,11 +230,11 @@ def main():
                 mismatches.append((rec, nb, nk))
 
         if mismatches:
-            print(f'  [WARNING] Frame count mismatches in sampled {N_SAMPLE} recordings:')
+            logger.warning(f'  Frame count mismatches in sampled {N_SAMPLE} recordings:')
             for rec, nb, nk in mismatches:
-                print(f'    {rec}: baseline={nb}  KO={nk}')
+                logger.warning(f'    {rec}: baseline={nb}  KO={nk}')
         else:
-            print(f'  Frame counts  : OK (checked {len(sample)} recordings)')
+            logger.info(f'  Frame counts  : OK (checked {len(sample)} recordings)')
 
         # ── 3–6. Pixel stats, zero fraction, Δ signal, NaN/Inf ───────────────
         base_stats_all, ko_stats_all, delta_signal_all = [], [], []
@@ -250,7 +256,7 @@ def main():
             delta_signal_all.append(float(np.mean(bf[:n] - kf[:n])))
 
         if not base_stats_all:
-            print('  [ERROR] Could not load any frames.')
+            logger.error('  Could not load any frames.')
             rows.append({'neuropil': neuropil, 'status': 'NO_FRAMES'})
             continue
 
@@ -270,23 +276,22 @@ def main():
         mean_abs  = float(np.mean(abs_diffs)) if abs_diffs else float('nan')
 
         n_rec = len(base_stats_all)
-        print(f'\n  Pixel stats (avg over {n_rec} recordings × {N_FRAMES} frames):')
-        print(f'  {"Metric":<20} {"Baseline":>12} {"KO":>12} {"Δ (KO−B)":>12}')
-        print(f'  {"─"*20} {"─"*12} {"─"*12} {"─"*12}')
+        logger.info(f'  Pixel stats (avg over {n_rec} recordings × {N_FRAMES} frames):')
+        logger.info(f'  {"Metric":<20} {"Baseline":>12} {"KO":>12} {"Δ (KO−B)":>12}')
         for key in ['min', 'max', 'mean', 'std', 'zero_frac']:
             bv = avg(base_stats_all, key)
             kv = avg(ko_stats_all,   key)
-            print(f'  {key:<20} {bv:>12.4f} {kv:>12.4f} {kv - bv:>+12.4f}')
+            logger.info(f'  {key:<20} {bv:>12.4f} {kv:>12.4f} {kv - bv:>+12.4f}')
 
         mean_delta = float(np.mean(delta_signal_all)) if delta_signal_all else float('nan')
-        print(f'  {"Δ signal (B−KO)":<20} {mean_delta:>12.4f}')
-        print(f'  {"L2 dist (norm)":<20} {mean_l2:>12.6f}')
-        print(f'  {"Mean |Δ| pixel":<20} {mean_abs:>12.6f}')
+        logger.info(f'  {"Δ signal (B−KO)":<20} {mean_delta:>12.4f}')
+        logger.info(f'  {"L2 dist (norm)":<20} {mean_l2:>12.6f}')
+        logger.info(f'  {"Mean |Δ| pixel":<20} {mean_abs:>12.6f}')
 
         if nan_inf_total > 0:
-            print(f'  [WARNING] {nan_inf_total} NaN/Inf pixels detected across sample')
+            logger.warning(f'  {nan_inf_total} NaN/Inf pixels detected across sample')
         else:
-            print('  NaN/Inf       : none detected')
+            logger.info('  NaN/Inf       : none detected')
 
         rows.append({
             'neuropil':           neuropil,
@@ -313,22 +318,19 @@ def main():
         })
 
     # ── summary ───────────────────────────────────────────────────────────────
-    print(f'\n{"═" * 64}')
     df = pd.DataFrame(rows)
     out_csv = os.path.join(out_dir, 'summary.csv')
     df.to_csv(out_csv, index=False)
-    print(f'Summary CSV saved → {out_csv}')
+    logger.info(f'Summary CSV saved → {out_csv}')
 
-    # quick status table
-    print(f'\n{"Neuropil":<8} {"Status":<12} {"Missing":>8} {"ΔZero%":>10} {"ΔSignal":>10}')
-    print('─' * 52)
+    logger.info(f'{"Neuropil":<8} {"Status":<12} {"Missing":>8} {"ΔZero%":>10} {"ΔSignal":>10}')
     for _, r in df.iterrows():
         if r.get('status') in ('MISSING_DIR', 'NO_FRAMES'):
-            print(f'{r["neuropil"]:<8} {r["status"]:<12}')
+            logger.warning(f'{r["neuropil"]:<8} {r["status"]:<12}')
         else:
             dz = r.get('delta_zero_frac', float('nan'))
             ds = r.get('delta_signal', float('nan'))
-            print(f'{r["neuropil"]:<8} {r["status"]:<12} {int(r["n_missing"]):>8} {dz*100:>+9.2f}% {ds:>10.4f}')
+            logger.info(f'{r["neuropil"]:<8} {r["status"]:<12} {int(r["n_missing"]):>8} {dz*100:>+9.2f}% {ds:>10.4f}')
 
     # ── structural distance plot ───────────────────────────────────────────────
     df_complete = df.dropna(subset=['mean_l2_dist'])
@@ -356,11 +358,10 @@ def main():
         out_sd = os.path.join(out_dir, 'ko_structural_distance.png')
         fig_sd.savefig(out_sd, dpi=150, bbox_inches='tight')
         plt.close(fig_sd)
-        print(f'Structural distance plot saved → {out_sd}')
+        logger.info(f'Structural distance plot saved → {out_sd}')
 
     # ── KO image grid ─────────────────────────────────────────────────────────
-    print(f'\n{"═" * 64}')
-    print(f'Generating KO image grid ({N_VIZ} examples × {len(NEUROPILS) + 1} rows)...')
+    logger.info(f'Generating KO image grid ({N_VIZ} examples × {len(NEUROPILS) + 1} rows)...')
     plot_ko_image_grid(baseline_dir, NEUROPILS, N_VIZ, rng, out_dir, variant)
 
 
