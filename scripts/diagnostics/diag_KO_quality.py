@@ -17,6 +17,7 @@ Outputs:
     results/diagnostics/KO_quality/summary.csv
 """
 
+import argparse
 import os
 import sys
 import random
@@ -45,8 +46,9 @@ OUT_DIR = 'results/diagnostics/KO_quality'
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def ko_path(baseline_path: Path, neuropil: str) -> Path:
-    return baseline_path.parent / f'meanZ_allTs_KO_{neuropil}'
+def ko_path(baseline_path: Path, neuropil: str, variant: str = '') -> Path:
+    suffix = f'_noisefill' if variant == 'noisefill' else ''
+    return baseline_path.parent / f'meanZ_allTs_KO{suffix}_{neuropil}'
 
 
 def load_frames(rec_dir: Path, n: int, rng: random.Random):
@@ -85,7 +87,7 @@ def section(title: str):
 
 
 def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
-                       rng: random.Random, out_dir: str):
+                       rng: random.Random, out_dir: str, variant: str = ''):
     """Grid of n_examples columns × 13 rows (original + 12 KOs)."""
     # collect all (recording, tiff_path) pairs
     all_frames = [
@@ -127,7 +129,8 @@ def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
                              fontsize=5, pad=2)
             else:
                 neuropil = neuropils[row - 1]
-                ko_path  = baseline_dir.parent / f'meanZ_allTs_KO_{neuropil}' / rec_name / frame_name
+                ko_suffix = '_noisefill' if variant == 'noisefill' else ''
+                ko_path  = baseline_dir.parent / f'meanZ_allTs_KO{ko_suffix}_{neuropil}' / rec_name / frame_name
                 if ko_path.exists():
                     img = tifffile.imread(str(ko_path)).astype(np.float32)
                 else:
@@ -161,7 +164,14 @@ def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    os.makedirs(OUT_DIR, exist_ok=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--variant', default='',
+                        help='KO variant to check: empty = zero-fill (default), noisefill')
+    args = parser.parse_args()
+    variant = args.variant
+
+    out_dir = OUT_DIR + (f'_{variant}' if variant else '')
+    os.makedirs(out_dir, exist_ok=True)
     rng = random.Random(RANDOM_SEED)
 
     config       = load_config()
@@ -177,7 +187,7 @@ def main():
     rows = []
 
     for neuropil in NEUROPILS:
-        ko_dir = ko_path(baseline_dir, neuropil)
+        ko_dir = ko_path(baseline_dir, neuropil, variant)
         section(f'{neuropil}  →  {ko_dir}')
 
         # ── 1. Completeness ───────────────────────────────────────────────────
@@ -305,7 +315,7 @@ def main():
     # ── summary ───────────────────────────────────────────────────────────────
     print(f'\n{"═" * 64}')
     df = pd.DataFrame(rows)
-    out_csv = os.path.join(OUT_DIR, 'summary.csv')
+    out_csv = os.path.join(out_dir, 'summary.csv')
     df.to_csv(out_csv, index=False)
     print(f'Summary CSV saved → {out_csv}')
 
@@ -343,7 +353,7 @@ def main():
                      '(larger = more OOD-like input to model)',
                      fontsize=12, y=1.02)
         plt.tight_layout()
-        out_sd = os.path.join(OUT_DIR, 'ko_structural_distance.png')
+        out_sd = os.path.join(out_dir, 'ko_structural_distance.png')
         fig_sd.savefig(out_sd, dpi=150, bbox_inches='tight')
         plt.close(fig_sd)
         print(f'Structural distance plot saved → {out_sd}')
@@ -351,7 +361,7 @@ def main():
     # ── KO image grid ─────────────────────────────────────────────────────────
     print(f'\n{"═" * 64}')
     print(f'Generating KO image grid ({N_VIZ} examples × {len(NEUROPILS) + 1} rows)...')
-    plot_ko_image_grid(baseline_dir, NEUROPILS, N_VIZ, rng, OUT_DIR)
+    plot_ko_image_grid(baseline_dir, NEUROPILS, N_VIZ, rng, out_dir, variant)
 
 
 if __name__ == '__main__':

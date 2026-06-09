@@ -19,6 +19,7 @@ Outputs:
     results/CombiPlots/pngs/diag_KO_permutation.png
 """
 
+import argparse
 import copy
 import os
 import pickle
@@ -102,23 +103,25 @@ def make_loader(X, Y, model_params, allTs_path):
                       num_workers=NUM_WORKERS, pin_memory=True)
 
 
-def ko_allTs_path(base_allTs_path: str, neuropil: str) -> str:
+def ko_allTs_path(base_allTs_path: str, neuropil: str, variant: str = '') -> str:
     """Derive KO allTs path from baseline.
 
     baseline: {allTs_base}/meanZ_allTs
     KO:       {allTs_base}/meanZ_allTs_KO_{neuropil}
+    noisefill: {allTs_base}/meanZ_allTs_KO_noisefill_{neuropil}
     """
     parent = os.path.dirname(base_allTs_path.rstrip('/'))
-    return os.path.join(parent, f'meanZ_allTs_KO_{neuropil}')
+    suffix = f'_noisefill' if variant == 'noisefill' else ''
+    return os.path.join(parent, f'meanZ_allTs_KO{suffix}_{neuropil}')
 
 
-def ko_config(base_cfg: dict, neuropil: str) -> dict:
+def ko_config(base_cfg: dict, neuropil: str, variant: str = '') -> dict:
     """Deep-copy base config with remove_neuropil=True for the given neuropil."""
     cfg = copy.deepcopy(base_cfg)
     cfg['data']['preprocessing']['remove_neuropil']  = True
     cfg['data']['preprocessing']['isolate_neuropil'] = False
     cfg['data']['preprocessing']['neuropil']         = neuropil
-    cfg['paths']['allTs_path'] = ko_allTs_path(base_cfg['paths']['allTs_path'], neuropil)
+    cfg['paths']['allTs_path'] = ko_allTs_path(base_cfg['paths']['allTs_path'], neuropil, variant)
     return cfg
 
 
@@ -176,10 +179,19 @@ def find_common_valid_entries(
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
-    os.makedirs(OUT_DIAG, exist_ok=True)
-    os.makedirs(OUT_PLOT, exist_ok=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--variant', default='',
+                        help='KO variant: empty = zero-fill (default), noisefill')
+    args    = parser.parse_args()
+    variant = args.variant
 
-    logger = setup_logger(task_name='diag_KO_permutation',
+    out_diag = OUT_DIAG + (f'_{variant}' if variant else '')
+    out_plot = OUT_PLOT
+    os.makedirs(out_diag, exist_ok=True)
+    os.makedirs(out_plot, exist_ok=True)
+
+    tag = f'_{variant}' if variant else ''
+    logger = setup_logger(task_name=f'diag_KO_permutation{tag}',
                           log_dir='logs/diag_KO_permutation')
 
     # ── enumerate run directories ─────────────────────────────────────────────
@@ -219,11 +231,11 @@ def main():
 
     # Identify missing KO directories first
     missing = [n for n in NEUROPILS
-               if not Path(ko_allTs_path(allTs_base, n)).exists()]
+               if not Path(ko_allTs_path(allTs_base, n, variant)).exists()]
     if missing:
         logger.warning(f'KO data directories not found, will skip: {missing}')
 
-    available_ko_dirs = [ko_allTs_path(allTs_base, n)
+    available_ko_dirs = [ko_allTs_path(allTs_base, n, variant)
                          for n in NEUROPILS if n not in missing]
 
     # Pre-filter: keep only sequences whose frames exist in baseline + every KO dir.
@@ -273,7 +285,7 @@ def main():
 
     logger.info(f'KO preprocessing coverage report ({n_baseline} baseline-valid samples):')
     for neuropil in NEUROPILS:
-        ko_dir = ko_allTs_path(allTs_base, neuropil)
+        ko_dir = ko_allTs_path(allTs_base, neuropil, variant)
         if neuropil in missing:
             logger.warning(f'  {neuropil:<6} — directory missing entirely, needs full preprocessing')
             continue
@@ -300,7 +312,7 @@ def main():
                 f'  {neuropil:<6} — {len(missing_recs)} recordings missing '
                 f'| classes affected: {affected}'
             )
-            out_file = os.path.join(OUT_DIAG, f'missing_recordings_KO_{neuropil}.txt')
+            out_file = os.path.join(out_diag, f'missing_recordings_KO_{neuropil}.txt')
             with open(out_file, 'w') as fh:
                 fh.write('\n'.join(sorted(missing_recs)))
             logger.info(f'           → missing recording list saved to {out_file}')
@@ -310,7 +322,7 @@ def main():
     for neuropil in NEUROPILS:
         if neuropil in missing:
             continue
-        cfg_ko = ko_config(train_config, neuropil)
+        cfg_ko = ko_config(train_config, neuropil, variant)
         X_test_ko[neuropil] = paths2neuropilpaths(list(X_test), cfg_ko)
 
     # ── outer loop: one model per run ─────────────────────────────────────────
@@ -347,7 +359,7 @@ def main():
         for j, neuropil in enumerate(NEUROPILS):
             if neuropil in missing:
                 continue
-            allTs_ko  = ko_allTs_path(allTs_base, neuropil)
+            allTs_ko  = ko_allTs_path(allTs_base, neuropil, variant)
             loader_ko = make_loader(X_test_ko[neuropil], Y_test, model_params, allTs_ko)
             y_pred_ko, _, probs_ko = get_predictions_with_probs(classifier, loader_ko, device)
             acc_ko                  = per_class_accuracy(y_true, y_pred_ko, n_classes)
@@ -399,8 +411,8 @@ def main():
     # ── save CSVs ─────────────────────────────────────────────────────────────
     df_mean = pd.DataFrame(delta_mean, index=class_names, columns=NEUROPILS)
     df_std  = pd.DataFrame(delta_std,  index=class_names, columns=NEUROPILS)
-    df_mean.to_csv(os.path.join(OUT_DIAG, 'KO_delta_accuracy_mean.csv'))
-    df_std.to_csv( os.path.join(OUT_DIAG, 'KO_delta_accuracy_std.csv'))
+    df_mean.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_mean.csv'))
+    df_std.to_csv( os.path.join(out_diag, 'KO_delta_accuracy_std.csv'))
     logger.info(f'Saved CSVs → {OUT_DIAG}')
 
     # ── heatmap (mean ΔAccuracy) ───────────────────────────────────────────────
@@ -437,7 +449,7 @@ def main():
     cbar.ax.yaxis.label.set_size(CBAR_FS)
     plt.tight_layout()
 
-    save_figure(fig, os.path.join(OUT_PLOT, 'diag_KO_permutation.pdf'),
+    save_figure(fig, os.path.join(out_plot, f'diag_KO_permutation{tag}.pdf'),
                 formats=('pdf', 'png'))
 
     # ── grouped heatmap (8 groups × 12 neuropils) ─────────────────────────────
@@ -446,7 +458,7 @@ def main():
         for g in GROUP_ORDER
     ])
     df_group = pd.DataFrame(group_delta, index=GROUP_ORDER, columns=NEUROPILS)
-    df_group.to_csv(os.path.join(OUT_DIAG, 'KO_delta_accuracy_groups.csv'))
+    df_group.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_groups.csv'))
 
     vmax_g = np.nanpercentile(np.abs(group_delta), 95)
     fig_g, ax_g = plt.subplots(figsize=(14, 5))
@@ -474,7 +486,7 @@ def main():
     cbar_g.ax.yaxis.label.set_size(CBAR_FS)
     plt.tight_layout()
 
-    save_figure(fig_g, os.path.join(OUT_PLOT, 'diag_KO_permutation_groups.pdf'),
+    save_figure(fig_g, os.path.join(out_plot, f'diag_KO_permutation_groups{tag}.pdf'),
                 formats=('pdf', 'png'))
 
     # ── OOD diagnostics: entropy ───────────────────────────────────────────────
@@ -487,7 +499,7 @@ def main():
         'mean_delta_entropy': mean_entropy_delta,
         'std_delta_entropy':  std_entropy_delta,
     })
-    df_entropy.to_csv(os.path.join(OUT_DIAG, 'KO_entropy_delta.csv'), index=False)
+    df_entropy.to_csv(os.path.join(out_diag, 'KO_entropy_delta.csv'), index=False)
 
     # mean ΔAcc per neuropil (averaged over classes) for the scatter
     mean_delta_per_neuropil = np.nanmean(delta_mean, axis=0)   # (n_neuropils,)
@@ -523,7 +535,7 @@ def main():
     ax2.tick_params(axis='both', labelsize=TICK_FS)
 
     plt.tight_layout()
-    save_figure(fig_ood, os.path.join(OUT_PLOT, 'diag_KO_ood_entropy.pdf'),
+    save_figure(fig_ood, os.path.join(out_plot, f'diag_KO_ood_entropy{tag}.pdf'),
                 formats=('pdf', 'png'))
     logger.info('Done.')
 

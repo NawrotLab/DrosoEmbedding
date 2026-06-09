@@ -15,5 +15,7 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 cd /rhomes/aabdel/DrosoEmbedding
 
-python -m scripts.diagnostics.diag_KO_quality
-# python -m scripts.diagnostics.diag_KO_permutation
+python -m scripts.diagnostics.diag_KO_quality --variant noisefill
+# python -m scripts.diagnostics.diag_KO_permutation --variant noisefill
+# python -m scripts.diagnostics.diag_KO_quality         # zero-fill
+# python -m scripts.diagnostics.diag_KO_permutation     # zero-fill
