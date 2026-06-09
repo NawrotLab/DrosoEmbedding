@@ -36,10 +36,15 @@ CONFIGURATIONS=(
     # "pre12_VMNP meanZ logTs VMNP"
     # "pre12_VMNP meanZ allTs VMNP"
 
-    # KO preprocessing — missing/incomplete neuropils
-    "KO_VLNP meanZ allTs VLNP true"
-    "KO_OL   meanZ allTs OL   true"
-    "KO_GNG  meanZ allTs GNG  true ${BASE_DIR}/results/diagnostics/KO_permutation/missing_recordings_KO_GNG.txt"
+    # KO preprocessing — missing/incomplete neuropils (initial run)
+    # "KO_VLNP meanZ allTs VLNP true"
+    # "KO_OL   meanZ allTs OL   true"
+    # "KO_GNG  meanZ allTs GNG  true ${BASE_DIR}/results/diagnostics/KO_permutation/missing_recordings_KO_GNG.txt"
+
+    # KO preprocessing — targeted fixes from diag_KO_quality
+    "KO_GNG_fix  meanZ allTs GNG  true ${BASE_DIR}/scripts/cluster/recording_filters/KO_GNG_fix.txt"
+    "KO_VLNP_fix meanZ allTs VLNP true ${BASE_DIR}/scripts/cluster/recording_filters/KO_VLNP_OL_fix.txt"
+    "KO_OL_fix   meanZ allTs OL   true ${BASE_DIR}/scripts/cluster/recording_filters/KO_VLNP_OL_fix.txt"
 )
 
 # Submit each configuration as a separate job

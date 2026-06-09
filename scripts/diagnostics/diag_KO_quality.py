@@ -91,7 +91,10 @@ def main():
     config       = load_config()
     baseline_dir = Path(config['paths']['allTs_path'])
 
-    baseline_recs = {p.name for p in baseline_dir.iterdir() if p.is_dir()}
+    baseline_recs = {
+        p.name for p in baseline_dir.iterdir()
+        if p.is_dir() and any(p.glob('*.tiff'))
+    }
     print(f'Baseline : {baseline_dir}')
     print(f'Recordings in baseline: {len(baseline_recs)}')
 
@@ -107,7 +110,10 @@ def main():
             rows.append({'neuropil': neuropil, 'status': 'MISSING_DIR'})
             continue
 
-        ko_recs  = {p.name for p in ko_dir.iterdir() if p.is_dir()}
+        ko_recs  = {
+            p.name for p in ko_dir.iterdir()
+            if p.is_dir() and any(p.glob('*.tiff'))
+        }
         missing  = sorted(baseline_recs - ko_recs)
         extra    = sorted(ko_recs - baseline_recs)
 
