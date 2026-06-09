@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import tifffile
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -36,6 +37,7 @@ NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 N_SAMPLE    = 5   # recordings sampled per neuropil for pixel stats
 N_FRAMES    = 3   # frames per recording
+N_VIZ       = 10  # example frames for KO image grid
 RANDOM_SEED = 42
 
 OUT_DIR = 'results/diagnostics/KO_quality'
@@ -80,6 +82,80 @@ def section(title: str):
     print(f'\n{"─" * 64}')
     print(f'  {title}')
     print(f'{"─" * 64}')
+
+
+def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
+                       rng: random.Random, out_dir: str):
+    """Grid of n_examples columns × 13 rows (original + 12 KOs)."""
+    # collect all (recording, tiff_path) pairs
+    all_frames = [
+        tiff
+        for rec_dir in sorted(baseline_dir.iterdir())
+        if rec_dir.is_dir() and any(rec_dir.glob('*.tiff'))
+        for tiff in sorted(rec_dir.glob('*.tiff'))
+    ]
+    if not all_frames:
+        print('  [WARNING] No baseline frames found for visualization.')
+        return
+
+    sample = rng.sample(all_frames, min(n_examples, len(all_frames)))
+    row_labels = ['Original'] + [f'KO {n}' for n in neuropils]
+    n_rows = len(row_labels)
+    n_cols = len(sample)
+
+    fig, axes = plt.subplots(
+        n_rows, n_cols,
+        figsize=(n_cols * 1.8, n_rows * 1.8),
+        gridspec_kw={'hspace': 0.04, 'wspace': 0.04},
+    )
+    if n_cols == 1:
+        axes = axes[:, np.newaxis]
+
+    for col, frame_path in enumerate(sample):
+        rec_name = frame_path.parent.name
+        frame_name = frame_path.name
+
+        img_base = tifffile.imread(str(frame_path)).astype(np.float32)
+        vmax = img_base.max() if img_base.max() > 0 else 1.0
+
+        for row, label in enumerate(row_labels):
+            ax = axes[row, col]
+
+            if row == 0:
+                img = img_base
+                ax.set_title(f'{rec_name}\nt={frame_path.stem.split("_")[-1]}',
+                             fontsize=5, pad=2)
+            else:
+                neuropil = neuropils[row - 1]
+                ko_path  = baseline_dir.parent / f'meanZ_allTs_KO_{neuropil}' / rec_name / frame_name
+                if ko_path.exists():
+                    img = tifffile.imread(str(ko_path)).astype(np.float32)
+                else:
+                    img = None
+
+            if img is not None:
+                ax.imshow(img, cmap='gray', vmin=0, vmax=vmax, aspect='auto')
+            else:
+                ax.set_facecolor('#444444')
+                ax.text(0.5, 0.5, 'N/A', ha='center', va='center',
+                        transform=ax.transAxes, fontsize=5, color='white')
+
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
+
+            if col == 0:
+                ax.text(-0.12, 0.5, label, transform=ax.transAxes,
+                        fontsize=6, ha='right', va='center', rotation=0)
+
+    fig.suptitle(f'Example frames: original vs neuropil KOs  (n={n_cols})',
+                 fontsize=9, y=1.002)
+
+    out_path = os.path.join(out_dir, 'ko_image_examples.png')
+    fig.savefig(out_path, dpi=150, bbox_inches='tight')
+    plt.close(fig)
+    print(f'  KO image grid saved → {out_path}')
 
 
 # ── main ──────────────────────────────────────────────────────────────────────
@@ -224,6 +300,11 @@ def main():
             dz = r.get('delta_zero_frac', float('nan'))
             ds = r.get('delta_signal', float('nan'))
             print(f'{r["neuropil"]:<8} {r["status"]:<12} {int(r["n_missing"]):>8} {dz*100:>+9.2f}% {ds:>10.4f}')
+
+    # ── KO image grid ─────────────────────────────────────────────────────────
+    print(f'\n{"═" * 64}')
+    print(f'Generating KO image grid ({N_VIZ} examples × {len(NEUROPILS) + 1} rows)...')
+    plot_ko_image_grid(baseline_dir, NEUROPILS, N_VIZ, rng, OUT_DIR)
 
 
 if __name__ == '__main__':

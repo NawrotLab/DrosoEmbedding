@@ -54,6 +54,18 @@ N_RUNS      = 50
 NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 
+GROUPS = {
+    'Odor':       [0, 1, 2, 3],
+    'Taste':      [4, 5, 6, 7],
+    'Combined':   [8, 9, 10, 11, 12, 13, 14, 15],
+    'Appetitive': [0, 2, 4, 6, 8, 12],
+    'Aversive':   [1, 3, 5, 7, 9, 13],
+    'Conflict':   [10, 11, 14, 15],
+    'Starved':    [0, 1, 4, 5, 8, 9, 10, 11],
+    'Fed':        [2, 3, 6, 7, 12, 13, 14, 15],
+}
+GROUP_ORDER = list(GROUPS.keys())
+
 OUT_DIAG = 'results/diagnostics/KO_permutation'
 OUT_PLOT = 'results/CombiPlots'
 BATCH_SIZE  = 256
@@ -165,8 +177,14 @@ def main():
                           log_dir='logs/diag_KO_permutation')
 
     # ── enumerate run directories ─────────────────────────────────────────────
-    run_dirs = [Path(BASE_RUNS) / f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
-    run_dirs = [d for d in run_dirs if d.exists()]
+    all_expected = [Path(BASE_RUNS) / f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
+    missing_dirs = [d.name for d in all_expected if not d.exists()]
+    no_ckpt      = [d.name for d in all_expected if d.exists() and not (d / 'models' / 'best').exists()]
+    if missing_dirs:
+        logger.warning(f'Missing run directories ({len(missing_dirs)}): {missing_dirs}')
+    if no_ckpt:
+        logger.warning(f'Runs without models/best ({len(no_ckpt)}): {no_ckpt}')
+    run_dirs = [d for d in all_expected if d.exists()]
     if not run_dirs:
         raise FileNotFoundError(f'No run directories found under {BASE_RUNS} matching {RUN_PREFIX}*')
     logger.info(f'Found {len(run_dirs)} run directories')
@@ -407,6 +425,43 @@ def main():
     plt.tight_layout()
 
     save_figure(fig, os.path.join(OUT_PLOT, 'diag_KO_permutation.pdf'),
+                formats=('pdf', 'png'))
+
+    # ── grouped heatmap (8 groups × 12 neuropils) ─────────────────────────────
+    group_delta = np.array([
+        np.nanmean(delta_mean[GROUPS[g], :], axis=0)
+        for g in GROUP_ORDER
+    ])
+    df_group = pd.DataFrame(group_delta, index=GROUP_ORDER, columns=NEUROPILS)
+    df_group.to_csv(os.path.join(OUT_DIAG, 'KO_delta_accuracy_groups.csv'))
+
+    vmax_g = np.nanpercentile(np.abs(group_delta), 95)
+    fig_g, ax_g = plt.subplots(figsize=(14, 5))
+    sns.heatmap(
+        df_group,
+        ax=ax_g,
+        cmap='RdBu_r',
+        center=0,
+        vmin=-vmax_g, vmax=vmax_g,
+        annot=True, fmt='.1f',
+        annot_kws={'size': ANNOT_FS},
+        linewidths=0.3,
+        cbar_kws={'label': 'Mean ΔAccuracy (baseline − KO) [pp]', 'shrink': 0.8},
+    )
+    ax_g.set_title(
+        f'Group-level accuracy drop under neuropil knockouts  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS,
+        pad=14,
+    )
+    ax_g.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax_g.set_ylabel('Condition group',      fontsize=LABEL_FS, labelpad=8)
+    ax_g.tick_params(axis='both', labelsize=TICK_FS)
+    cbar_g = ax_g.collections[0].colorbar
+    cbar_g.ax.tick_params(labelsize=CBAR_FS)
+    cbar_g.ax.yaxis.label.set_size(CBAR_FS)
+    plt.tight_layout()
+
+    save_figure(fig_g, os.path.join(OUT_PLOT, 'diag_KO_permutation_groups.pdf'),
                 formats=('pdf', 'png'))
     logger.info('Done.')
 
