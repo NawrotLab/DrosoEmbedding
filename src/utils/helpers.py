@@ -116,15 +116,33 @@ def get_predictions(model, data_loader, device):
         for sequences, labels in data_loader:
             sequences = sequences.float().to(device)
             labels = labels.to(device)
-            # Forward pass
             outputs = model(sequences)
             predicted = torch.argmax(outputs, dim=1)
             predictions.append(predicted.cpu().numpy())
             true_labels.append(labels.cpu().numpy())
-    # Stack collected predictions and labels
     predictions_np = np.concatenate(predictions, axis=0)
     true_labels_np = np.concatenate(true_labels, axis=0)
-    return predictions_np, true_labels_np 
+    return predictions_np, true_labels_np
+
+
+def get_predictions_with_probs(model, data_loader, device):
+    """Like get_predictions but also returns softmax probabilities (N, n_classes)."""
+    import torch.nn.functional as F
+    model.eval()
+    predictions, true_labels, all_probs = [], [], []
+    with torch.no_grad():
+        for sequences, labels in data_loader:
+            sequences = sequences.float().to(device)
+            labels = labels.to(device)
+            outputs = model(sequences)
+            probs = F.softmax(outputs, dim=1)
+            predicted = torch.argmax(outputs, dim=1)
+            predictions.append(predicted.cpu().numpy())
+            true_labels.append(labels.cpu().numpy())
+            all_probs.append(probs.cpu().numpy())
+    return (np.concatenate(predictions),
+            np.concatenate(true_labels),
+            np.concatenate(all_probs)) 
 
 def compute_tsne(latent_features, perplexity=30, random_state=42):
     tsne = TSNE(n_components=2, perplexity=perplexity, random_state=random_state)

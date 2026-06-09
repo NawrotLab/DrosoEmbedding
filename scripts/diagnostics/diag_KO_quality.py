@@ -244,6 +244,21 @@ def main():
             rows.append({'neuropil': neuropil, 'status': 'NO_FRAMES'})
             continue
 
+        # structural distance (image-level OOD proxy)
+        l2_dists, abs_diffs = [], []
+        for bs_arr, ks_arr in zip(
+            [load_frames(baseline_dir / rec, N_FRAMES, rng) for rec in sample],
+            [load_frames(ko_dir / rec,       N_FRAMES, rng) for rec in sample],
+        ):
+            if bs_arr is None or ks_arr is None:
+                continue
+            n = min(bs_arr.shape[0], ks_arr.shape[0])
+            diff = bs_arr[:n] - ks_arr[:n]
+            l2_dists.append(float(np.linalg.norm(diff) / diff.size))
+            abs_diffs.append(float(np.mean(np.abs(diff))))
+        mean_l2   = float(np.mean(l2_dists))  if l2_dists  else float('nan')
+        mean_abs  = float(np.mean(abs_diffs)) if abs_diffs else float('nan')
+
         n_rec = len(base_stats_all)
         print(f'\n  Pixel stats (avg over {n_rec} recordings × {N_FRAMES} frames):')
         print(f'  {"Metric":<20} {"Baseline":>12} {"KO":>12} {"Δ (KO−B)":>12}')
@@ -255,6 +270,8 @@ def main():
 
         mean_delta = float(np.mean(delta_signal_all)) if delta_signal_all else float('nan')
         print(f'  {"Δ signal (B−KO)":<20} {mean_delta:>12.4f}')
+        print(f'  {"L2 dist (norm)":<20} {mean_l2:>12.6f}')
+        print(f'  {"Mean |Δ| pixel":<20} {mean_abs:>12.6f}')
 
         if nan_inf_total > 0:
             print(f'  [WARNING] {nan_inf_total} NaN/Inf pixels detected across sample')
@@ -264,6 +281,8 @@ def main():
         rows.append({
             'neuropil':           neuropil,
             'status':             'OK' if not missing else 'INCOMPLETE',
+            'mean_l2_dist':       mean_l2,
+            'mean_abs_diff':      mean_abs,
             'n_baseline_recs':    len(baseline_recs),
             'n_ko_recs':          len(ko_recs),
             'n_missing':          len(missing),
@@ -300,6 +319,34 @@ def main():
             dz = r.get('delta_zero_frac', float('nan'))
             ds = r.get('delta_signal', float('nan'))
             print(f'{r["neuropil"]:<8} {r["status"]:<12} {int(r["n_missing"]):>8} {dz*100:>+9.2f}% {ds:>10.4f}')
+
+    # ── structural distance plot ───────────────────────────────────────────────
+    df_complete = df.dropna(subset=['mean_l2_dist'])
+    if not df_complete.empty:
+        fig_sd, axes_sd = plt.subplots(1, 2, figsize=(13, 4))
+
+        for ax, col, ylabel, title in [
+            (axes_sd[0], 'mean_l2_dist',  'Normalised L2 distance',  'Structural distance (L2)'),
+            (axes_sd[1], 'mean_abs_diff', 'Mean |baseline − KO|', 'Mean absolute pixel change'),
+        ]:
+            vals = df_complete[col].values
+            neuropils_plot = df_complete['neuropil'].values
+            colors = plt.cm.RdYlGn_r(vals / vals.max())
+            ax.bar(neuropils_plot, vals, color=colors, edgecolor='white', linewidth=0.5)
+            ax.set_xlabel('Neuropil knocked out', fontsize=10)
+            ax.set_ylabel(ylabel, fontsize=10)
+            ax.set_title(title, fontsize=11, pad=8)
+            ax.tick_params(axis='x', rotation=45, labelsize=9)
+            ax.tick_params(axis='y', labelsize=9)
+
+        plt.suptitle('Image-level structural change per neuropil KO\n'
+                     '(larger = more OOD-like input to model)',
+                     fontsize=12, y=1.02)
+        plt.tight_layout()
+        out_sd = os.path.join(OUT_DIR, 'ko_structural_distance.png')
+        fig_sd.savefig(out_sd, dpi=150, bbox_inches='tight')
+        plt.close(fig_sd)
+        print(f'Structural distance plot saved → {out_sd}')
 
     # ── KO image grid ─────────────────────────────────────────────────────────
     print(f'\n{"═" * 64}')

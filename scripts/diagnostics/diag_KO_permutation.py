@@ -38,7 +38,7 @@ from src.data.dataset import CustomDataset
 from src.models.cnn_transformer import CNN_Transformer
 from src.models.model_io import load_model
 from src.utils.config_loader import load_config
-from src.utils.helpers import paths2neuropilpaths, get_predictions
+from src.utils.helpers import paths2neuropilpaths, get_predictions, get_predictions_with_probs
 from src.utils.logger import setup_logger
 from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
 
@@ -73,6 +73,12 @@ NUM_WORKERS = 4
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
+
+def prediction_entropy(probs: np.ndarray) -> float:
+    """Mean Shannon entropy (nats) over samples. probs: (N, n_classes)."""
+    eps = 1e-10
+    return float(-np.sum(probs * np.log(probs + eps), axis=1).mean())
+
 
 def per_class_accuracy(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> np.ndarray:
     """Row-normalised confusion matrix diagonal → (n_classes,) accuracy array."""
@@ -308,7 +314,8 @@ def main():
         X_test_ko[neuropil] = paths2neuropilpaths(list(X_test), cfg_ko)
 
     # ── outer loop: one model per run ─────────────────────────────────────────
-    all_deltas = []   # list of (n_classes, n_neuropils) arrays, one per run
+    all_deltas          = []   # (n_classes, n_neuropils) per run
+    all_entropy_deltas  = []   # (n_neuropils,) per run
 
     for run_dir in run_dirs:
         models_dir = str(run_dir / 'models' / 'best') + '/'
@@ -327,26 +334,31 @@ def main():
             continue
         classifier.eval()
 
-        # Baseline — uses the filtered test set; no samples will be dropped
-        loader_base         = make_loader(X_test, Y_test, model_params, allTs_base)
-        y_pred_base, y_true = get_predictions(classifier, loader_base, device)
-        acc_base            = per_class_accuracy(y_true, y_pred_base, n_classes)
-        logger.info(f'  Baseline mean acc: {np.nanmean(acc_base):.3f}')
+        # Baseline
+        loader_base                    = make_loader(X_test, Y_test, model_params, allTs_base)
+        y_pred_base, y_true, probs_base = get_predictions_with_probs(classifier, loader_base, device)
+        acc_base                        = per_class_accuracy(y_true, y_pred_base, n_classes)
+        entropy_base                    = prediction_entropy(probs_base)
+        logger.info(f'  Baseline mean acc: {np.nanmean(acc_base):.3f}  entropy: {entropy_base:.3f}')
 
-        # 12 KO runs — same filtered set, guaranteed aligned with baseline
-        delta_i = np.full((n_classes, len(NEUROPILS)), np.nan)
+        # 12 KO runs
+        delta_i         = np.full((n_classes,    len(NEUROPILS)), np.nan)
+        delta_entropy_i = np.full((len(NEUROPILS),),              np.nan)
         for j, neuropil in enumerate(NEUROPILS):
             if neuropil in missing:
                 continue
             allTs_ko  = ko_allTs_path(allTs_base, neuropil)
             loader_ko = make_loader(X_test_ko[neuropil], Y_test, model_params, allTs_ko)
-            y_pred_ko, _ = get_predictions(classifier, loader_ko, device)
-            acc_ko        = per_class_accuracy(y_true, y_pred_ko, n_classes)
-            delta_i[:, j] = acc_base - acc_ko
+            y_pred_ko, _, probs_ko = get_predictions_with_probs(classifier, loader_ko, device)
+            acc_ko                  = per_class_accuracy(y_true, y_pred_ko, n_classes)
+            entropy_ko              = prediction_entropy(probs_ko)
+            delta_i[:, j]           = acc_base - acc_ko
+            delta_entropy_i[j]      = entropy_ko - entropy_base
             mean_delta_pp = np.nanmean(delta_i[:, j]) * 100
             logger.info(
                 f'  KO {neuropil:<6} acc={np.nanmean(acc_ko):.3f}  '
-                f'Δ={mean_delta_pp:+.2f} pp'
+                f'Δacc={mean_delta_pp:+.2f} pp  '
+                f'Δentropy={delta_entropy_i[j]:+.3f}'
             )
 
         # rank neuropils by mean |Δ| across classes for this run
@@ -359,6 +371,7 @@ def main():
         logger.info(f'  Top neuropils: {top3}')
 
         all_deltas.append(delta_i)
+        all_entropy_deltas.append(delta_entropy_i)
         del classifier
         torch.cuda.empty_cache()
 
@@ -462,6 +475,55 @@ def main():
     plt.tight_layout()
 
     save_figure(fig_g, os.path.join(OUT_PLOT, 'diag_KO_permutation_groups.pdf'),
+                formats=('pdf', 'png'))
+
+    # ── OOD diagnostics: entropy ───────────────────────────────────────────────
+    entropy_stack      = np.stack(all_entropy_deltas, axis=0)   # (n_runs, n_neuropils)
+    mean_entropy_delta = np.nanmean(entropy_stack, axis=0)       # (n_neuropils,)
+    std_entropy_delta  = np.nanstd(entropy_stack,  axis=0)
+
+    df_entropy = pd.DataFrame({
+        'neuropil':      NEUROPILS,
+        'mean_delta_entropy': mean_entropy_delta,
+        'std_delta_entropy':  std_entropy_delta,
+    })
+    df_entropy.to_csv(os.path.join(OUT_DIAG, 'KO_entropy_delta.csv'), index=False)
+
+    # mean ΔAcc per neuropil (averaged over classes) for the scatter
+    mean_delta_per_neuropil = np.nanmean(delta_mean, axis=0)   # (n_neuropils,)
+
+    fig_ood, axes_ood = plt.subplots(1, 2, figsize=(14, 5))
+
+    # Panel 1 — ΔEntropy bar chart
+    ax1 = axes_ood[0]
+    colors = ['#d62728' if v > 0 else '#1f77b4' for v in mean_entropy_delta]
+    ax1.bar(NEUROPILS, mean_entropy_delta,
+            yerr=std_entropy_delta, color=colors,
+            capsize=4, edgecolor='white', linewidth=0.5)
+    ax1.axhline(0, color='black', linewidth=0.8, linestyle='--')
+    ax1.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS)
+    ax1.set_ylabel('ΔEntropy (KO − baseline) [nats]', fontsize=LABEL_FS)
+    ax1.set_title('Prediction entropy increase under KO\n(proxy for OOD confusion)',
+                  fontsize=TITLE_FS, pad=10)
+    ax1.tick_params(axis='both', labelsize=TICK_FS)
+
+    # Panel 2 — ΔAcc vs ΔEntropy scatter
+    ax2 = axes_ood[1]
+    ax2.scatter(mean_delta_per_neuropil, mean_entropy_delta,
+                s=80, color='steelblue', edgecolors='white', linewidths=0.5, zorder=3)
+    for name, x, y in zip(NEUROPILS, mean_delta_per_neuropil, mean_entropy_delta):
+        ax2.annotate(name, (x, y), textcoords='offset points', xytext=(6, 4),
+                     fontsize=TICK_FS - 1)
+    ax2.axhline(0, color='grey', linewidth=0.6, linestyle='--')
+    ax2.axvline(0, color='grey', linewidth=0.6, linestyle='--')
+    ax2.set_xlabel('Mean ΔAccuracy (baseline − KO) [pp]', fontsize=LABEL_FS)
+    ax2.set_ylabel('Mean ΔEntropy (KO − baseline) [nats]', fontsize=LABEL_FS)
+    ax2.set_title('ΔAcc vs ΔEntropy per neuropil\n(upper-right = OOD suspect)',
+                  fontsize=TITLE_FS, pad=10)
+    ax2.tick_params(axis='both', labelsize=TICK_FS)
+
+    plt.tight_layout()
+    save_figure(fig_ood, os.path.join(OUT_PLOT, 'diag_KO_ood_entropy.pdf'),
                 formats=('pdf', 'png'))
     logger.info('Done.')
 
