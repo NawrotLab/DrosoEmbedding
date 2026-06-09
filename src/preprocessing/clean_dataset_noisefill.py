@@ -82,42 +82,49 @@ def footprint_2d(mask_3d: np.ndarray) -> np.ndarray:
 def compute_or_load_stats(config: dict, neuropil: str, neuropil_idx: int,
                            rng: random.Random, logger) -> tuple:
     """
-    Return (mean, std) of baseline pixel values within the neuropil footprint,
-    sampled from the training set. Results are cached in STATS_CACHE.
+    Return (mean, std) of baseline pixel values outside ALL neuropil masks,
+    sampled from the training set. Stats are background-tissue statistics,
+    independent of which neuropil is being knocked out. Cached under key
+    'background' in STATS_CACHE.
     """
     os.makedirs(os.path.dirname(STATS_CACHE), exist_ok=True)
 
-    # check cache
     cache = {}
     if os.path.exists(STATS_CACHE):
         with open(STATS_CACHE) as f:
             cache = json.load(f)
-    if neuropil in cache:
-        mean, std = cache[neuropil]['mean'], cache[neuropil]['std']
-        logger.info(f'Loaded cached stats for {neuropil}: mean={mean:.5f}, std={std:.5f}')
+    if 'background' in cache:
+        mean, std = cache['background']['mean'], cache['background']['std']
+        logger.info(f'Loaded cached background stats: mean={mean:.5f}, std={std:.5f}')
         return mean, std
 
-    logger.info(f'Computing noise stats for {neuropil} from training set...')
+    logger.info('Computing background noise stats (outside all neuropil masks) from training set...')
 
     with open(config['paths']['pickle_path'], 'rb') as f:
-        X_train = pickle.load(f)[0]   # training TIFF paths (index 0 = X_train)
+        X_train = pickle.load(f)[0]
 
     allTs_dir = Path(config['paths']['allTs_path'])
 
-    # unique recording names present in both training set and allTs dir
     all_rec_names = list({Path(str(p)).parent.name for p in X_train
                           if (allTs_dir / Path(str(p)).parent.name).exists()})
     sample_recs   = rng.sample(all_rec_names, min(N_STATS_RECS, len(all_rec_names)))
 
     pixel_values = []
     for rec_name in sample_recs:
-        rec_nr   = rec_name.split('_')[-1]
-        mask_3d  = load_mask_3d(rec_nr, neuropil_idx)
-        if mask_3d is None:
+        rec_nr = rec_name.split('_')[-1]
+
+        # union footprint of all 12 neuropils
+        union_fp = None
+        for idx in range(len(NEUROPIL_NAMES)):
+            m = load_mask_3d(rec_nr, idx)
+            if m is None:
+                continue
+            fp_i = footprint_2d(m)
+            union_fp = fp_i if union_fp is None else (union_fp | fp_i)
+
+        if union_fp is None:
             continue
-        fp = footprint_2d(mask_3d)
-        if fp.sum() == 0:
-            continue
+        background = ~union_fp   # pixels outside all neuropils
 
         tiffs = sorted((allTs_dir / rec_name).glob('*.tiff'))
         if not tiffs:
@@ -126,22 +133,22 @@ def compute_or_load_stats(config: dict, neuropil: str, neuropil_idx: int,
 
         for tp in sample_tiffs:
             img = tifffile.imread(str(tp)).astype(np.float32)
-            if img.shape != fp.shape:
+            if img.shape != background.shape:
                 continue
-            vals = img[fp]
+            vals = img[background]
             vals = vals[np.isfinite(vals) & (vals > 0)]
             pixel_values.extend(vals.tolist())
 
     if not pixel_values:
-        logger.warning(f'No pixel values found for {neuropil} — using fallback stats (0, 0.005).')
+        logger.warning('No background pixel values found — using fallback stats (0, 0.005).')
         return 0.0, 0.005
 
     arr  = np.array(pixel_values, dtype=np.float32)
     mean = float(arr.mean())
     std  = float(arr.std())
-    logger.info(f'Stats for {neuropil}: n={len(arr):,}, mean={mean:.5f}, std={std:.5f}')
+    logger.info(f'Background stats: n={len(arr):,}, mean={mean:.5f}, std={std:.5f}')
 
-    cache[neuropil] = {'mean': mean, 'std': std}
+    cache['background'] = {'mean': mean, 'std': std}
     with open(STATS_CACHE, 'w') as f:
         json.dump(cache, f, indent=2)
 
