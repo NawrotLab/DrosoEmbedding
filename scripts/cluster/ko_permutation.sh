@@ -3,7 +3,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a6000:1
-#SBATCH --nodelist=agmn-srv-4
+#SBATCH --nodelist=agmn-srv-5
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=16GB
@@ -15,7 +15,7 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 cd /rhomes/aabdel/DrosoEmbedding
 
-python -m scripts.diagnostics.diag_KO_quality --variant noisefill
-# python -m scripts.diagnostics.diag_KO_permutation --variant noisefill
+# python -m scripts.diagnostics.diag_KO_quality --variant noisefill
+python -m scripts.diagnostics.diag_KO_permutation --variant noisefill
 # python -m scripts.diagnostics.diag_KO_quality         # zero-fill
 # python -m scripts.diagnostics.diag_KO_permutation     # zero-fill
