@@ -23,6 +23,7 @@ import argparse
 import copy
 import os
 import pickle
+import random
 import sys
 from pathlib import Path
 
@@ -41,6 +42,7 @@ from src.models.model_io import load_model
 from src.utils.config_loader import load_config
 from src.utils.helpers import paths2neuropilpaths, get_predictions, get_predictions_with_probs
 from src.utils.logger import setup_logger
+from src.utils.neuropil_masks import compute_neuropil_sizes
 from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
 
 apply_style()
@@ -408,6 +410,12 @@ def main():
     delta_mean = np.nanmean(stack, axis=0) * 100  # percentage points
     delta_std  = np.nanstd(stack,  axis=0) * 100
 
+    # ── neuropil 3D voxel sizes ────────────────────────────────────────────────
+    rng            = random.Random(42)
+    neuropil_sizes = compute_neuropil_sizes(base_config, rng=rng, logger=logger)
+    SCALE          = 10_000   # express as ΔAcc per 10k voxels
+    delta_mean_norm = delta_mean / (neuropil_sizes / SCALE)   # (n_classes, n_neuropils)
+
     # ── save CSVs ─────────────────────────────────────────────────────────────
     df_mean = pd.DataFrame(delta_mean, index=class_names, columns=NEUROPILS)
     df_std  = pd.DataFrame(delta_std,  index=class_names, columns=NEUROPILS)
@@ -537,6 +545,85 @@ def main():
     plt.tight_layout()
     save_figure(fig_ood, os.path.join(out_plot, f'diag_KO_ood_entropy{tag}.pdf'),
                 formats=('pdf', 'png'))
+
+    # ── size-normalised heatmap (16 classes × 12 neuropils) ───────────────────
+    df_norm = pd.DataFrame(delta_mean_norm, index=class_names, columns=NEUROPILS)
+    df_norm.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_norm.csv'))
+
+    vmax_n = np.nanpercentile(np.abs(delta_mean_norm), 95)
+    fig_n, ax_n = plt.subplots(figsize=(14, 8))
+    sns.heatmap(
+        df_norm, ax=ax_n, cmap='RdBu_r', center=0,
+        vmin=-vmax_n, vmax=vmax_n,
+        annot=True, fmt='.2f',
+        annot_kws={'size': ANNOT_FS},
+        linewidths=0.3,
+        cbar_kws={'label': f'Mean ΔAccuracy per {SCALE:,} voxels [pp / 10k vox]', 'shrink': 0.8},
+    )
+    ax_n.set_title(
+        f'Per-class accuracy drop — size-normalised  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS, pad=14,
+    )
+    ax_n.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax_n.set_ylabel('Behavioural class',    fontsize=LABEL_FS, labelpad=8)
+    ax_n.tick_params(axis='both', labelsize=TICK_FS)
+    cbar_n = ax_n.collections[0].colorbar
+    cbar_n.ax.tick_params(labelsize=CBAR_FS)
+    cbar_n.ax.yaxis.label.set_size(CBAR_FS)
+    plt.tight_layout()
+    save_figure(fig_n, os.path.join(out_plot, f'diag_KO_permutation_norm{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # ── size-normalised grouped heatmap (8 groups × 12 neuropils) ─────────────
+    group_delta_norm = np.array([
+        np.nanmean(delta_mean_norm[GROUPS[g], :], axis=0)
+        for g in GROUP_ORDER
+    ])
+    df_group_norm = pd.DataFrame(group_delta_norm, index=GROUP_ORDER, columns=NEUROPILS)
+    df_group_norm.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_groups_norm.csv'))
+
+    vmax_gn = np.nanpercentile(np.abs(group_delta_norm), 95)
+    fig_gn, ax_gn = plt.subplots(figsize=(14, 5))
+    sns.heatmap(
+        df_group_norm, ax=ax_gn, cmap='RdBu_r', center=0,
+        vmin=-vmax_gn, vmax=vmax_gn,
+        annot=True, fmt='.2f',
+        annot_kws={'size': ANNOT_FS},
+        linewidths=0.3,
+        cbar_kws={'label': f'Mean ΔAccuracy per {SCALE:,} voxels [pp / 10k vox]', 'shrink': 0.8},
+    )
+    ax_gn.set_title(
+        f'Group-level accuracy drop — size-normalised  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS, pad=14,
+    )
+    ax_gn.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax_gn.set_ylabel('Condition group',      fontsize=LABEL_FS, labelpad=8)
+    ax_gn.tick_params(axis='both', labelsize=TICK_FS)
+    cbar_gn = ax_gn.collections[0].colorbar
+    cbar_gn.ax.tick_params(labelsize=CBAR_FS)
+    cbar_gn.ax.yaxis.label.set_size(CBAR_FS)
+    plt.tight_layout()
+    save_figure(fig_gn, os.path.join(out_plot, f'diag_KO_permutation_groups_norm{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # ── scatter: voxel size vs mean ΔAcc ──────────────────────────────────────
+    mean_delta_per_neuropil = np.nanmean(delta_mean, axis=0)
+    fig_sz, ax_sz = plt.subplots(figsize=(7, 6))
+    ax_sz.scatter(neuropil_sizes / 1000, mean_delta_per_neuropil,
+                  s=80, color='steelblue', edgecolors='white', linewidths=0.5, zorder=3)
+    for name, x, y in zip(NEUROPILS, neuropil_sizes / 1000, mean_delta_per_neuropil):
+        ax_sz.annotate(name, (x, y), textcoords='offset points', xytext=(6, 4),
+                       fontsize=TICK_FS - 1)
+    ax_sz.axhline(0, color='grey', linewidth=0.6, linestyle='--')
+    ax_sz.set_xlabel('Neuropil 3D volume [× 1,000 voxels]', fontsize=LABEL_FS)
+    ax_sz.set_ylabel('Mean ΔAccuracy (baseline − KO) [pp]', fontsize=LABEL_FS)
+    ax_sz.set_title('Neuropil size vs accuracy drop\n(size confound diagnostic)',
+                    fontsize=TITLE_FS, pad=10)
+    ax_sz.tick_params(axis='both', labelsize=TICK_FS)
+    plt.tight_layout()
+    save_figure(fig_sz, os.path.join(out_plot, f'diag_KO_size_vs_delta{tag}.pdf'),
+                formats=('pdf', 'png'))
+
     logger.info('Done.')
 
 

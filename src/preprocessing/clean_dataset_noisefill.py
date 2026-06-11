@@ -35,7 +35,6 @@ import json
 import pickle
 import random
 import numpy as np
-import nibabel as nib
 import tifffile
 from pathlib import Path
 from tqdm import tqdm
@@ -45,36 +44,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..',
 from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
 from src.utils.imgTools import load_and_normNIFTI
+from src.utils.neuropil_masks import NEUROPIL_NAMES, load_mask_3d, footprint_2d, mask_path
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
-NEUROPIL_NAMES = np.array(['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
-                            'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP'])
-MASK_DIR       = '/projects/lab-data/Collaboration/Gruenwald_Kadow/Neuropils12_Masks'
 STATS_CACHE    = 'results/preprocessing/noisefill_stats.json'
 N_STATS_RECS   = 30   # recordings sampled from training set for stat computation
 N_STATS_FRAMES = 10   # frames per recording
 RANDOM_SEED    = 42
-
-
-# ── mask helpers ──────────────────────────────────────────────────────────────
-
-def _mask_path(rec_nr: str) -> str:
-    return os.path.join(MASK_DIR, f'Neuropils12Registered_{rec_nr}.nii')
-
-
-def load_mask_3d(rec_nr: str, neuropil_idx: int):
-    """Return boolean (y, x, z) mask for the given neuropil, or None if missing."""
-    path = _mask_path(rec_nr)
-    if not os.path.exists(path):
-        return None
-    raw = nib.load(path).get_fdata()[:, :, :, neuropil_idx]  # (dim0, dim1, z)
-    return (np.transpose(raw, (1, 0, 2)) > 0)                # (y, x, z) bool
-
-
-def footprint_2d(mask_3d: np.ndarray) -> np.ndarray:
-    """2D projection of 3D mask: True where any Z slice is masked."""
-    return np.any(mask_3d, axis=2)   # (y, x) bool
 
 
 # ── noise statistics ──────────────────────────────────────────────────────────
