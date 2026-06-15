@@ -11,8 +11,9 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 
-MASK_DIR    = '/projects/lab-data/Collaboration/Gruenwald_Kadow/Neuropils12_Masks'
-SIZES_CACHE = 'results/preprocessing/neuropil_sizes.json'
+MASK_DIR       = '/projects/lab-data/Collaboration/Gruenwald_Kadow/Neuropils12_Masks'
+SIZES_CACHE    = 'results/preprocessing/neuropil_sizes.json'
+SIZES_2D_CACHE = 'results/preprocessing/neuropil_sizes_2d.json'
 
 NEUROPIL_NAMES = np.array(['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
                             'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP'])
@@ -92,6 +93,71 @@ def compute_neuropil_sizes(config: dict, n_samples: int = N_SIZE_SAMPLES,
 
     cache = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
     with open(SIZES_CACHE, 'w') as f:
+        json.dump(cache, f, indent=2)
+
+    return sizes
+
+
+def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
+                               rng: random.Random = None, logger=None) -> np.ndarray:
+    """
+    Return (12,) array of mean 2D pixel counts per neuropil (Z-projection footprint)
+    averaged over n_samples training-set recordings. Results cached in SIZES_2D_CACHE.
+
+    The 2D footprint counts pixels where any Z-slice is masked — matching the meanZ
+    projection used as model input.
+    """
+    if rng is None:
+        rng = random.Random(42)
+
+    os.makedirs(os.path.dirname(SIZES_2D_CACHE), exist_ok=True)
+
+    if os.path.exists(SIZES_2D_CACHE):
+        with open(SIZES_2D_CACHE) as f:
+            cached = json.load(f)
+        sizes = np.array([cached[n] for n in NEUROPIL_NAMES], dtype=np.float64)
+        if logger:
+            logger.info('Loaded cached neuropil 2D footprint sizes:')
+            for name, size in zip(NEUROPIL_NAMES, sizes):
+                logger.info(f'  {name:<6}: {int(size):,} pixels')
+        return sizes
+
+    if logger:
+        logger.info(f'Computing neuropil 2D footprint sizes from {n_samples} recordings...')
+
+    with open(config['paths']['pickle_path'], 'rb') as f:
+        X_train = pickle.load(f)[0]
+
+    rec_names = list({Path(str(p)).parent.name for p in X_train})
+    sample    = rng.sample(rec_names, min(n_samples, len(rec_names)))
+
+    counts = []
+    for rec_name in sample:
+        rec_nr = rec_name.split('_')[-1]
+        mp     = mask_path(rec_nr)
+        if not os.path.exists(mp):
+            continue
+        mask_data    = nib.load(mp).get_fdata()   # (dim0, dim1, z, 12)
+        pixel_counts = np.array([
+            np.any(mask_data[:, :, :, i] > 0, axis=2).sum()
+            for i in range(len(NEUROPIL_NAMES))
+        ], dtype=np.float64)
+        counts.append(pixel_counts)
+
+    if not counts:
+        if logger:
+            logger.warning('No mask files found — returning uniform sizes of 1.')
+        return np.ones(len(NEUROPIL_NAMES), dtype=np.float64)
+
+    sizes = np.mean(counts, axis=0)
+
+    if logger:
+        logger.info('Neuropil 2D footprint sizes (mean over sample):')
+        for name, size in zip(NEUROPIL_NAMES, sizes):
+            logger.info(f'  {name:<6}: {int(size):,} pixels')
+
+    cache = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
+    with open(SIZES_2D_CACHE, 'w') as f:
         json.dump(cache, f, indent=2)
 
     return sizes

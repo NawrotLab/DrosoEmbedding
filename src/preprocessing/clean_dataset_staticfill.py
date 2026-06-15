@@ -1,20 +1,22 @@
 """
-Preprocessing: Neuropil KO with static baseline fill
-=====================================================
+Preprocessing: Neuropil KO with shuffled baseline fill
+=======================================================
 Alternative to clean_dataset.py and clean_dataset_noisefill.py.
 
-For each recording, the neuropil voxels are replaced with a static 3D image
-computed as the mean of that recording's own baseline-corrected activity over
-frames T_FILL_START..T_FILL_END (default 100..250).  This static pattern is
-then held constant for the entire recording.
+For each timepoint in the recording, the neuropil voxels are replaced with
+the corresponding voxel values from a randomly sampled frame drawn from the
+baseline window T_FILL_START..T_FILL_END (default 100..250).
 
-Rationale: the baseline-subtraction removes the Z-averaged baseline but
-preserves Z-depth-specific structure, so the mean of frames 100-250 is
-non-zero and spatially structured — it represents "the neuropil at rest"
-in the same ΔF/F units as the rest of the image.
+Rationale: the mean of the baseline window in ΔF/F space is near-zero by
+construction of the baseline subtraction.  Individual baseline frames,
+however, contain real spontaneous activity and spatial noise — they look like
+a brain at rest.  By shuffling randomly-drawn baseline frames into the
+neuropil at each timepoint, we preserve realistic temporal variability and
+non-zero spatial structure while completely removing the stimulus-driven
+response of the neuropil.
 
 Output namespace:
-    meanZ_allTs_KO_static_{neuropil}
+    meanZ_allTs_KO_shuffled_{neuropil}
 
 Usage (from repo root):
     NEUROPIL=AL TIMES=allTs python -m src.preprocessing.clean_dataset_staticfill

@@ -32,12 +32,14 @@ apply_style()
 
 # ── config ────────────────────────────────────────────────────────────────────
 
-# variant label → directory containing KO_delta_accuracy_groups.csv
+# variant label → (diag_dir, csv_name)
+# csv_name is relative to diag_dir; defaults to KO_delta_accuracy_groups.csv
 VARIANTS = {
-    'Zero-fill':  'results/diagnostics/KO_permutation',
-    'Noise-fill': 'results/diagnostics/KO_permutation_noisefill',
-    'Static':     'results/diagnostics/KO_permutation_static',
-    'Shuffled':   'results/diagnostics/KO_permutation_shuffled',
+    'Zero-fill':          ('results/diagnostics/KO_permutation',          'KO_delta_accuracy_groups.csv'),
+    'Noise-fill':         ('results/diagnostics/KO_permutation_noisefill', 'KO_delta_accuracy_groups.csv'),
+    'Static':             ('results/diagnostics/KO_permutation_static',    'KO_delta_accuracy_groups.csv'),
+    'Shuffled':           ('results/diagnostics/KO_permutation_shuffled',  'KO_delta_accuracy_groups.csv'),
+    'Shuffled (2D norm)': ('results/diagnostics/KO_permutation_shuffled',  'KO_delta_accuracy_groups_norm_2d.csv'),
 }
 
 # contrasts to compute from the 8 group rows
@@ -52,13 +54,14 @@ OUT_DIR = 'results/diagnostics/KO_comparison'
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
-def load_contrasts(diag_dir: str) -> pd.DataFrame | None:
+def load_contrasts(diag_dir: str,
+                   csv_name: str = 'KO_delta_accuracy_groups.csv') -> pd.DataFrame | None:
     """
-    Load KO_delta_accuracy_groups.csv and compute contrast rows.
+    Load a group-level delta-accuracy CSV and compute contrast rows.
     Returns DataFrame with rows = contrast names, columns = neuropils,
     or None if the file doesn't exist.
     """
-    csv_path = os.path.join(diag_dir, 'KO_delta_accuracy_groups.csv')
+    csv_path = os.path.join(diag_dir, csv_name)
     if not os.path.exists(csv_path):
         print(f'  [skip] not found: {csv_path}')
         return None
@@ -83,9 +86,9 @@ def main():
 
     # load all available variants
     data = {}
-    for name, diag_dir in VARIANTS.items():
-        print(f'Loading {name} from {diag_dir} ...')
-        df = load_contrasts(diag_dir)
+    for name, (diag_dir, csv_name) in VARIANTS.items():
+        print(f'Loading {name} from {diag_dir}/{csv_name} ...')
+        df = load_contrasts(diag_dir, csv_name)
         if df is not None:
             data[name] = df
 
@@ -94,9 +97,17 @@ def main():
 
     print(f'Loaded {len(data)} variants: {list(data.keys())}')
 
-    # shared x-limit across all variants for fair visual comparison
-    all_vals = np.concatenate([df.values.ravel() for df in data.values()])
-    global_xlim = float(np.nanmax(np.abs(all_vals))) * 1.15
+    # Norm variants use different units (pp/1k px) — give them their own x-scale
+    NORM_VARIANTS = {'Shuffled (2D norm)'}
+    raw_data  = {k: v for k, v in data.items() if k not in NORM_VARIANTS}
+    norm_data = {k: v for k, v in data.items() if k in NORM_VARIANTS}
+
+    raw_xlim  = (float(np.nanmax(np.abs(np.concatenate([df.values.ravel() for df in raw_data.values()])))) * 1.15
+                 if raw_data else None)
+    norm_xlim = (float(np.nanmax(np.abs(np.concatenate([df.values.ravel() for df in norm_data.values()])))) * 1.15
+                 if norm_data else None)
+
+    xlim_for = {name: (norm_xlim if name in NORM_VARIANTS else raw_xlim) for name in data}
 
     n_variants = len(data)
     fig = plt.figure(figsize=(11, n_variants * 2.8))
@@ -112,14 +123,16 @@ def main():
             group_contrasts_abs=contrasts_df,
             neuropil_names=list(contrasts_df.columns),
             sort_by_modality=True,
-            uniform_xlim=False,   # we enforce shared scale below
+            uniform_xlim=False,   # enforce shared scale below, per unit group
             fontsize_title=FONT_SIZES.get('subplot_title', 9),
             fontsize_labels=FONT_SIZES.get('label', 7),
         )
 
-        # enforce shared x-limit
-        for ax in axes:
-            ax.set_xlim(-global_xlim, global_xlim)
+        # enforce shared x-limit within the same unit group
+        xlim = xlim_for[variant_name]
+        if xlim is not None:
+            for ax in axes:
+                ax.set_xlim(-xlim, xlim)
 
         # row label on the left
         axes[0].set_title(variant_name, loc='left',

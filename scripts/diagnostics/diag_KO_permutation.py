@@ -42,8 +42,12 @@ from src.models.model_io import load_model
 from src.utils.config_loader import load_config
 from src.utils.helpers import paths2neuropilpaths, get_predictions, get_predictions_with_probs
 from src.utils.logger import setup_logger
-from src.utils.neuropil_masks import compute_neuropil_sizes
+from src.utils.neuropil_masks import compute_neuropil_sizes, compute_neuropil_sizes_2d
 from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
+from src.visualization.visualize_interpretability import (
+    plot_contrasts_horizontal,
+    DEFAULT_CONTRAST_SPEC,
+)
 
 apply_style()
 
@@ -183,7 +187,7 @@ def find_common_valid_entries(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--variant', default='',
-                        help='KO variant: empty = zero-fill (default), noisefill, static')
+                        help='KO variant: empty = zero-fill (default), noisefill, static, shuffled')
     args    = parser.parse_args()
     variant = args.variant
 
@@ -622,6 +626,122 @@ def main():
     ax_sz.tick_params(axis='both', labelsize=TICK_FS)
     plt.tight_layout()
     save_figure(fig_sz, os.path.join(out_plot, f'diag_KO_size_vs_delta{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # ── 2D footprint size normalisation ───────────────────────────────────────
+    neuropil_sizes_2d  = compute_neuropil_sizes_2d(base_config, rng=rng, logger=logger)
+    SCALE_2D           = 1_000   # express as ΔAcc per 1k pixels
+    delta_mean_norm_2d = delta_mean / (neuropil_sizes_2d / SCALE_2D)  # (n_classes, n_neuropils)
+
+    df_norm_2d = pd.DataFrame(delta_mean_norm_2d, index=class_names, columns=NEUROPILS)
+    df_norm_2d.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_norm_2d.csv'))
+
+    group_delta_norm_2d = np.array([
+        np.nanmean(delta_mean_norm_2d[GROUPS[g], :], axis=0)
+        for g in GROUP_ORDER
+    ])
+    df_group_norm_2d = pd.DataFrame(group_delta_norm_2d, index=GROUP_ORDER, columns=NEUROPILS)
+    df_group_norm_2d.to_csv(os.path.join(out_diag, 'KO_delta_accuracy_groups_norm_2d.csv'))
+    logger.info(f'Saved 2D-norm CSVs → {out_diag}')
+
+    # heatmap: per-class 2D norm
+    vmax_n2 = np.nanpercentile(np.abs(delta_mean_norm_2d), 95)
+    fig_n2, ax_n2 = plt.subplots(figsize=(14, 8))
+    sns.heatmap(
+        df_norm_2d, ax=ax_n2, cmap='RdBu_r', center=0,
+        vmin=-vmax_n2, vmax=vmax_n2,
+        annot=True, fmt='.2f',
+        annot_kws={'size': ANNOT_FS},
+        linewidths=0.3,
+        cbar_kws={'label': f'Mean ΔAccuracy per {SCALE_2D:,} pixels [pp / 1k px]', 'shrink': 0.8},
+    )
+    ax_n2.set_title(
+        f'Per-class accuracy drop — 2D footprint normalised  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS, pad=14,
+    )
+    ax_n2.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax_n2.set_ylabel('Behavioural class',    fontsize=LABEL_FS, labelpad=8)
+    ax_n2.tick_params(axis='both', labelsize=TICK_FS)
+    cbar_n2 = ax_n2.collections[0].colorbar
+    cbar_n2.ax.tick_params(labelsize=CBAR_FS)
+    cbar_n2.ax.yaxis.label.set_size(CBAR_FS)
+    plt.tight_layout()
+    save_figure(fig_n2, os.path.join(out_plot, f'diag_KO_permutation_norm_2d{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # heatmap: group-level 2D norm
+    vmax_gn2 = np.nanpercentile(np.abs(group_delta_norm_2d), 95)
+    fig_gn2, ax_gn2 = plt.subplots(figsize=(14, 5))
+    sns.heatmap(
+        df_group_norm_2d, ax=ax_gn2, cmap='RdBu_r', center=0,
+        vmin=-vmax_gn2, vmax=vmax_gn2,
+        annot=True, fmt='.2f',
+        annot_kws={'size': ANNOT_FS},
+        linewidths=0.3,
+        cbar_kws={'label': f'Mean ΔAccuracy per {SCALE_2D:,} pixels [pp / 1k px]', 'shrink': 0.8},
+    )
+    ax_gn2.set_title(
+        f'Group-level accuracy drop — 2D footprint normalised  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS, pad=14,
+    )
+    ax_gn2.set_xlabel('Neuropil knocked out', fontsize=LABEL_FS, labelpad=8)
+    ax_gn2.set_ylabel('Condition group',      fontsize=LABEL_FS, labelpad=8)
+    ax_gn2.tick_params(axis='both', labelsize=TICK_FS)
+    cbar_gn2 = ax_gn2.collections[0].colorbar
+    cbar_gn2.ax.tick_params(labelsize=CBAR_FS)
+    cbar_gn2.ax.yaxis.label.set_size(CBAR_FS)
+    plt.tight_layout()
+    save_figure(fig_gn2, os.path.join(out_plot, f'diag_KO_permutation_groups_norm_2d{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # scatter: 2D pixel footprint vs mean ΔAcc
+    mean_delta_per_neuropil = np.nanmean(delta_mean, axis=0)
+    fig_sz2, ax_sz2 = plt.subplots(figsize=(7, 6))
+    ax_sz2.scatter(neuropil_sizes_2d, mean_delta_per_neuropil,
+                   s=80, color='steelblue', edgecolors='white', linewidths=0.5, zorder=3)
+    for name, x, y in zip(NEUROPILS, neuropil_sizes_2d, mean_delta_per_neuropil):
+        ax_sz2.annotate(name, (x, y), textcoords='offset points', xytext=(6, 4),
+                        fontsize=TICK_FS - 1)
+    ax_sz2.axhline(0, color='grey', linewidth=0.6, linestyle='--')
+    ax_sz2.set_xlabel('Neuropil 2D footprint [pixels]', fontsize=LABEL_FS)
+    ax_sz2.set_ylabel('Mean ΔAccuracy (baseline − KO) [pp]', fontsize=LABEL_FS)
+    ax_sz2.set_title('Neuropil 2D size vs accuracy drop\n(size confound diagnostic)',
+                     fontsize=TITLE_FS, pad=10)
+    ax_sz2.tick_params(axis='both', labelsize=TICK_FS)
+    plt.tight_layout()
+    save_figure(fig_sz2, os.path.join(out_plot, f'diag_KO_size2d_vs_delta{tag}.pdf'),
+                formats=('pdf', 'png'))
+
+    # contrast plots: State / Modality / Valence from 2D-norm group deltas
+    _CONTRAST_PAIRS = {
+        'Starved_minus_Fed':         ('Starved',    'Fed'),
+        'Odor_minus_Taste':          ('Odor',       'Taste'),
+        'Appetitive_minus_Aversive': ('Appetitive', 'Aversive'),
+    }
+    contrast_rows_2d = {
+        cname: df_group_norm_2d.loc[g1] - df_group_norm_2d.loc[g2]
+        for cname, (g1, g2) in _CONTRAST_PAIRS.items()
+        if g1 in df_group_norm_2d.index and g2 in df_group_norm_2d.index
+    }
+    contrasts_df_2d = pd.DataFrame(contrast_rows_2d).T   # (3, n_neuropils)
+    contrasts_df_2d.to_csv(os.path.join(out_diag, 'KO_contrasts_norm_2d.csv'))
+
+    fig_c, axes_c = plt.subplots(1, 3, figsize=(11, 3.5))
+    plot_contrasts_horizontal(
+        axes=axes_c,
+        group_contrasts_abs=contrasts_df_2d,
+        neuropil_names=NEUROPILS,
+        sort_by_modality=True,
+        uniform_xlim=True,
+        fontsize_title=FONT_SIZES.get('subplot_title', 9),
+        fontsize_labels=FONT_SIZES.get('label', 7),
+    )
+    fig_c.suptitle(
+        f'KO neuropil importance — 2D footprint normalised contrasts  (n = {len(all_deltas)} runs)',
+        fontsize=TITLE_FS - 4, y=1.02,
+    )
+    plt.tight_layout()
+    save_figure(fig_c, os.path.join(out_plot, f'diag_KO_contrasts_norm_2d{tag}.pdf'),
                 formats=('pdf', 'png'))
 
     logger.info('Done.')
