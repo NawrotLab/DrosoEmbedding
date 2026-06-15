@@ -113,7 +113,7 @@ def ko_allTs_path(base_allTs_path: str, neuropil: str, variant: str = '') -> str
     noisefill: {allTs_base}/meanZ_allTs_KO_noisefill_{neuropil}
     """
     parent = os.path.dirname(base_allTs_path.rstrip('/'))
-    suffix = f'_{variant}' if variant in ('noisefill', 'static') else ''
+    suffix = f'_{variant}' if variant in ('noisefill', 'static', 'shuffled') else ''
     return os.path.join(parent, f'meanZ_allTs_KO{suffix}_{neuropil}')
 
 

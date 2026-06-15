@@ -15,10 +15,12 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 cd /rhomes/aabdel/DrosoEmbedding
 
-python -m scripts.diagnostics.diag_static_fill_viz              # static fill diagnostic (run first)
+# python -m scripts.diagnostics.diag_static_fill_viz                      # baseline fill diagnostic
+# python -m scripts.diagnostics.diag_KO_quality --variant shuffled
+# python -m scripts.diagnostics.diag_KO_permutation --variant shuffled
 # python -m scripts.diagnostics.diag_KO_quality --variant static
 # python -m scripts.diagnostics.diag_KO_permutation --variant static
 # python -m scripts.diagnostics.diag_KO_quality --variant noisefill
 # python -m scripts.diagnostics.diag_KO_permutation --variant noisefill
-# python -m scripts.diagnostics.diag_KO_quality                         # zero-fill
-# python -m scripts.diagnostics.diag_KO_permutation                     # zero-fill
+# python -m scripts.diagnostics.diag_KO_quality                           # zero-fill
+# python -m scripts.diagnostics.diag_KO_permutation                       # zero-fill

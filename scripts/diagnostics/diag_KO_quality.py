@@ -48,7 +48,7 @@ OUT_DIR = 'results/diagnostics/KO_quality'
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def ko_path(baseline_path: Path, neuropil: str, variant: str = '') -> Path:
-    suffix = f'_{variant}' if variant in ('noisefill', 'static') else ''
+    suffix = f'_{variant}' if variant in ('noisefill', 'static', 'shuffled') else ''
     return baseline_path.parent / f'meanZ_allTs_KO{suffix}_{neuropil}'
 
 
