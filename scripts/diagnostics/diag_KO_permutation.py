@@ -113,7 +113,7 @@ def ko_allTs_path(base_allTs_path: str, neuropil: str, variant: str = '') -> str
     noisefill: {allTs_base}/meanZ_allTs_KO_noisefill_{neuropil}
     """
     parent = os.path.dirname(base_allTs_path.rstrip('/'))
-    suffix = f'_noisefill' if variant == 'noisefill' else ''
+    suffix = f'_{variant}' if variant in ('noisefill', 'static') else ''
     return os.path.join(parent, f'meanZ_allTs_KO{suffix}_{neuropil}')
 
 
@@ -183,7 +183,7 @@ def find_common_valid_entries(
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--variant', default='',
-                        help='KO variant: empty = zero-fill (default), noisefill')
+                        help='KO variant: empty = zero-fill (default), noisefill, static')
     args    = parser.parse_args()
     variant = args.variant
 

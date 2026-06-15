@@ -48,7 +48,7 @@ OUT_DIR = 'results/diagnostics/KO_quality'
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 def ko_path(baseline_path: Path, neuropil: str, variant: str = '') -> Path:
-    suffix = f'_noisefill' if variant == 'noisefill' else ''
+    suffix = f'_{variant}' if variant in ('noisefill', 'static') else ''
     return baseline_path.parent / f'meanZ_allTs_KO{suffix}_{neuropil}'
 
 
@@ -168,7 +168,7 @@ def plot_ko_image_grid(baseline_dir: Path, neuropils: list, n_examples: int,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--variant', default='',
-                        help='KO variant to check: empty = zero-fill (default), noisefill')
+                        help='KO variant to check: empty = zero-fill (default), noisefill, static')
     args = parser.parse_args()
     variant = args.variant
 
