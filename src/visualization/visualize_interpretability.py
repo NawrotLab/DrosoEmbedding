@@ -24,6 +24,8 @@ import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
+import tifffile
+from torchvision import transforms
 from src.visualization.figure_base import apply_style, FONT_SIZES
 
 apply_style()
@@ -499,6 +501,184 @@ def print_element_sizes(
 
 
 # ════════════════════════════════════════════════
+# GradCAM-based neuropil importance
+# ════════════════════════════════════════════════
+
+NEUROPIL_GROUPS = {
+    'Odor':       [0, 1, 2, 3],
+    'Taste':      [4, 5, 6, 7],
+    'Combined':   [8, 9, 10, 11, 12, 13, 14, 15],
+    'Appetitive': [0, 2, 4, 6, 8, 12],
+    'Aversive':   [1, 3, 5, 7, 9, 13],
+    'Conflict':   [10, 11, 14, 15],
+    'Starved':    [0, 1, 4, 5, 8, 9, 10, 11],
+    'Fed':        [2, 3, 6, 7, 12, 13, 14, 15],
+}
+
+NEUROPIL_CONTRASTS = {
+    'Starved_minus_Fed':          ('Starved',    'Fed'),
+    'Odor_minus_Taste':           ('Odor',       'Taste'),
+    'Appetitive_minus_Aversive':  ('Appetitive', 'Aversive'),
+}
+
+
+def compute_gradcam_per_sample(model, test_loader, target_layer, device, logger=None):
+    """Run GradCAM++ on every test sample; return only correctly classified ones.
+
+    Returns
+    -------
+    correct_cams   : ndarray (N_correct, 128, 128)
+    correct_labels : ndarray (N_correct,)
+    correct_paths  : list[str]
+    """
+    from pytorch_grad_cam import GradCAMPlusPlus
+    from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
+
+    def _log(msg):
+        if logger: logger.info(msg)
+        else: print(msg)
+
+    model.eval()
+
+    # ── forward pass: collect predictions ─────────────────────────────────
+    all_preds_list = []
+    with torch.no_grad():
+        for X_batch, _ in test_loader:
+            out = model(X_batch.to(device))
+            logits = out[0] if isinstance(out, tuple) else out
+            all_preds_list.append(logits.argmax(dim=1).cpu().numpy())
+
+    all_preds  = np.concatenate(all_preds_list)
+    all_labels = np.array(test_loader.dataset.labels)
+    correct_idx = np.where(all_preds == all_labels)[0]
+    N_correct = len(correct_idx)
+    _log(f'Correctly classified: {N_correct}/{len(all_labels)} '
+         f'({100 * N_correct / len(all_labels):.1f} %)')
+
+    # ── GradCAM++ per sample ───────────────────────────────────────────────
+    cam_engine = GradCAMPlusPlus(model=model, target_layers=[target_layer])
+    cam_list = []
+
+    for X_batch, y_batch in test_loader:
+        B   = X_batch.shape[0]
+        y_np = y_batch.numpy()
+
+        if X_batch.dim() == 5:
+            _, S, C, H, W = X_batch.shape
+            frames  = X_batch.reshape(B * S, C, H, W).to(device)
+            targets = [ClassifierOutputTarget(int(y_np[i]))
+                       for i in range(B) for _ in range(S)]
+        else:
+            S       = 1
+            frames  = X_batch.to(device)
+            targets = [ClassifierOutputTarget(int(y_np[i])) for i in range(B)]
+
+        g_cams = cam_engine(input_tensor=frames, targets=targets)
+
+        if S > 1:
+            Hc, Wc = g_cams.shape[-2], g_cams.shape[-1]
+            g_cams = g_cams.reshape(B, S, Hc, Wc).mean(axis=1)
+
+        for i in range(B):
+            gc = g_cams[i]
+            if gc.shape[0] != 128 or gc.shape[1] != 128:
+                t  = torch.tensor(gc, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                gc = F.interpolate(t, size=(128, 128), mode='bilinear',
+                                   align_corners=False).squeeze().numpy()
+            cam_list.append(gc)
+
+    del cam_engine
+
+    all_cams       = np.stack(cam_list)
+    correct_cams   = all_cams[correct_idx]
+    correct_labels = all_labels[correct_idx]
+    correct_paths  = [test_loader.dataset.image_paths[i] for i in correct_idx]
+    return correct_cams, correct_labels, correct_paths
+
+
+def load_neuropil_masks(correct_paths, allTs_path, neuropil_names,
+                        mask_size=128, logger=None):
+    """Load per-sample binary neuropil masks from isolated-neuropil TIFFs.
+
+    Returns
+    -------
+    masks : bool ndarray (N_correct, n_neuropils, mask_size, mask_size)
+    """
+    def _log(msg):
+        if logger: logger.info(msg)
+        else: print(msg)
+
+    N = len(correct_paths)
+    n_np = len(neuropil_names)
+    masks = np.zeros((N, n_np, mask_size, mask_size), dtype=bool)
+
+    _mask_tf = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Resize((mask_size, mask_size),
+                          interpolation=transforms.InterpolationMode.NEAREST),
+    ])
+
+    for j, neuropil in enumerate(neuropil_names):
+        neuropil_base = f'{allTs_path}_{neuropil}'
+        n_missing = 0
+        for i, p in enumerate(correct_paths):
+            np_path = os.path.join(
+                neuropil_base,
+                os.path.basename(os.path.dirname(p)),
+                os.path.basename(p),
+            )
+            if not os.path.exists(np_path):
+                n_missing += 1
+                continue
+            raw        = tifffile.imread(np_path)
+            img_t      = _mask_tf(raw)
+            masks[i, j] = img_t.numpy()[0] > 0
+        if n_missing:
+            _log(f'{neuropil}: {n_missing}/{N} mask files missing')
+
+    return masks
+
+
+def compute_gradcam_neuropil_importance_by_group(
+    correct_cams, correct_labels, masks, neuropil_names,
+    groups=None, contrasts=None,
+):
+    """Compute mean GradCAM intensity within each neuropil mask, aggregated by group.
+
+    Returns
+    -------
+    df_group    : DataFrame (n_groups, n_neuropils)
+    df_contrast : DataFrame (n_contrasts, n_neuropils)
+    """
+    if groups is None:
+        groups = NEUROPIL_GROUPS
+    if contrasts is None:
+        contrasts = NEUROPIL_CONTRASTS
+
+    N, n_np = correct_cams.shape[0], len(neuropil_names)
+    importance = np.full((N, n_np), np.nan, dtype=np.float32)
+    for i in range(N):
+        for j in range(n_np):
+            m = masks[i, j]
+            if m.sum() > 0:
+                importance[i, j] = correct_cams[i][m].mean()
+
+    group_profiles = {}
+    for gname, cls_idx in groups.items():
+        sel = np.isin(correct_labels, cls_idx)
+        group_profiles[gname] = np.nanmean(importance[sel], axis=0)
+
+    df_group = pd.DataFrame(group_profiles, index=neuropil_names).T
+
+    contrast_profiles = {}
+    for cname, (g1, g2) in contrasts.items():
+        contrast_profiles[cname] = group_profiles[g1] - group_profiles[g2]
+
+    df_contrast = pd.DataFrame(contrast_profiles, index=neuropil_names).T
+    return df_group, df_contrast
+
+
+# ════════════════════════════════════════════════
 # Plotting: Pooled GradCAM grid (3×3)
 # ════════════════════════════════════════════════
 
@@ -507,6 +687,7 @@ def plot_gradcam_pooled(
     sketch_path=None, cmap='viridis',
     normalize_per_row=False,
     normalize_global=True,
+    brain_shape=None,
 ):
     """
     Plot pooled GradCAM as a tight 3-column × 3-row grid (transposed).
@@ -592,8 +773,12 @@ def plot_gradcam_pooled(
                 ax.axis('off')
                 continue
 
-            im = ax.imshow(pooled_cams[entry], cmap=cmap,
-                           aspect='equal', vmin=0, vmax=1)
+            cam = pooled_cams[entry]
+            if brain_shape is not None:
+                t   = torch.tensor(cam, dtype=torch.float32).unsqueeze(0).unsqueeze(0)
+                cam = F.interpolate(t, size=brain_shape, mode='bilinear',
+                                    align_corners=False).squeeze().numpy()
+            im = ax.imshow(cam, cmap=cmap, aspect='equal', vmin=0, vmax=1)
             if im_ref is None:
                 im_ref = im
 
