@@ -990,6 +990,55 @@ def plot_contrasts_horizontal(
 
 
 # ════════════════════════════════════════════════
+# Plotting: Diverging heatmap (KO ΔAccuracy)
+# ════════════════════════════════════════════════
+
+def plot_heatmap_groups_diverging(
+    ax, group_profiles, neuropil_names=None,
+    cmap='RdBu_r', annotate=True, fontsize_annot=None,
+    title=None, cbar_label='Mean ΔAccuracy [pp]',
+):
+    """Group-level heatmap with a diverging colourmap centred at 0.
+
+    Designed for KO ΔAccuracy values (positive = neuropil matters for the group).
+    """
+    if neuropil_names is None:
+        neuropil_names = list(group_profiles.columns)
+    values     = group_profiles.values
+    group_names = list(group_profiles.index)
+
+    if fontsize_annot is None:
+        fontsize_annot = FONT_SIZES['heatmap_cell']
+
+    vmax = np.nanpercentile(np.abs(values), 95)
+    im = ax.imshow(values, aspect='auto', cmap=cmap, vmin=-vmax, vmax=vmax)
+    ax.set_xticks(range(len(neuropil_names)))
+    ax.set_xticklabels(neuropil_names, rotation=45, ha='right',
+                       fontsize=FONT_SIZES['tick'])
+    ax.set_yticks(range(len(group_names)))
+    ax.set_yticklabels(group_names, fontsize=FONT_SIZES['tick'])
+
+    if annotate:
+        for i in range(values.shape[0]):
+            for j in range(values.shape[1]):
+                v = values[i, j]
+                text_color = 'white' if abs(v) > 0.5 * vmax else 'black'
+                ax.text(j, i, f'{v:.2f}',
+                        ha='center', va='center',
+                        fontsize=fontsize_annot, color=text_color)
+
+    if title:
+        ax.set_title(title, fontsize=FONT_SIZES['subplot_title'])
+
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    divider = make_axes_locatable(ax)
+    cax  = divider.append_axes('right', size='3%', pad=0.08)
+    cbar = ax.figure.colorbar(im, cax=cax)
+    cbar.set_label(cbar_label, fontsize=FONT_SIZES['colorbar'], labelpad=6)
+    return ax
+
+
+# ════════════════════════════════════════════════
 # Plotting: Correlation matrix
 # ════════════════════════════════════════════════
 
