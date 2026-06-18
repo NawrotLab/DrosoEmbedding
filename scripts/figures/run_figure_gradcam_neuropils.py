@@ -231,6 +231,7 @@ plot_heatmap_groups_abs(
     ax=ax_heat,
     group_profiles_abs=df_group,
     neuropil_names=NEUROPILS,
+    annotate=False,
 )
 
 # ── Panel e: GradCAM contrast plots (3 sub-panels) ────────────────────────

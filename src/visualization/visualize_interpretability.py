@@ -816,11 +816,16 @@ def plot_gradcam_pooled(
 def plot_heatmap_groups_abs(
     ax, group_profiles_abs, neuropil_names=None,
     cmap='viridis', annotate=True, fontsize_annot=None, title=None,
+    normalize=True,
 ):
     """Grouped absolute importance heatmap."""
     if neuropil_names is None:
         neuropil_names = list(group_profiles_abs.columns)
     values = group_profiles_abs.values
+    if normalize:
+        vmin, vmax = values.min(), values.max()
+        if vmax - vmin > 1e-8:
+            values = (values - vmin) / (vmax - vmin)
     _label_map = {'Multi': 'Combined', 'Valence_Mix': 'Conflict'}
     group_names = [_label_map.get(n, n) for n in group_profiles_abs.index]
 
