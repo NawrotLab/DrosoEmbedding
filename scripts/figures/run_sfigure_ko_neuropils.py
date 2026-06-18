@@ -62,7 +62,6 @@ RUN_PREFIX = f'{TASK}_C16_E16_H16_'
 N_RUNS     = 50
 
 CACHE_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
-OUT_DIR    = 'results/CombiPlots'
 OUT_STEM   = f'sfig_ko_neuropils_{VARIANT}'
 
 BATCH_SIZE  = 256
@@ -91,6 +90,7 @@ logger = setup_logger(task_name=f'sfig_ko_neuropils_{VARIANT}',
                       log_dir='logs/run_sfigure_ko_neuropils')
 
 paths        = config['paths']
+OUT_DIR      = paths['output_dir']
 model_params = config['model']['parameters']
 
 with open(f"{paths['results_root']}/config.pkl", 'rb') as fh:

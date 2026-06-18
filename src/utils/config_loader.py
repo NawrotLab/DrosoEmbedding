@@ -49,6 +49,9 @@ def apply_env_overrides(config):
         'DROSO_DATA_ROOT': ['paths', 'data_root'],
         'DROSO_ALLT_BASE': ['paths', 'allTs_base'],
         'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
+        'DROSO_CHECKPOINTS_DIR': ['paths', 'checkpoints_dir'],
+        'DROSO_SRC_IMGS_DIR':    ['paths', 'src_imgs_dir'],
+        'DROSO_OUTPUT_DIR':      ['paths', 'output_dir'],
         'REMOVE_NEUROPIL': ['data', 'preprocessing', 'remove_neuropil'],
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
         }

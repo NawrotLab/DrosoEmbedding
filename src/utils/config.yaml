@@ -74,6 +74,9 @@ paths:
   pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
   allTs_base: "/path/to/allTs_base"
   peakIDs_Times_All: '/path/to/IDs_logTs.pickle'
+  checkpoints_dir: "results/_chkpt_finals"
+  src_imgs_dir: "src/src_imgs"
+  output_dir: "results/CombiPlots"
 
 visualization:
   plot_batch_size: 16

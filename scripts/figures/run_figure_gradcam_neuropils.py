@@ -65,12 +65,6 @@ BRAIN_SHAPE = (128, 238)
 NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 
-OUT_DIR  = 'results/CombiPlots'
-OUT_STEM = f'fig_neuropils_{GRADCAM_LAYER}'
-
-GRADCAM_SKETCH_PATH = 'src/src_imgs/CAM_Sketch.svg'
-ATLAS_PATH          = 'src/src_imgs/NeuropilsAtlas.svg'
-
 # ════════════════════════════════════════════════
 # LOAD CONFIG + MODEL + DATA
 # ════════════════════════════════════════════════
@@ -80,6 +74,10 @@ logger = setup_logger(task_name=config['run_id'],
                       log_dir='logs/run_figure_neuropils')
 
 paths        = config['paths']
+OUT_DIR             = paths['output_dir']
+OUT_STEM            = f'fig_neuropils_{GRADCAM_LAYER}'
+GRADCAM_SKETCH_PATH = os.path.join(paths['src_imgs_dir'], 'CAM_Sketch.svg')
+ATLAS_PATH          = os.path.join(paths['src_imgs_dir'], 'NeuropilsAtlas.svg')
 model_params = config['model']['parameters']
 train_params = config['training']
 
@@ -174,10 +172,10 @@ fig = plt.figure(figsize=(FIGURE_WIDTH, 13))
 
 gs_top = GridSpec(
     1, 3, figure=fig,
-    left=0.05, right=0.97,
+    left=0.03, right=0.97,
     bottom=0.52, top=0.93,
-    wspace=0.30,
-    width_ratios=[0.6, 1.1, 0.8],
+    wspace=0.25,
+    width_ratios=[0.4, 1.5, 0.7],
 )
 
 gs_bot = GridSpec(
@@ -201,8 +199,6 @@ ax_sketch = fig.add_subplot(gs_top[0, 0])
 if os.path.exists(GRADCAM_SKETCH_PATH):
     sketch_img = load_image(GRADCAM_SKETCH_PATH)
     ax_sketch.imshow(sketch_img, aspect='equal')
-    pos = ax_sketch.get_position()
-    ax_sketch.set_position([pos.x0 + 0.02, pos.y0, pos.width, pos.height])
 ax_sketch.set_xticks([]); ax_sketch.set_yticks([])
 for spine in ax_sketch.spines.values():
     spine.set_visible(False)
