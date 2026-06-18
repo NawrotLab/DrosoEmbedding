@@ -172,10 +172,10 @@ fig = plt.figure(figsize=(FIGURE_WIDTH, 13))
 
 gs_top = GridSpec(
     1, 3, figure=fig,
-    left=0.03, right=0.97,
+    left=0.01, right=0.97,
     bottom=0.52, top=0.93,
     wspace=0.25,
-    width_ratios=[0.4, 1.5, 0.7],
+    width_ratios=[0.6, 1.1, 0.8],
 )
 
 gs_bot = GridSpec(
