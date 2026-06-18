@@ -759,7 +759,7 @@ def plot_gradcam_pooled(
     inner_gs = GridSpecFromSubplotSpec(
         nrows, ncols + 1,
         subplot_spec=gs_slot,
-        wspace=0.04, hspace=0.05,
+        wspace=0.04, hspace=0.28,
         width_ratios=[1, 1, 1, 0.1],
     )
 
@@ -782,14 +782,16 @@ def plot_gradcam_pooled(
             if im_ref is None:
                 im_ref = im
 
-            # Factor label on the left (vertical)
+            # Factor label horizontal above each cell
             lbl = display_labels.get(entry, entry)
-            ax.set_ylabel(lbl, fontsize=FONT_SIZES['label'], rotation=90, labelpad=4)
+            ax.set_title(lbl, fontsize=FONT_SIZES['label'], pad=3)
 
-            # Column header only on top row
+            # Column group header (State / Modality / Valence) above the factor label, top row only
             if r == 0:
-                ax.set_title(col_label, fontsize=FONT_SIZES['subplot_title'], fontweight='bold',
-                             pad=4)
+                ax.text(0.5, 1.30, col_label,
+                        transform=ax.transAxes, ha='center', va='bottom',
+                        fontsize=FONT_SIZES['subplot_title'], fontweight='bold',
+                        clip_on=False)
 
             ax.set_xticks([]); ax.set_yticks([])
 
