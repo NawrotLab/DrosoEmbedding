@@ -186,10 +186,10 @@ gs_bot = GridSpec(
 )
 
 # ── Panel labels ──────────────────────────────────────────────────────────
-fig.text(0.07, 0.925, 'a', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.25, 0.925, 'b', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.69, 0.925, 'c', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.05, 0.50,  'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.04, 0.95,  'a', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.25, 0.95,  'b', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.69, 0.95,  'c', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+fig.text(0.02, 0.50,  'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 fig.text(0.52, 0.50,  'e', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 
 # ═══════════════════ TOP ROW ═══════════════════
