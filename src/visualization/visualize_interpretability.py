@@ -24,6 +24,7 @@ import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
+from matplotlib.colors import PowerNorm
 import tifffile
 from torchvision import transforms
 from src.visualization.figure_base import apply_style, FONT_SIZES
@@ -831,7 +832,10 @@ def plot_heatmap_groups_abs(
 
     if fontsize_annot is None:
         fontsize_annot = FONT_SIZES['heatmap_cell']
-    im = ax.imshow(values, aspect='auto', cmap=cmap)
+    # PowerNorm compresses low values (~<0.3) into a uniform dark band and
+    # stretches high values so differences pop. Set to None to revert.
+    _norm = PowerNorm(gamma=2, vmin=0, vmax=1)
+    im = ax.imshow(values, aspect='auto', cmap=cmap, norm=_norm)
     ax.set_xticks(range(len(neuropil_names)))
     ax.set_xticklabels(neuropil_names, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
     ax.set_yticks(range(len(group_names)))
