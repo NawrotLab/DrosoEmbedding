@@ -980,18 +980,14 @@ def plot_contrasts_horizontal(
 
     # Scalebar on bottom-right corner of last (valence) panel
     if xlim_max is not None:
-        scale_val = 0.2
+        scale_val = 0.1
         last_ax = axes[-1]
-        # Position: right side, near bottom but inside the plot area
         sb_x_start = xlim_max * 0.4
         sb_x_end = sb_x_start + scale_val
         sb_y = n_np - 0.5  # just below last neuropil
         last_ax.plot([sb_x_start, sb_x_end], [sb_y, sb_y],
                      color='black', linewidth=1.5,
                      clip_on=False, solid_capstyle='butt')
-        last_ax.text((sb_x_start + sb_x_end) / 2, sb_y - 0.3, f'{scale_val}',
-                     ha='center', va='top', fontsize=max(6, fontsize_labels - 2),
-                     clip_on=False)
 
     return axes
 
