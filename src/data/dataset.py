@@ -186,3 +186,37 @@ class CustomDataset(Dataset):
         """Get the shape of a single sample."""
         sample, _ = self[0]
         return sample.shape
+
+
+def compute_mean_frame_shape(paths, n_sample=200, seed=0, logger=None):
+    """Return (mean_H, mean_W) of raw (pre-transform) TIFF frames.
+
+    Reads a random subset of *paths* without applying any transform so the
+    natural image dimensions are measured.  Use the result to derive an
+    aspect-correct upscaling target for GradCAM maps, e.g.
+        brain_shape = (128, round(128 * mean_W / mean_H))
+
+    Parameters
+    ----------
+    paths     : list[str]  – image file paths (e.g. correct_paths from GradCAM)
+    n_sample  : int        – how many frames to sample (capped at len(paths))
+    seed      : int        – RNG seed for reproducible sampling
+    """
+    def _log(msg):
+        if logger: logger.info(msg)
+        else: print(msg)
+
+    rng = np.random.default_rng(seed)
+    idx = rng.choice(len(paths), size=min(n_sample, len(paths)), replace=False)
+    heights, widths = [], []
+    for i in idx:
+        img = tifffile.imread(paths[i])
+        # tifffile returns (H, W) for grayscale or (H, W, C) for colour
+        heights.append(img.shape[0])
+        widths.append(img.shape[1])
+    mean_H = float(np.mean(heights))
+    mean_W = float(np.mean(widths))
+    _log(f"compute_mean_frame_shape: sampled {len(idx)} frames → "
+         f"mean H={mean_H:.1f}, mean W={mean_W:.1f} "
+         f"(aspect ratio {mean_W/mean_H:.3f})")
+    return mean_H, mean_W

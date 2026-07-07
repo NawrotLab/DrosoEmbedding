@@ -9,8 +9,8 @@ Top row (width_ratios = [0.6, 1.1, 0.8]):
 │    pipeline  │    attribution   │    atlas     │
 │    sketch    │    maps (3×3)    │    sketch    │
 └──────────────┴──────────────────┴──────────────┘
-Attribution maps are upscaled to BRAIN_SHAPE = (128, 238)
-to restore the original ~70 × 130 px brain aspect ratio.
+Attribution maps are upscaled to BRAIN_SHAPE derived from the mean raw
+frame dimensions (height fixed at 128, width scaled by the measured aspect ratio).
 
 Bottom row (2 equal columns, independent GridSpec):
 ┌──────────────────────┬──────────────────────────┐
@@ -45,6 +45,7 @@ from src.visualization.visualize_interpretability import (
     plot_contrasts_horizontal,
     load_image,
 )
+from src.data.dataset import compute_mean_frame_shape
 from src.visualization.figure_base import (
     apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure,
 )
@@ -57,10 +58,6 @@ apply_style()
 
 GRADCAM_LAYER = 'conv1'
 LAYER_MAP = {'conv1': 0, 'conv2': 3, 'conv3': 6}
-
-# Original brain size before DataLoader resize: ~70 H × 130 W.
-# Upscale to BRAIN_SHAPE keeping height=128 → width = 128 * 130/70 ≈ 238.
-BRAIN_SHAPE = (128, 238)
 
 NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
@@ -133,6 +130,11 @@ correct_cams, correct_labels, correct_paths = compute_gradcam_per_sample(
     model=classifier, test_loader=test_loader,
     target_layer=target_layer, device=device, logger=logger,
 )
+
+logger.info('Computing mean raw frame shape for GradCAM upscaling…')
+mean_H, mean_W = compute_mean_frame_shape(correct_paths, n_sample=200, logger=logger)
+BRAIN_SHAPE = (128, round(128 * mean_W / mean_H))
+logger.info(f'BRAIN_SHAPE set to {BRAIN_SHAPE}')
 
 logger.info('Loading neuropil masks…')
 masks = load_neuropil_masks(
@@ -210,7 +212,7 @@ plot_gradcam_pooled(
     normalize_global=True,
     normalize_per_row=False,
     brain_shape=BRAIN_SHAPE,
-    y_shift=-0.04,              # shift panel b down so group headers align with 'b' label
+    y_shift=-0.02,              # shift panel b down so group headers align with 'b' label
 )
 
 # ── Panel c: Neuropil atlas sketch ────────────────────────────────────────
