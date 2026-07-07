@@ -42,7 +42,7 @@ from src.analysis.ko_permutation import (
     aggregate_ko_by_group,
 )
 from src.visualization.visualize_interpretability import (
-    plot_heatmap_groups_abs,
+    plot_heatmap_groups_diverging,
     plot_contrasts_horizontal,
 )
 from src.visualization.figure_base import (
@@ -191,12 +191,11 @@ norm_label = {'2d': 'Mean ΔAccuracy per 1k px [pp / 1k px]',
               'none': 'Mean ΔAccuracy [pp]'}[args.norm]
 
 ax_heat = fig.add_subplot(gs[0, 0])
-plot_heatmap_groups_abs(
+plot_heatmap_groups_diverging(
     ax=ax_heat,
-    group_profiles_abs=df_group,
+    group_profiles=df_group,
     neuropil_names=NEUROPILS,
-    annotate=False,
-    normalize=False,
+    cbar_label=norm_label,
 )
 
 # ── Panel b: contrast plots ───────────────────────────────────────────────
