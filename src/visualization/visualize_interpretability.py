@@ -689,6 +689,7 @@ def plot_gradcam_pooled(
     normalize_global=True,
     brain_shape=None,
     y_shift=0.0,
+    hspace=0.05,
 ):
     """
     Plot pooled GradCAM as a tight 3-column × 3-row grid (transposed).
@@ -760,7 +761,7 @@ def plot_gradcam_pooled(
     inner_gs = GridSpecFromSubplotSpec(
         nrows, ncols + 1,
         subplot_spec=gs_slot,
-        wspace=0.04, hspace=0.05,
+        wspace=0.04, hspace=hspace,
         width_ratios=[1, 1, 1, 0.1],
     )
 
