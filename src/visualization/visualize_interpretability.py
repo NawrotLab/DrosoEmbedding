@@ -690,6 +690,7 @@ def plot_gradcam_pooled(
     brain_shape=None,
     y_shift=0.0,
     hspace=0.05,
+    cbar_y=None,
 ):
     """
     Plot pooled GradCAM as a tight 3-column × 3-row grid (transposed).
@@ -798,6 +799,7 @@ def plot_gradcam_pooled(
             ax.set_xticks([]); ax.set_yticks([])
 
     # ── Colorbar column (spans all rows) ───────────────────
+    ax_cb = None
     if im_ref is not None:
 
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -817,6 +819,11 @@ def plot_gradcam_pooled(
             if (pos.x0 >= slot_bb.x0 - 0.01 and pos.x1 <= slot_bb.x1 + 0.01 and
                     pos.y0 >= slot_bb.y0 - 0.01 and pos.y1 <= slot_bb.y1 + 0.01):
                 ax.set_position([pos.x0, pos.y0 + y_shift, pos.width, pos.height])
+
+    # ── Colorbar y override (figure coordinates) ───────────
+    if cbar_y is not None and ax_cb is not None:
+        pos = ax_cb.get_position()
+        ax_cb.set_position([pos.x0, cbar_y[0], pos.width, cbar_y[1] - cbar_y[0]])
 
     return fig
 
