@@ -835,7 +835,7 @@ def plot_gradcam_pooled(
 def plot_heatmap_groups_abs(
     ax, group_profiles_abs, neuropil_names=None,
     cmap='viridis', annotate=True, fontsize_annot=None, title=None,
-    normalize=True,
+    normalize=True, vmax=0.85,
 ):
     """Grouped absolute importance heatmap."""
     if neuropil_names is None:
@@ -850,7 +850,7 @@ def plot_heatmap_groups_abs(
 
     if fontsize_annot is None:
         fontsize_annot = FONT_SIZES['heatmap_cell']
-    im = ax.imshow(values, aspect='auto', cmap=cmap, vmin=0, vmax=0.85)
+    im = ax.imshow(values, aspect='auto', cmap=cmap, vmin=0, vmax=vmax)
     ax.set_xticks(range(len(neuropil_names)))
     ax.set_xticklabels(neuropil_names, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
     ax.set_yticks(range(len(group_names)))
