@@ -272,7 +272,7 @@ plot_gradcam_pooled(
     normalize_per_row=False,
     y_shift=-0.025,             # shift panel b down so group headers align with 'b' label
     hspace=-0.085,              # negative = rows overlap slightly, tightens vertical extent
-    cbar_y=(0.51, 0.88),        # colorbar y extent in figure coordinates
+    cbar_y=(0.515, 0.885),      # colorbar y extent in figure coordinates
 )
 
 # ax_gradcam_pos = gs_gradcam.get_position()
