@@ -791,7 +791,7 @@ def plot_gradcam_pooled(
 
             # Column group header (State / Modality / Valence) above the factor label, top row only
             if r == 0:
-                ax.text(0.5, 1.30, col_label,
+                ax.text(0.5, 1.40, col_label,
                         transform=ax.transAxes, ha='center', va='bottom',
                         fontsize=FONT_SIZES['annotation'], fontweight='bold',
                         clip_on=False)
