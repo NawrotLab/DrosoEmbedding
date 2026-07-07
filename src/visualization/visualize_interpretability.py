@@ -911,7 +911,7 @@ def plot_contrasts_horizontal(
     if neuropil_names is None:
         neuropil_names = list(group_contrasts_abs.columns)
     if fontsize_title is None:
-        fontsize_title = FONT_SIZES['subplot_title']
+        fontsize_title = FONT_SIZES['annotation']
     if fontsize_labels is None:
         fontsize_labels = FONT_SIZES['label']
     if fontsize_legend is None:
