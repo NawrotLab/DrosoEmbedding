@@ -808,7 +808,7 @@ def plot_gradcam_pooled(
 
         ax_cb = fig.add_subplot(inner_gs[:, ncols])
         fig.colorbar(im_ref, cax=ax_cb)
-        ax_cb.set_ylabel('GradCAM intensity', fontsize=FONT_SIZES['colorbar'], labelpad=6)
+        ax_cb.set_ylabel('GradCAM intensity', fontsize=FONT_SIZES['label'], labelpad=6)
 
     # ── Vertical shift (positive = up, negative = down) ────
     if y_shift != 0.0:
@@ -868,7 +868,7 @@ def plot_heatmap_groups_abs(
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="3%", pad=0.08)
     cbar = ax.figure.colorbar(im, cax=cax)
-    cbar.set_label('Importance Weights', fontsize=FONT_SIZES['colorbar'], labelpad=6)
+    cbar.set_label('Importance Weights', fontsize=FONT_SIZES['label'], labelpad=6)
     return ax
 
 
