@@ -842,9 +842,9 @@ def plot_heatmap_groups_abs(
         neuropil_names = list(group_profiles_abs.columns)
     values = group_profiles_abs.values
     if normalize:
-        vmin, vmax = values.min(), values.max()
-        if vmax - vmin > 1e-8:
-            values = (values - vmin) / (vmax - vmin)
+        _dmin, _dmax = values.min(), values.max()
+        if _dmax - _dmin > 1e-8:
+            values = (values - _dmin) / (_dmax - _dmin)
     _label_map = {'Multi': 'Combined', 'Valence_Mix': 'Conflict'}
     group_names = [_label_map.get(n, n) for n in group_profiles_abs.index]
 
