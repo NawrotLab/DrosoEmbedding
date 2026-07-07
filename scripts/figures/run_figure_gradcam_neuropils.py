@@ -214,7 +214,7 @@ plot_gradcam_pooled(
     brain_shape=BRAIN_SHAPE,
     y_shift=-0.025,             # shift panel b down so group headers align with 'b' label
     hspace=-0.07,               # negative = rows overlap slightly, tightens vertical extent
-    cbar_y=(0.55, 0.85),        # colorbar y extent in figure coordinates
+    cbar_y=(0.5, 0.9),          # colorbar y extent in figure coordinates
 )
 
 # ── Panel c: Neuropil atlas sketch ────────────────────────────────────────
