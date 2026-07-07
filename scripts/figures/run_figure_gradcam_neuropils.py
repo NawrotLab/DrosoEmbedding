@@ -210,6 +210,7 @@ plot_gradcam_pooled(
     normalize_global=True,
     normalize_per_row=False,
     brain_shape=BRAIN_SHAPE,
+    y_shift=-0.04,              # shift panel b down so group headers align with 'b' label
 )
 
 # ── Panel c: Neuropil atlas sketch ────────────────────────────────────────
