@@ -193,9 +193,10 @@ norm_label = {'2d': 'Mean ΔAccuracy per 1k px [pp / 1k px]',
 ax_heat = fig.add_subplot(gs[0, 0])
 plot_heatmap_groups_abs(
     ax=ax_heat,
-    group_profiles_abs=df_group.abs(),
+    group_profiles_abs=df_group,
     neuropil_names=NEUROPILS,
     annotate=False,
+    normalize=False,
 )
 
 # ── Panel b: contrast plots ───────────────────────────────────────────────
