@@ -850,9 +850,7 @@ def plot_heatmap_groups_abs(
 
     if fontsize_annot is None:
         fontsize_annot = FONT_SIZES['heatmap_cell']
-    # vmax=0.7 clips the top so the 0-0.7 range uses the full colormap spread.
-    # To revert to linear full range, replace vmax=0.7 with vmax=1.
-    im = ax.imshow(values, aspect='auto', cmap=cmap, vmin=0, vmax=0.7)
+    im = ax.imshow(values, aspect='auto', cmap=cmap, vmin=0, vmax=1)
     ax.set_xticks(range(len(neuropil_names)))
     ax.set_xticklabels(neuropil_names, rotation=45, ha='right', fontsize=FONT_SIZES['tick'])
     ax.set_yticks(range(len(group_names)))
