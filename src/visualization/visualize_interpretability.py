@@ -24,7 +24,6 @@ import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
-from matplotlib.colors import PowerNorm
 import tifffile
 from torchvision import transforms
 from src.visualization.figure_base import apply_style, FONT_SIZES
@@ -689,6 +688,7 @@ def plot_gradcam_pooled(
     normalize_per_row=False,
     normalize_global=True,
     brain_shape=None,
+    y_shift=0.0,
 ):
     """
     Plot pooled GradCAM as a tight 3-column × 3-row grid (transposed).
@@ -798,14 +798,24 @@ def plot_gradcam_pooled(
 
     # ── Colorbar column (spans all rows) ───────────────────
     if im_ref is not None:
-        
+
         # from mpl_toolkits.axes_grid1 import make_axes_locatable
         # divider = make_axes_locatable(ax)
         # ax_cb = divider.append_axes("right", size="3%", pad=0.08)
-        
+
         ax_cb = fig.add_subplot(inner_gs[:, ncols])
         fig.colorbar(im_ref, cax=ax_cb)
         ax_cb.set_ylabel('GradCAM intensity', fontsize=FONT_SIZES['colorbar'], labelpad=6)
+
+    # ── Vertical shift (positive = up, negative = down) ────
+    if y_shift != 0.0:
+        for ax in fig.get_axes():
+            pos = ax.get_position()
+            # only move axes that live inside gs_slot's bounding box
+            slot_bb = gs_slot.get_position(fig)
+            if (pos.x0 >= slot_bb.x0 - 0.01 and pos.x1 <= slot_bb.x1 + 0.01 and
+                    pos.y0 >= slot_bb.y0 - 0.01 and pos.y1 <= slot_bb.y1 + 0.01):
+                ax.set_position([pos.x0, pos.y0 + y_shift, pos.width, pos.height])
 
     return fig
 

@@ -270,6 +270,7 @@ plot_gradcam_pooled(
     sketch_path=None,
     normalize_global=True,      # ← all maps share one colour range
     normalize_per_row=False,
+    y_shift=-0.04,              # shift panel b down so group headers align with 'b' label
 )
 
 # ax_gradcam_pos = gs_gradcam.get_position()
