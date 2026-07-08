@@ -197,7 +197,7 @@ plot_heatmap_groups_abs(
     neuropil_names=NEUROPILS,
     annotate=False,
     normalize=False,
-    vmax=10,
+    vmax=1,
 )
 
 # ── Panel b: contrast plots ───────────────────────────────────────────────
