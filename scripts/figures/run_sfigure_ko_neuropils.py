@@ -179,7 +179,7 @@ gs = GridSpec(
 )
 
 # Panel labels
-fig.text(0.05, 0.95, 'a', ha='left',
+fig.text(0.00, 0.95, 'a', ha='left',
          fontsize=FONT_SIZES['panel_label'], fontweight='bold')
 fig.text(0.52, 0.95, 'b', ha='left',
          fontsize=FONT_SIZES['panel_label'], fontweight='bold')
