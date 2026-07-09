@@ -144,7 +144,7 @@ def _classify_error_6(i, j):
 
 def _error_type_pct_6(cm):
     counts = {k: 0 for k in ERR6_KEYS}
-    total  = 0
+    total_pred = int(np.array(cm).sum())
     for i in range(6):
         for j in range(6):
             if i == j:
@@ -153,10 +153,9 @@ def _error_type_pct_6(cm):
             if n == 0:
                 continue
             counts[_classify_error_6(i, j)] += n
-            total += n
-    if total == 0:
+    if total_pred == 0:
         return {k: 0.0 for k in ERR6_KEYS}
-    return {k: 100.0 * v / total for k, v in counts.items()}
+    return {k: 100.0 * v / total_pred for k, v in counts.items()}
 
 
 def _net_valence_16(cls_idx):
@@ -187,7 +186,7 @@ def _classify_error_16(i, j):
 
 def _error_type_pct_16(cm):
     counts = {t: 0 for t in range(1, 8)}
-    total  = 0
+    total_pred = int(np.array(cm).sum())
     for i in range(16):
         for j in range(16):
             if i == j:
@@ -196,10 +195,9 @@ def _error_type_pct_16(cm):
             if n == 0:
                 continue
             counts[_classify_error_16(i, j)] += n
-            total += n
-    if total == 0:
+    if total_pred == 0:
         return {t: 0.0 for t in range(1, 8)}
-    return {t: 100.0 * v / total for t, v in counts.items()}
+    return {t: 100.0 * v / total_pred for t, v in counts.items()}
 
 
 # ── Data loaders ───────────────────────────────────────────────────────────────
@@ -313,7 +311,7 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
                        s=22, color='#094c80', alpha=0.4, linewidths=0, zorder=4)
 
     for x, m in zip(xs, means):
-        label_y = 0.8 if m > 2.5 else m + 0.3
+        label_y = m + max(means) * 0.04
         ax.text(x, label_y, f'{m:.1f}%', ha='center', va='bottom',
                 fontsize=FONT_SIZES['tick'], fontweight='bold',
                 color='black', zorder=6)
@@ -321,9 +319,10 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
     ax.set_xticks(xs)
     ax.set_xticklabels(xlabels, fontsize=xtick_fontsize,
                        rotation=xtick_rotation, ha='right')
-    ax.set_ylabel('% of total errors', fontsize=FONT_SIZES['label'])
-    ax.set_ylim(0, 60)
-    ax.set_yticks([0, 20, 40, 60])
+    ax.set_ylabel('% of all predictions', fontsize=FONT_SIZES['label'])
+    ymax = max(means) * 1.45 if max(means) > 0 else 10
+    ax.set_ylim(0, ymax)
+    ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, integer=False))
     ax.set_xlim(-0.5, len(xs) - 0.5)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
