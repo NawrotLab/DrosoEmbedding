@@ -538,6 +538,13 @@ ax_d = fig.add_subplot(gs_bot[1])
 _draw_hierarchy_6(ax_c, run_pcts_6, run_mean_6, RNG)
 _draw_hierarchy_16(ax_d, run_pcts_16, run_mean_16, RNG)
 
+# Top row sits above bottom row when rows overlap
+for _ax in [ax_a, ax_cm2, ax_cm6, ax_cm16, ax_cbar]:
+    _ax.set_zorder(3)
+    _ax.patch.set_visible(True)
+for _ax in [ax_c, ax_d]:
+    _ax.set_zorder(1)
+
 # ── Panel labels ───────────────────────────────────────────────────────────────
 _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
 
