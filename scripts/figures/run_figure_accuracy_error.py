@@ -467,7 +467,7 @@ gs_outer = GridSpec(
 gs_top = GridSpecFromSubplotSpec(
     1, 2, subplot_spec=gs_outer[0],
     width_ratios=[1.0, 2.8],
-    wspace=0.35,
+    wspace=0.10,
 )
 
 # Panel a: F1 scores
@@ -529,7 +529,7 @@ for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
 gs_bot = GridSpecFromSubplotSpec(
     1, 2, subplot_spec=gs_outer[1],
     width_ratios=[1.0, 2.8],
-    wspace=0.35,
+    wspace=0.10,
 )
 ax_c = fig.add_subplot(gs_bot[0])
 ax_d = fig.add_subplot(gs_bot[1])
