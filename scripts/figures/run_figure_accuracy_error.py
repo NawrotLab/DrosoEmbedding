@@ -240,8 +240,8 @@ def _load_h16_reports_and_cms(entry, n_classes):
 
 def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
     """One control+model bar pair per task, per-class colored dots on each bar."""
-    bar_w  = 0.30
-    grp_step = bar_w * 2 + 0.38
+    bar_w  = 0.55
+    grp_step = bar_w * 2 + 0.20
     grp_cx = {task: i * grp_step for i, task in enumerate(TASK_ORDER)}
 
     for task in TASK_ORDER:
@@ -286,7 +286,7 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
     ax.set_xticks([grp_cx[t] for t in TASK_ORDER])
     ax.set_xticklabels(
         [TASK_LABELS[t] for t in TASK_ORDER],
-        fontsize=FONT_SIZES['small'], rotation=25, ha='right',
+        fontsize=FONT_SIZES['tick'], rotation=25, ha='right',
     )
     ax.tick_params(axis='x', length=0)
     ax.set_ylim(0, 1)
@@ -299,23 +299,23 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
                          xtick_rotation=35, xtick_fontsize=None):
     """Shared bar-chart core used by panels c and d. Bars show 50-run mean."""
     if xtick_fontsize is None:
-        xtick_fontsize = FONT_SIZES['small']
+        xtick_fontsize = FONT_SIZES['tick']
     bar_w = 0.55
 
-    ax.bar(xs, means, width=bar_w, color=colors, alpha=0.75,
-           edgecolor='none', zorder=2)
+    ax.bar(xs, means, width=bar_w, facecolor='none',
+           edgecolor='#094c80', linewidth=2, zorder=2)
 
     if run_pcts_cols is not None and len(run_pcts_cols) > 0:
         for ki, (x, col) in enumerate(zip(xs, colors)):
             ys     = run_pcts_cols[:, ki]
             jitter = rng.uniform(-0.15, 0.15, size=len(ys))
             ax.scatter(np.full(len(ys), x) + jitter, ys,
-                       s=14, color=col, alpha=0.35, linewidths=0, zorder=4)
+                       s=22, color='#094c80', alpha=0.4, linewidths=0, zorder=4)
 
     for x, m in zip(xs, means):
         label_y = 0.8 if m > 2.5 else m + 0.3
         ax.text(x, label_y, f'{m:.1f}%', ha='center', va='bottom',
-                fontsize=FONT_SIZES['small'] - 1, fontweight='bold',
+                fontsize=FONT_SIZES['tick'], fontweight='bold',
                 color='black', zorder=6)
 
     ax.set_xticks(xs)
@@ -457,7 +457,7 @@ fig = plt.figure(figsize=(FIGURE_WIDTH, 15))
 
 gs_outer = GridSpec(
     2, 1, figure=fig,
-    height_ratios=[1.3, 1.0],
+    height_ratios=[0.8, 1.0],
     left=0.06, right=0.97,
     top=0.94, bottom=0.24,
     hspace=0.18,
