@@ -73,9 +73,9 @@ TASK_ORDER = [
     'State_Modality_Valence_16',
 ]
 TASK_LABELS = {
-    'MetabolicState_2':          'i. State',
-    'State_Modality_6':          'ii. State × Modality',
-    'State_Modality_Valence_16': 'iii. State × Modality × Valence',
+    'MetabolicState_2':          'State',
+    'State_Modality_6':          'State ×\nModality',
+    'State_Modality_Valence_16': 'State ×\nModality ×\nValence',
 }
 CM_SUB_LABELS = ['i', 'ii', 'iii']
 CHANCE_LEVELS = [100 / 2, 100 / 6, 100 / 16]   # %, aligned with CM_SUB_LABELS
@@ -457,17 +457,17 @@ fig = plt.figure(figsize=(FIGURE_WIDTH, 15))
 
 gs_outer = GridSpec(
     2, 1, figure=fig,
-    height_ratios=[0.8, 1.0],
+    height_ratios=[0.6, 1.0],
     left=0.06, right=0.97,
     top=0.94, bottom=0.24,
-    hspace=0.18,
+    hspace=0.28,
 )
 
 # ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────────
 gs_top = GridSpecFromSubplotSpec(
     1, 2, subplot_spec=gs_outer[0],
     width_ratios=[1.0, 2.8],
-    wspace=0.10,
+    wspace=0.13,
 )
 
 # Panel a: F1 scores
@@ -529,7 +529,7 @@ for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
 gs_bot = GridSpecFromSubplotSpec(
     1, 2, subplot_spec=gs_outer[1],
     width_ratios=[1.0, 2.8],
-    wspace=0.10,
+    wspace=0.13,
 )
 ax_c = fig.add_subplot(gs_bot[0])
 ax_d = fig.add_subplot(gs_bot[1])
@@ -543,7 +543,14 @@ _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top'
 ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
 ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
 ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
-ax_d.text(  -0.10, 1.04, 'd.', transform=ax_d.transAxes,   **_label_kw)
+
+# Place 'd.' at the same figure-x as 'b.' by computing real axis positions.
+fig.canvas.draw()
+pos_cm2 = ax_cm2.get_position()
+pos_d   = ax_d.get_position()
+fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
+fig_y_d = pos_d.y1  + 0.04 * pos_d.height
+fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
 
 # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
 draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
