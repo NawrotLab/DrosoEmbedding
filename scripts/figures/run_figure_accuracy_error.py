@@ -244,36 +244,24 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
         c_styles    = class_styles_dict[task]
         ctrl_rpt    = entry['control']['classification_report_dict']
 
-        best_rpt  = entry['best']['classification_report_dict']
-
-        # Bar height = best-model F1 (single run); matches pattern in panels c/d
+        # 50-run mean F1 per class (model); single-run for control
         f1_ctrl_bar  = [ctrl_rpt[cn]['f1-score'] for cn in class_names]
-        f1_model_bar = [best_rpt[cn]['f1-score']  for cn in class_names]
-
-        # Mean line = 50-run mean F1; dots show per-class 50-run means
         f1_model_mean = [
             float(np.mean([r[cn]['f1-score'] for r in all_reports if cn in r]))
             for cn in class_names
         ]
-        mean_f1_ctrl  = float(np.mean(f1_ctrl_bar))
-        mean_f1_model_bar  = float(np.mean(f1_model_bar))
-        mean_f1_model_line = float(np.mean(f1_model_mean))
+        mean_f1_ctrl       = float(np.mean(f1_ctrl_bar))
+        mean_f1_model_mean = float(np.mean(f1_model_mean))
 
         cx      = grp_cx[task]
         x_ctrl  = cx - bar_w / 2
         x_model = cx + bar_w / 2
-        hw      = bar_w * 0.88 / 2
 
+        # Bars at 50-run mean height
         ax.bar(x_ctrl,  mean_f1_ctrl,       width=bar_w * 0.88,
                edgecolor='#b7bec4', facecolor='none', linewidth=2, zorder=2)
-        ax.bar(x_model, mean_f1_model_bar,  width=bar_w * 0.88,
+        ax.bar(x_model, mean_f1_model_mean, width=bar_w * 0.88,
                edgecolor='#094c80', facecolor='none', linewidth=2, zorder=2)
-
-        # 50-run mean line (model: separate from bar; control: same value, still drawn)
-        ax.plot([x_ctrl  - hw, x_ctrl  + hw], [mean_f1_ctrl,       mean_f1_ctrl],
-                color='black', linewidth=1.5, zorder=4)
-        ax.plot([x_model - hw, x_model + hw], [mean_f1_model_line, mean_f1_model_line],
-                color='black', linewidth=1.5, zorder=4)
 
         n_cls = len(class_names)
         jit_m = rng.uniform(-bar_w * 0.28, bar_w * 0.28, size=n_cls)
@@ -300,15 +288,14 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
     ax.spines['right'].set_visible(False)
 
 
-def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels, rng,
+def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
                          xtick_rotation=35, xtick_fontsize=None):
-    """Shared bar-chart core used by panels c and d."""
+    """Shared bar-chart core used by panels c and d. Bars show 50-run mean."""
     if xtick_fontsize is None:
         xtick_fontsize = FONT_SIZES['small']
     bar_w = 0.55
-    hw    = bar_w * 0.88 / 2
 
-    ax.bar(xs, heights, width=bar_w, color=colors, alpha=0.75,
+    ax.bar(xs, means, width=bar_w, color=colors, alpha=0.75,
            edgecolor='none', zorder=2)
 
     if run_pcts_cols is not None and len(run_pcts_cols) > 0:
@@ -317,9 +304,6 @@ def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels,
             jitter = rng.uniform(-0.15, 0.15, size=len(ys))
             ax.scatter(np.full(len(ys), x) + jitter, ys,
                        s=14, color=col, alpha=0.35, linewidths=0, zorder=4)
-
-    for x, m in zip(xs, means):
-        ax.plot([x - hw, x + hw], [m, m], color='black', linewidth=1.5, zorder=5)
 
     for x, m in zip(xs, means):
         label_y = 0.8 if m > 2.5 else m + 0.3
@@ -339,24 +323,21 @@ def _draw_hierarchy_bars(ax, xs, heights, means, run_pcts_cols, colors, xlabels,
     ax.tick_params(axis='x', length=0)
 
 
-def _draw_hierarchy_6(ax, best_pct, run_pcts, run_mean, rng):
-    xs      = np.arange(3)
-    heights = np.array([best_pct[k] for k in ERR6_KEYS])
-    means   = run_mean   # shape (3,)
-    cols    = np.column_stack([run_pcts[:, i] for i in range(3)]) \
-              if len(run_pcts) > 0 else None
-    _draw_hierarchy_bars(ax, xs, heights, means, cols, ERR6_COLOURS, ERR6_KEYS, rng)
+def _draw_hierarchy_6(ax, run_pcts, run_mean, rng):
+    xs   = np.arange(3)
+    means = run_mean   # shape (3,)
+    cols  = np.column_stack([run_pcts[:, i] for i in range(3)]) \
+            if len(run_pcts) > 0 else None
+    _draw_hierarchy_bars(ax, xs, means, cols, ERR6_COLOURS, ERR6_KEYS, rng)
 
 
-def _draw_hierarchy_16(ax, best_pct, run_pcts, run_mean, rng):
-    xs      = np.arange(7)
-    heights = np.array([best_pct[t] for t in ERR16_TYPE_ORDER])
-    means   = np.array([run_mean[t - 1] for t in ERR16_TYPE_ORDER])
-    colors  = [ERR16_COLOURS[t] for t in ERR16_TYPE_ORDER]
-    cols    = np.column_stack([run_pcts[:, t - 1] for t in ERR16_TYPE_ORDER]) \
-              if len(run_pcts) > 0 else None
-    # 45° rotation + smaller font to keep the 7-label last label from clipping
-    _draw_hierarchy_bars(ax, xs, heights, means, cols, colors, ERR16_XLABELS, rng,
+def _draw_hierarchy_16(ax, run_pcts, run_mean, rng):
+    xs    = np.arange(7)
+    means = np.array([run_mean[t - 1] for t in ERR16_TYPE_ORDER])
+    colors = [ERR16_COLOURS[t] for t in ERR16_TYPE_ORDER]
+    cols   = np.column_stack([run_pcts[:, t - 1] for t in ERR16_TYPE_ORDER]) \
+             if len(run_pcts) > 0 else None
+    _draw_hierarchy_bars(ax, xs, means, cols, colors, ERR16_XLABELS, rng,
                          xtick_rotation=45, xtick_fontsize=FONT_SIZES['small'] - 2)
 
 
@@ -388,11 +369,7 @@ def _draw_extra_legend(fig, ax_rect):
         (0.05, y_model - 0.07), 0.18, 0.14,
         fill=False, edgecolor='#094c80', linewidth=2, clip_on=False,
     ))
-    ax.text(0.30, y_model, 'Model', ha='left', va='center', fontsize=fs, color=col)
-
-    ax.plot([0.05, 0.23], [y_mean, y_mean], color='black', linewidth=1.5,
-            solid_capstyle='butt', clip_on=False)
-    ax.text(0.30, y_mean, '50-run mean', ha='left', va='center', fontsize=fs, color=col)
+    ax.text(0.30, y_model, 'Model (50-run mean)', ha='left', va='center', fontsize=fs, color=col)
 
 
 # ── Load data ─────────────────────────────────────────────────────────────────
@@ -477,20 +454,30 @@ gs_outer = GridSpec(
     hspace=0.18,
 )
 
-# ── Panel a: 3 confusion matrices + colorbar ──────────────────────────────────
-# Equal physical axis widths for all three matrices; narrow colorbar on right
+# ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────────
 gs_top = GridSpecFromSubplotSpec(
-    1, 4, subplot_spec=gs_outer[0],
+    1, 2, subplot_spec=gs_outer[0],
+    width_ratios=[1.0, 2.8],
+    wspace=0.35,
+)
+
+# Panel a: F1 scores
+ax_a = fig.add_subplot(gs_top[0])
+_draw_f1_panel(ax_a, results, all_reports_dict, class_styles_dict, RNG)
+
+# Panel b: 3 confusion matrices + colorbar (nested)
+gs_cm = GridSpecFromSubplotSpec(
+    1, 4, subplot_spec=gs_top[1],
     width_ratios=[1.0, 1.0, 1.0, 0.12],
     wspace=0.20,
 )
-ax_cm2  = fig.add_subplot(gs_top[0])
-ax_cm6  = fig.add_subplot(gs_top[1])
-ax_cm16 = fig.add_subplot(gs_top[2])
-ax_cbar = fig.add_subplot(gs_top[3])
+ax_cm2  = fig.add_subplot(gs_cm[0])
+ax_cm6  = fig.add_subplot(gs_cm[1])
+ax_cm16 = fig.add_subplot(gs_cm[2])
+ax_cbar = fig.add_subplot(gs_cm[3])
 
 _cm_axes     = [ax_cm2, ax_cm6, ax_cm16]
-_cm_labeling = ['x_axis', 'x_axis', 'x_axis']  # class symbols on x-axis (bottom) only
+_cm_labeling = ['x_axis', 'x_axis', 'x_axis']
 
 for ax_cm, task, sub_lbl, axis_lbl in zip(
     _cm_axes, TASK_ORDER, CM_SUB_LABELS, _cm_labeling
@@ -522,32 +509,30 @@ cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
 cbar.set_ticks([0, 25, 50, 75, 100])
 cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
 
-trans_y = cbar.ax.get_yaxis_transform()   # x in axes fraction, y in data coords
+trans_y = cbar.ax.get_yaxis_transform()
 for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
     cbar.ax.axhline(v, color='black', linestyle='--', linewidth=1, zorder=5)
     cbar.ax.text(1.7, v, lab, transform=trans_y,
                  ha='left', va='center',
                  fontsize=FONT_SIZES['colorbar'], fontweight='bold')
 
-# ── Bottom row: panels b, c, d ────────────────────────────────────────────────
+# ── Bottom row: panels c and d only ───────────────────────────────────────────
 gs_bot = GridSpecFromSubplotSpec(
-    1, 3, subplot_spec=gs_outer[1],
-    width_ratios=[1.2, 1.0, 1.8],
+    1, 2, subplot_spec=gs_outer[1],
+    width_ratios=[1.0, 1.8],
     wspace=0.48,
 )
-ax_b = fig.add_subplot(gs_bot[0])
-ax_c = fig.add_subplot(gs_bot[1])
-ax_d = fig.add_subplot(gs_bot[2])
+ax_c = fig.add_subplot(gs_bot[0])
+ax_d = fig.add_subplot(gs_bot[1])
 
-_draw_f1_panel(ax_b, results, all_reports_dict, class_styles_dict, RNG)
-_draw_hierarchy_6(ax_c, best_pct_6, run_pcts_6, run_mean_6, RNG)
-_draw_hierarchy_16(ax_d, best_pct_16, run_pcts_16, run_mean_16, RNG)
+_draw_hierarchy_6(ax_c, run_pcts_6, run_mean_6, RNG)
+_draw_hierarchy_16(ax_d, run_pcts_16, run_mean_16, RNG)
 
-# ── Panel labels (axes-fraction transform, outside left spine) ─────────────────
+# ── Panel labels ───────────────────────────────────────────────────────────────
 _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
 
-ax_cm2.text(-0.18, 1.04, 'a.', transform=ax_cm2.transAxes, **_label_kw)
-ax_b.text(  -0.18, 1.04, 'b.', transform=ax_b.transAxes,   **_label_kw)
+ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
+ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
 ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
 ax_d.text(  -0.10, 1.04, 'd.', transform=ax_d.transAxes,   **_label_kw)
 
