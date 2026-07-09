@@ -527,8 +527,8 @@ for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
 # ── Bottom row: panels c and d only ───────────────────────────────────────────
 gs_bot = GridSpecFromSubplotSpec(
     1, 2, subplot_spec=gs_outer[1],
-    width_ratios=[1.0, 1.8],
-    wspace=0.48,
+    width_ratios=[1.0, 2.8],
+    wspace=0.35,
 )
 ax_c = fig.add_subplot(gs_bot[0])
 ax_d = fig.add_subplot(gs_bot[1])
