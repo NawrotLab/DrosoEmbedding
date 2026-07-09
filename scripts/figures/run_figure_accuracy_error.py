@@ -44,6 +44,7 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+from src.utils.logger import setup_logger
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 from src.visualization.visualize_performance import (
     plot_confusion_matrix,
@@ -58,6 +59,9 @@ from src.utils.helpers import (
 )
 
 apply_style()
+
+logger = setup_logger(task_name='fig_accuracy_error',
+                      log_dir='logs/run_figure_accuracy_error')
 
 # ── Configuration ──────────────────────────────────────────────────────────────
 BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
@@ -208,11 +212,14 @@ def _load_h16_reports_and_cms(entry, n_classes):
     Only call for tasks that actually need confusion matrices (6- and 16-class).
     For tasks that only need reports, use load_h16_classification_reports instead.
     """
+    all_runs = entry.get('runs', {}).get('H16', [])
     reports, cms = [], []
-    for run in entry.get('runs', {}).get('H16', []):
+    for i, run in enumerate(all_runs):
         path = run.get('path')
         if path is None:
             continue
+        if i % 10 == 0:
+            logger.info(f'  loading pkl {i+1}/{len(all_runs)} …')
         try:
             with open(path, 'rb') as f:
                 data = pickle.load(f)
@@ -225,7 +232,7 @@ def _load_h16_reports_and_cms(entry, n_classes):
             del data
             gc.collect()
         except Exception as e:
-            print(f'  [WARN] {path}: {e}')
+            logger.warning(f'  {path}: {e}')
     return reports, cms
 
 
@@ -374,11 +381,11 @@ def _draw_extra_legend(fig, ax_rect):
 
 # ── Load data ─────────────────────────────────────────────────────────────────
 
-print('Loading styles …')
+logger.info('Loading styles …')
 styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = \
     get_style('styles')
 
-print(f'Loading results from {BASE_RESULTS_DIR} …')
+logger.info(f'Loading results from {BASE_RESULTS_DIR} …')
 results = load_all_results(
     BASE_RESULTS_DIR, TASK_CLASS_NAMES,
     fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
@@ -397,14 +404,15 @@ for task in TASK_ORDER:
     n_cls = len(TASK_CLASS_NAMES[task])
 
     if task in NEEDS_CMS:
-        # Single pass: load both report and CM from each H16 pkl
+        logger.info(f'Loading reports + CMs for {task} …')
         reports, cms = _load_h16_reports_and_cms(entry, n_cls)
         h16_cms_dict[task] = cms
-        print(f'  {task}: {len(reports)} reports, {len(cms)} CMs (single pass)')
+        logger.info(f'  → {len(reports)} reports, {len(cms)} CMs')
     else:
+        logger.info(f'Loading reports for {task} …')
         reports = load_h16_classification_reports(entry)
         h16_cms_dict[task] = []
-        print(f'  {task}: {len(reports)} reports (no CMs needed)')
+        logger.info(f'  → {len(reports)} reports')
 
     all_reports_dict[task] = reports
     entry['__h16_reports__'] = reports
@@ -426,8 +434,8 @@ best_pct_6 = _error_type_pct_6(cm6_best)
 run_pcts_6 = np.array([[_error_type_pct_6(cm)[k] for k in ERR6_KEYS]
                         for cm in cms_6])
 run_mean_6 = run_pcts_6.mean(axis=0) if len(run_pcts_6) > 0 else np.zeros(3)
-print(f'\n6-class error hierarchy (best model): '
-      + '  '.join(f'{k}={best_pct_6[k]:.1f}%' for k in ERR6_KEYS))
+logger.info('Computing 6-class error hierarchy …')
+logger.info('6-class (best model): ' + '  '.join(f'{k}={best_pct_6[k]:.1f}%' for k in ERR6_KEYS))
 
 # 16-class
 entry_16   = results['State_Modality_Valence_16']
@@ -437,11 +445,12 @@ best_pct_16 = _error_type_pct_16(cm16_best)
 run_pcts_16 = np.array([[_error_type_pct_16(cm)[t] for t in range(1, 8)]
                          for cm in cms_16])
 run_mean_16 = run_pcts_16.mean(axis=0) if len(run_pcts_16) > 0 else np.zeros(7)
-print(f'16-class error hierarchy (best model): '
-      + '  '.join(f'T{t}={best_pct_16[t]:.1f}%' for t in ERR16_TYPE_ORDER))
+logger.info('Computing 16-class error hierarchy …')
+logger.info('16-class (best model): ' + '  '.join(f'T{t}={best_pct_16[t]:.1f}%' for t in ERR16_TYPE_ORDER))
 
 # ── Figure layout ─────────────────────────────────────────────────────────────
 
+logger.info('Assembling figure …')
 RNG = np.random.default_rng(42)
 
 fig = plt.figure(figsize=(FIGURE_WIDTH, 15))
@@ -541,5 +550,7 @@ draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
 _draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
 
 # ── Save ──────────────────────────────────────────────────────────────────────
+logger.info('Saving figure …')
 os.makedirs(OUT_DIR, exist_ok=True)
 save_figure(fig, os.path.join(OUT_DIR, 'fig_accuracy_error.pdf'))
+logger.info('Done.')
