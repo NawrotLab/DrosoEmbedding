@@ -294,11 +294,10 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
 
 
 def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
-                         xtick_rotation=35, xtick_fontsize=None):
+                         xtick_rotation=35, xtick_fontsize=None, bar_w=0.55):
     """Shared bar-chart core used by panels c and d. Bars show 50-run mean."""
     if xtick_fontsize is None:
         xtick_fontsize = FONT_SIZES['tick']
-    bar_w = 0.55
 
     ax.bar(xs, means, width=bar_w, facecolor='none',
            edgecolor='#094c80', linewidth=2, zorder=2)
@@ -343,8 +342,11 @@ def _draw_hierarchy_16(ax, run_pcts, run_mean, rng):
     colors = [ERR16_COLOURS[t] for t in ERR16_TYPE_ORDER]
     cols   = np.column_stack([run_pcts[:, t - 1] for t in ERR16_TYPE_ORDER]) \
              if len(run_pcts) > 0 else None
+    # bar_w scaled so bars match visual width of panel c:
+    # 0.55 × (n_c × col_c) / (n_d × col_d) = 0.55 × (3×1.0) / (7×2.8) ≈ 0.46
     _draw_hierarchy_bars(ax, xs, means, cols, colors, ERR16_XLABELS, rng,
-                         xtick_rotation=45, xtick_fontsize=FONT_SIZES['small'] - 2)
+                         xtick_rotation=45, xtick_fontsize=FONT_SIZES['small'] - 2,
+                         bar_w=0.46)
 
 
 def _draw_extra_legend(fig, ax_rect):
