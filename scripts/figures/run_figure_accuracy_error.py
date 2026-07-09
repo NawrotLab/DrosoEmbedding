@@ -345,8 +345,7 @@ def _draw_hierarchy_16(ax, run_pcts, run_mean, rng):
     # bar_w scaled so bars match visual width of panel c:
     # 0.55 × (n_c × col_c) / (n_d × col_d) = 0.55 × (3×1.0) / (7×2.8) ≈ 0.46
     _draw_hierarchy_bars(ax, xs, means, cols, colors, ERR16_XLABELS, rng,
-                         xtick_rotation=45, xtick_fontsize=FONT_SIZES['small'] - 2,
-                         bar_w=0.46)
+                         xtick_rotation=45, bar_w=0.46)
 
 
 def _draw_extra_legend(fig, ax_rect):
