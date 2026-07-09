@@ -515,15 +515,16 @@ sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=100))
 sm.set_array([])
 cbar = plt.colorbar(sm, cax=ax_cbar, orientation='vertical')
 cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
-               rotation=270, labelpad=14)
+               rotation=0, labelpad=10)
+cbar.ax.yaxis.set_label_coords(0.5, 1.06)
 cbar.set_ticks([0, 25, 50, 75, 100])
 cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
 
 trans_y = cbar.ax.get_yaxis_transform()
 for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
     cbar.ax.axhline(v, color='black', linestyle='--', linewidth=1, zorder=5)
-    cbar.ax.text(1.7, v, lab, transform=trans_y,
-                 ha='left', va='center',
+    cbar.ax.text(-0.7, v, lab, transform=trans_y,
+                 ha='right', va='center',
                  fontsize=FONT_SIZES['colorbar'], fontweight='bold')
 
 # ── Bottom row: panels c and d only ───────────────────────────────────────────
