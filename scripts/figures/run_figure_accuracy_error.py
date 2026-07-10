@@ -571,7 +571,7 @@ for _ax in [ax_c, ax_d]:
         _ax.spines['left'].set_bounds(0, ticks[-1])
 
 # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
-draw_legend_panel(fig, styles, line_y=0.15, ax_rect=[0.03, 0.02, 0.77, 0.13])
+draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
 _draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
 
 # ── Save ──────────────────────────────────────────────────────────────────────
