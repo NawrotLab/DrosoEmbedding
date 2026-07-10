@@ -553,13 +553,22 @@ ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
 ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
 ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
 
-# Place 'd.' at the same figure-x as 'b.' by computing real axis positions.
+# Force layout so axis positions and tick locations are finalised.
 fig.canvas.draw()
+
+# Place 'd.' at the same figure-x as 'b.'
 pos_cm2 = ax_cm2.get_position()
 pos_d   = ax_d.get_position()
 fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
 fig_y_d = pos_d.y1  + 0.04 * pos_d.height
 fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
+
+# Clip y-axis spine to last visible tick (panels c and d).
+for _ax in [ax_c, ax_d]:
+    ylo, yhi = _ax.get_ylim()
+    ticks = sorted(t for t in _ax.get_yticks() if ylo <= t <= yhi)
+    if ticks:
+        _ax.spines['left'].set_bounds(0, ticks[-1])
 
 # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
 draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
