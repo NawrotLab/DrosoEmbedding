@@ -460,7 +460,7 @@ gs_outer = GridSpec(
     2, 1, figure=fig,
     height_ratios=[0.6, 1.0],
     left=0.06, right=0.97,
-    top=0.94, bottom=0.24,
+    top=0.94, bottom=0.28,
     hspace=0.28,
 )
 
