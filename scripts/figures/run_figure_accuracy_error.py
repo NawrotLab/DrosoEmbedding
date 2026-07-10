@@ -74,8 +74,8 @@ TASK_ORDER = [
 ]
 TASK_LABELS = {
     'MetabolicState_2':          'State',
-    'State_Modality_6':          'State ×\nModality',
-    'State_Modality_Valence_16': 'State ×\nModality ×\nValence',
+    'State_Modality_6':          'State\n× Modality',
+    'State_Modality_Valence_16': 'State\n× Modality\n× Valence',
 }
 CM_SUB_LABELS = ['i', 'ii', 'iii']
 CHANCE_LEVELS = [100 / 2, 100 / 6, 100 / 16]   # %, aligned with CM_SUB_LABELS
@@ -93,7 +93,7 @@ CLASS_PROPS_6 = [
     ('Combined', 'Fed'),       # 5
 ]
 
-ERR6_KEYS    = ['State', 'Modality', 'State ×\nModality']
+ERR6_KEYS    = ['State', 'Modality', 'State\n× Modality']
 ERR6_COLOURS = ['#0072B2', '#009E73', '#D55E00']
 
 # ── 16-class error taxonomy (mirrors run_sfigure_error_structure.py) ───────────
@@ -119,8 +119,8 @@ CLASS_PROPS_16 = [
 ERR16_TYPE_ORDER = [1, 2, 3, 4, 6, 5, 7]
 ERR16_XLABELS = [
     'Valence', 'State', 'Modality',
-    'Valence ×\nState', 'Valence ×\nModality',
-    'State ×\nModality', 'Valence ×\nState ×\nModality',
+    'Valence\n× State', 'Valence\n× Modality',
+    'State\n× Modality', 'Valence\n× State\n× Modality',
 ]
 ERR16_COLOURS = {
     1: '#E69F00',
