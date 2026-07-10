@@ -516,7 +516,7 @@ sm.set_array([])
 cbar = plt.colorbar(sm, cax=ax_cbar, orientation='vertical')
 cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
                rotation=0, labelpad=10)
-cbar.ax.yaxis.set_label_coords(0.5, 1.12)
+cbar.ax.yaxis.set_label_coords(0.5, 1.10)
 cbar.set_ticks([0, 25, 50, 75, 100])
 cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
 
