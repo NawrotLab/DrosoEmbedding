@@ -461,7 +461,7 @@ gs_outer = GridSpec(
     height_ratios=[0.6, 1.0],
     left=0.06, right=0.97,
     top=0.94, bottom=0.28,
-    hspace=0.28,
+    hspace=0.26,
 )
 
 # ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────────
@@ -551,7 +551,7 @@ _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top'
 
 ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
 ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
-ax_c.text(  -0.18, 1.04, 'c.', transform=ax_c.transAxes,   **_label_kw)
+ax_c.text(  -0.18, 0.96, 'c.', transform=ax_c.transAxes,   **_label_kw)
 
 # Force layout so axis positions and tick locations are finalised.
 fig.canvas.draw()
@@ -560,7 +560,7 @@ fig.canvas.draw()
 pos_cm2 = ax_cm2.get_position()
 pos_d   = ax_d.get_position()
 fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
-fig_y_d = pos_d.y1  + 0.04 * pos_d.height
+fig_y_d = pos_d.y1  - 0.04 * pos_d.height
 fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
 
 # Clip y-axis spine to last visible tick (panels c and d).
