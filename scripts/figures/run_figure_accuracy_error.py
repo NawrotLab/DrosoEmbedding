@@ -461,7 +461,7 @@ gs_outer = GridSpec(
     height_ratios=[0.6, 1.0],
     left=0.06, right=0.97,
     top=0.94, bottom=0.28,
-    hspace=0.26,
+    hspace=0.25,
 )
 
 # ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────────
