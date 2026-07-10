@@ -325,7 +325,6 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
     ax.set_xlim(-0.5, len(xs) - 0.5)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
-    ax.spines['bottom'].set_bounds(xs[0], xs[-1])
     ax.tick_params(axis='x', length=0)
 
 
