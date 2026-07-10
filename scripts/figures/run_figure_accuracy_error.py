@@ -93,7 +93,7 @@ CLASS_PROPS_6 = [
     ('Combined', 'Fed'),       # 5
 ]
 
-ERR6_KEYS    = ['State', 'Modality', 'State\n× Modality']
+ERR6_KEYS    = ['State', 'Modality', 'State ×\nModality']
 ERR6_COLOURS = ['#0072B2', '#009E73', '#D55E00']
 
 # ── 16-class error taxonomy (mirrors run_sfigure_error_structure.py) ───────────
@@ -119,8 +119,8 @@ CLASS_PROPS_16 = [
 ERR16_TYPE_ORDER = [1, 2, 3, 4, 6, 5, 7]
 ERR16_XLABELS = [
     'Valence', 'State', 'Modality',
-    'Valence\n× State', 'Valence\n× Modality',
-    'State\n× Modality', 'Valence × State\n× Modality',
+    'Valence ×\nState', 'Valence ×\nModality',
+    'State ×\nModality', 'Valence ×\nState ×\nModality',
 ]
 ERR16_COLOURS = {
     1: '#E69F00',
