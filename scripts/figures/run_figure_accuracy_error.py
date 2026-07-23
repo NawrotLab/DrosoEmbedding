@@ -200,6 +200,96 @@ def _error_type_pct_16(cm):
     return {t: 100.0 * v / total_pred for t, v in counts.items()}
 
 
+# ── Extra 16-class diagnostics (manuscript claim checks, log-only) ─────────────
+
+MODALITY_IDX_16 = {
+    mod: [i for i in range(16) if CLASS_PROPS_16[i][0] == mod]
+    for mod in ('Odor', 'Taste', 'Combined')
+}
+
+T7_MODALITY_PAIRS = [('Combined', 'Odor'), ('Combined', 'Taste'), ('Odor', 'Taste')]
+
+
+def _modality_error_breakdown_16(cm, true_idx):
+    """For true labels restricted to `true_idx` (all same modality), split
+    misclassifications into same-modality/diff-state, same-modality/same-state
+    (valence-only), and different-modality-entirely."""
+    same_mod_diff_state = same_mod_same_state = diff_mod = 0
+    for i in true_idx:
+        mod_i, state_i, _ = CLASS_PROPS_16[i]
+        for j in range(16):
+            if i == j:
+                continue
+            n = int(cm[i, j])
+            if n == 0:
+                continue
+            mod_j, state_j, _ = CLASS_PROPS_16[j]
+            if mod_j == mod_i:
+                if state_j == state_i:
+                    same_mod_same_state += n
+                else:
+                    same_mod_diff_state += n
+            else:
+                diff_mod += n
+    total = same_mod_diff_state + same_mod_same_state + diff_mod
+    if total == 0:
+        return None
+    return {
+        'same_modality_diff_state': same_mod_diff_state / total,
+        'same_modality_same_state_valence_only': same_mod_same_state / total,
+        'different_modality': diff_mod / total,
+    }
+
+
+def _t7_modality_involvement_16(cm):
+    """For T7 (Valence×State×Modality) errors, fraction of error mass where
+    true-or-predicted label falls in Odor / Taste / Combined, plus the
+    pairwise modality split (T7 always spans exactly two modalities)."""
+    counts = {'Odor': 0, 'Taste': 0, 'Combined': 0}
+    pair_counts = {p: 0 for p in T7_MODALITY_PAIRS}
+    total = 0
+    for i in range(16):
+        for j in range(16):
+            if i == j or _classify_error_16(i, j) != 7:
+                continue
+            n = int(cm[i, j])
+            if n == 0:
+                continue
+            mod_i, _, _ = CLASS_PROPS_16[i]
+            mod_j, _, _ = CLASS_PROPS_16[j]
+            total += n
+            counts[mod_i] += n
+            counts[mod_j] += n
+            pair_counts[tuple(sorted((mod_i, mod_j)))] += n
+    if total == 0:
+        return None
+    return {
+        'frac_odor':     counts['Odor'] / total,
+        'frac_taste':    counts['Taste'] / total,
+        'frac_combined': counts['Combined'] / total,
+        'pair_fracs':    {p: c / total for p, c in pair_counts.items()},
+    }
+
+
+def _error_type_pct_16_subset(cm, true_idx):
+    """Same 7-category decomposition as _error_type_pct_16, but restricted to
+    rows (true labels) in `true_idx`; denominator is errors from that subset only."""
+    counts = {t: 0 for t in range(1, 8)}
+    total = 0
+    for i in true_idx:
+        for j in range(16):
+            if i == j:
+                continue
+            n = int(cm[i, j])
+            if n == 0:
+                continue
+            counts[_classify_error_16(i, j)] += n
+            total += n
+    if total == 0:
+        return None
+    return {t: 100.0 * v / total for t, v in counts.items()}
+
+
 # ── Data loaders ───────────────────────────────────────────────────────────────
 
 def _load_h16_reports_and_cms(entry, n_classes):
@@ -448,6 +538,72 @@ run_mean_16 = run_pcts_16.mean(axis=0) if len(run_pcts_16) > 0 else np.zeros(7)
 logger.info('Computing 16-class error hierarchy …')
 logger.info('16-class (best model): ' + '  '.join(f'T{t}={best_pct_16[t]:.1f}%' for t in ERR16_TYPE_ORDER))
 
+# ── Extra 16-class diagnostics (manuscript claim checks) ───────────────────────
+# All computed from the same 50 loaded reports/CMs used for the plotted bars
+# (mean across the 50 runs), not best-model-only.
+
+class_names_16 = TASK_CLASS_NAMES['State_Modality_Valence_16']
+reports_16     = all_reports_dict['State_Modality_Valence_16']
+
+# 1. Per-class F1 (50-run mean), then Odor vs Taste class-group means.
+logger.info('─' * 60)
+logger.info('[1] 16-class per-class F1 (50-run mean):')
+f1_per_class_16 = {
+    cn: float(np.mean([r[cn]['f1-score'] for r in reports_16 if cn in r]))
+    for cn in class_names_16
+}
+for i, cn in enumerate(class_names_16):
+    logger.info(f'  [{i:2d}] {cn}: F1={f1_per_class_16[cn]:.3f}')
+
+mean_f1_odor  = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Odor']]))
+mean_f1_taste = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Taste']]))
+logger.info(f'  Odor classes (n=4)  mean F1 = {mean_f1_odor:.3f}')
+logger.info(f'  Taste classes (n=4) mean F1 = {mean_f1_taste:.3f}')
+
+# 2. True-label = Taste / Odor: same-modality-diff-state vs different-modality-entirely.
+logger.info('─' * 60)
+logger.info('[2] Misclassification breakdown by true-label modality (50-run mean of per-run fractions):')
+for mod in ('Taste', 'Odor'):
+    runs = [r for r in (_modality_error_breakdown_16(cm, MODALITY_IDX_16[mod]) for cm in cms_16) if r is not None]
+    if not runs:
+        logger.info(f'  True-label = {mod}: no misclassifications found in any run.')
+        continue
+    mean_bd = {k: float(np.mean([r[k] for r in runs])) for k in runs[0]}
+    logger.info(f'  True-label = {mod} (n={len(runs)} runs with >0 misclassifications):')
+    logger.info(f"    same-modality/diff-state (wrong fed/starved) = {100*mean_bd['same_modality_diff_state']:.1f}%")
+    logger.info(f"    same-modality/same-state (valence only)      = {100*mean_bd['same_modality_same_state_valence_only']:.1f}%")
+    logger.info(f"    different-modality entirely                  = {100*mean_bd['different_modality']:.1f}%")
+
+# 3. T7 (Valence×State×Modality) errors: true-or-predicted modality involvement.
+logger.info('─' * 60)
+logger.info(f'[3] T7 (Valence×State×Modality, {run_mean_16[6]:.1f}%) — modality involvement '
+            '(50-run mean of per-run fractions; true-or-pred label in category):')
+t7_runs = [r for r in (_t7_modality_involvement_16(cm) for cm in cms_16) if r is not None]
+if t7_runs:
+    logger.info(f'  involves Odor     = {100*float(np.mean([r["frac_odor"] for r in t7_runs])):.1f}%')
+    logger.info(f'  involves Taste    = {100*float(np.mean([r["frac_taste"] for r in t7_runs])):.1f}%')
+    logger.info(f'  involves Combined = {100*float(np.mean([r["frac_combined"] for r in t7_runs])):.1f}%')
+    logger.info('  pairwise modality split:')
+    for p in T7_MODALITY_PAIRS:
+        mean_pair = float(np.mean([r['pair_fracs'][p] for r in t7_runs]))
+        logger.info(f'    {p[0]} ↔ {p[1]} = {100*mean_pair:.1f}%')
+else:
+    logger.info('  No T7 errors found in any run.')
+
+# 4. True-label = Combined only: 7-category decomposition restricted to that subset.
+logger.info('─' * 60)
+logger.info('[4] True-label = Combined only: 7-category error decomposition '
+            '(50-run mean, % of Combined-true errors):')
+combined_runs = [r for r in (_error_type_pct_16_subset(cm, MODALITY_IDX_16['Combined']) for cm in cms_16) if r is not None]
+if combined_runs:
+    combined_mean = {t: float(np.mean([r[t] for r in combined_runs])) for t in range(1, 8)}
+    for t in ERR16_TYPE_ORDER:
+        label = ERR16_XLABELS[ERR16_TYPE_ORDER.index(t)].replace(chr(10), ' ')
+        logger.info(f'  T{t} ({label}) = {combined_mean[t]:.1f}%')
+else:
+    logger.info('  No Combined-true errors found in any run.')
+logger.info('─' * 60)
+
 # ── Figure layout ─────────────────────────────────────────────────────────────
 
 logger.info('Assembling figure …')
@@ -506,7 +662,8 @@ for ax_cm, task, sub_lbl, axis_lbl in zip(
         styles=styles,
         class_styles=entry['__class_styles__'],
     )
-    ax_cm.set_title(sub_lbl, fontsize=FONT_SIZES['subplot_title'],
+    title = f"{sub_lbl}. {TASK_LABELS[task].replace(chr(10), ' ')}"
+    ax_cm.set_title(title, fontsize=FONT_SIZES['subplot_title'],
                     fontweight='bold', pad=4)
 
 # Shared vertical colorbar with chance-level markers
