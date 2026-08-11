@@ -11,25 +11,26 @@ import matplotlib
 # from pdf2image import convert_from_path
 import fitz  # pymupdf
 
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
 
 
-
 # --- Make matplotlib's DejaVu Sans available to cairo/fontconfig ---
 # ~/.fonts is a standard user-level font dir, no sudo needed
-user_font_dir = os.path.expanduser('~/.fonts')
-os.makedirs(user_font_dir, exist_ok=True)
-mpl_font_dir = os.path.dirname(matplotlib.font_manager.findfont('DejaVu Sans'))
-for f in os.listdir(mpl_font_dir):
-    if f.lower().endswith(('.ttf', '.otf')):
-        src = os.path.join(mpl_font_dir, f)
-        dst = os.path.join(user_font_dir, f)
-        if not os.path.exists(dst):
-            shutil.copy2(src, dst)
-# Rebuild fontconfig cache for the user
-subprocess.run(['fc-cache', '-f', user_font_dir], check=False)
+def _register_dejavu_with_fontconfig():
+    user_font_dir = os.path.expanduser('~/.fonts')
+    os.makedirs(user_font_dir, exist_ok=True)
+    mpl_font_dir = os.path.dirname(matplotlib.font_manager.findfont('DejaVu Sans'))
+    for f in os.listdir(mpl_font_dir):
+        if f.lower().endswith(('.ttf', '.otf')):
+            src = os.path.join(mpl_font_dir, f)
+            dst = os.path.join(user_font_dir, f)
+            if not os.path.exists(dst):
+                shutil.copy2(src, dst)
+    # Rebuild fontconfig cache for the user
+    subprocess.run(['fc-cache', '-f', user_font_dir], check=False)
 
 
 def _find_svg_renderer():
@@ -40,7 +41,6 @@ def _find_svg_renderer():
     return 'cairosvg'
 
 _SVG_RENDERER = _find_svg_renderer()
-print(f"Using SVG renderer: {_SVG_RENDERER}")
 
 
 def load_svg(path, dpi=1000):
@@ -99,62 +99,73 @@ def load_svg(path, dpi=1000):
         png_data = cairosvg.svg2png(bytestring=svg_data, dpi=dpi)
         return Image.open(io.BytesIO(png_data))
 
-DrosoDoc = fitz.open('src/src_imgs/DrosoImaging.pdf')[0]
-pix = DrosoDoc.get_pixmap(dpi=300)
-DrosoImage = Image.open(io.BytesIO(pix.tobytes("png")))
-# DrosoImage = Image.open('src/src_imgs/DrosoImaging.pdf')
-RawData = Image.open('src/src_imgs/RawImages.png')
-ExpHierarchy = load_svg('src/src_imgs/expHierarchy.svg')
-ModelImage = load_svg('src/src_imgs/ModelArch.svg')
-LatentSketch = load_svg('src/src_imgs/LatentSketch.svg')
-placeholder = Image.open('src/src_imgs/Placeholder.png')
+def main():
+    print(f"Using SVG renderer: {_SVG_RENDERER}")
+
+    config = load_config()
+    paths = config['paths']
+    src_imgs_dir = paths['src_imgs_dir']
+    out_path = os.path.join(paths['output_dir'], 'fig_overview.pdf')
+
+    _register_dejavu_with_fontconfig()
+
+    DrosoDoc = fitz.open(os.path.join(src_imgs_dir, 'DrosoImaging.pdf'))[0]
+    pix = DrosoDoc.get_pixmap(dpi=300)
+    DrosoImage = Image.open(io.BytesIO(pix.tobytes("png")))
+    RawData = Image.open(os.path.join(src_imgs_dir, 'RawImages.png'))
+    ExpHierarchy = load_svg(os.path.join(src_imgs_dir, 'expHierarchy.svg'))
+    ModelImage = load_svg(os.path.join(src_imgs_dir, 'ModelArch.svg'))
+    LatentSketch = load_svg(os.path.join(src_imgs_dir, 'LatentSketch.svg'))
+    placeholder = Image.open(os.path.join(src_imgs_dir, 'Placeholder.png'))
+
+    # --- Custom Layout ---
+    layout = [
+        ['1', '2', '2', '3'],
+        ['4', '4', '4', '5']
+    ]
+
+    fig, axes = plt.subplot_mosaic(
+        layout,
+        figsize=(FIGURE_WIDTH, 12),
+        gridspec_kw={'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5]}
+    )
+
+    labels = ['a', 'b', 'c', 'd', 'e']
+
+    for ax, label in zip(axes.values(), labels):
+        ax.set_title(label, loc='left', fontsize=FONT_SIZES['panel_label'], color='black', fontweight='bold')
+        ax.set_xticks([]); ax.set_yticks([])
+
+        if label == 'a':
+            img = DrosoImage
+        elif label == 'b':
+            img = RawData
+        elif label == 'c':
+            img = ExpHierarchy
+        elif label == 'd':
+            img = ModelImage
+        elif label == 'e':
+            img = LatentSketch
+        else:
+            img = placeholder
+
+        ax.imshow(img, aspect='equal')
+        ax.set_xlim(0, img.size[0])
+        ax.set_ylim(img.size[1], 0)
+
+        for spine in ax.spines.values():
+            spine.set_visible(False)
+
+    plt.tight_layout(pad=1)
+
+    # Shrink subplot 'e' by ~10%
+    pos = axes['5'].get_position()
+    shrink = 0.9
+    cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
+    new_w, new_h = pos.width * shrink, pos.height * shrink
+    axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
+    save_figure(fig, out_path, formats=('png', 'svg', 'pdf'), dpi=500)
 
 
-# --- Custom Layout ---
-layout = [
-    ['1', '2', '2', '3'],
-    ['4', '4', '4', '5']
-]
-
-fig, axes = plt.subplot_mosaic(
-    layout,
-    figsize=(FIGURE_WIDTH, 12),
-    gridspec_kw={'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5]}
-)
-
-labels = ['a', 'b', 'c', 'd', 'e']
-
-for ax, label in zip(axes.values(), labels):
-    ax.set_title(label, loc='left', fontsize=FONT_SIZES['panel_label'], color='black', fontweight='bold')
-    ax.set_xticks([]); ax.set_yticks([])
-
-    if label == 'a':
-        img = DrosoImage
-    elif label == 'b':
-        img = RawData
-    elif label == 'c':
-        img = ExpHierarchy
-    elif label == 'd':
-        img = ModelImage
-    elif label == 'e':
-        img = LatentSketch
-    else:
-        img = placeholder
-
-    ax.imshow(img, aspect='equal')
-    ax.set_xlim(0, img.size[0])
-    ax.set_ylim(img.size[1], 0)
-
-    for spine in ax.spines.values():
-        spine.set_visible(False)
-
-
-plt.tight_layout(pad=1)
-
-# Shrink subplot 'e' by ~10%
-pos = axes['5'].get_position()
-shrink = 0.9
-cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
-new_w, new_h = pos.width * shrink, pos.height * shrink
-axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
-save_figure(fig, 'results/CombiPlots/fig_overview.pdf', formats=('png', 'svg', 'pdf'), dpi=500)
+if __name__ == '__main__':
+    main()

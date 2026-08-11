@@ -1,6 +1,6 @@
 """
-Figure 1 — Experimental Setup and Example Recordings
-=====================================================
+Supplementary Figure 1 (S1) — Experimental Setup and Example Recordings
+=========================================================================
 Panel A : LFM microscopy setup  (SVG → cairosvg → imshow)   ┐
 Panel B : Experimental design timeline                       ┘ narrow left column
 Panel C : 8 grouping rows × (6 included + 1 excluded)         wide right column
@@ -20,6 +20,7 @@ from PIL import Image
 import tifffile
 import cairosvg
 
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
@@ -30,14 +31,17 @@ mpl.rcParams.update({
 })
 
 # ─── CONFIG ──────────────────────────────────────────────────────────────────
-SEED        = 1111
-PANEL_A_SVG = "/rhomes/aabdel/DrosoEmbedding/src/src_imgs/LFM_Sketch.svg"
+config = load_config()
+paths  = config['paths']
 
-DATA_ROOT  = "/projects/lab-data/Collaboration/Gruenwald_Kadow/imgs4DL"
+SEED        = 1111
+PANEL_A_SVG = os.path.join(paths['src_imgs_dir'], 'LFM_Sketch.svg')
+
+DATA_ROOT  = paths['imgs4DL']
 ALL_TS_DIR = os.path.join(DATA_ROOT, "meanZ_allTs")
 LOG_TS_DIR = os.path.join(DATA_ROOT, "meanZ_logTs")
 
-OUTPUT_BASE = "/rhomes/aabdel/DrosoEmbedding/results/CombiPlots/fig_expDesign"
+OUTPUT_BASE = os.path.join(paths['output_dir'], 'figS_exp_design')
 
 N_INC = 5   # included frames per row
 N_EXC = 1   # excluded frames per row

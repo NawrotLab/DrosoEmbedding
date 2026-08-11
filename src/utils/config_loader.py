@@ -49,9 +49,6 @@ def apply_env_overrides(config):
         'DROSO_DATA_ROOT': ['paths', 'data_root'],
         'DROSO_ALLT_BASE': ['paths', 'allTs_base'],
         'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
-        'DROSO_CHECKPOINTS_DIR': ['paths', 'checkpoints_dir'],
-        'DROSO_SRC_IMGS_DIR':    ['paths', 'src_imgs_dir'],
-        'DROSO_OUTPUT_DIR':      ['paths', 'output_dir'],
         'REMOVE_NEUROPIL': ['data', 'preprocessing', 'remove_neuropil'],
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
         }
@@ -134,8 +131,11 @@ def setup_derived_parameters(config):
     # === Expand dynamic paths ===
     root = Path(config["paths"]["root"])
     split = config['data']['split_strategy']
-    config["paths"]["recodings_df"] = f"{config["paths"]["data_root"]}/PaulRecordings_df.xlsx"
-    config["paths"]["imgs4DL"] = f"{config["paths"]["data_root"]}/imgs4DL"
+    config["paths"]["checkpoints_dir"] = str(root / "results" / "_chkpt_finals")
+    config["paths"]["src_imgs_dir"]    = str(root / "src" / "src_imgs")
+    config["paths"]["output_dir"]      = str(root / "results" / "CombiPlots")
+    config["paths"]["recodings_df"] = f"{config['paths']['data_root']}/PaulRecordings_df.xlsx"
+    config["paths"]["imgs4DL"] = f"{config['paths']['data_root']}/imgs4DL"
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
     config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / split / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'

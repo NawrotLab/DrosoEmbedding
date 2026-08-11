@@ -1,5 +1,6 @@
-# Generates source images for Figure 1 (experimental design panel).
-# Output is saved to src/src_images/ and manually cropped for use in run_figure_overview.py.
+# Generates source images for Figure 1, panel B (example input sequences).
+# Output is saved to src/src_imgs/RawImages_B.png and manually cropped to
+# src/src_imgs/RawImages.png for use in run_figure_overview.py.
 import pickle
 import os
 import random
@@ -7,6 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 from src.utils.imgTools import load_and_normNIFTI
+from src.utils.config_loader import load_config
 import matplotlib.image as mpimg
 
 
@@ -142,10 +144,13 @@ def plot_meanZ(data, time_points, output_path, bg_path):
 def main():
     """Main function to run the visualization"""
     # Configuration
-    LFM_PATH = '/projects/lab-data/Collaboration/Gruenwald_Kadow/Paul_LFM_Data'
-    PKL_FILE = 'pickles/IDs_logTs.pickle'
-    OUTPUT_PATH = 'src/src_imgs/RawImages_B.png'
-    bg_path = 'src/src_imgs/RawImages_blank_B.png'
+    config = load_config()
+    paths = config['paths']
+
+    LFM_PATH = os.path.join(paths['data_root'], 'Paul_LFM_Data')
+    PKL_FILE = paths['peakIDs_Times_All']
+    OUTPUT_PATH = os.path.join(paths['src_imgs_dir'], 'RawImages_B.png')
+    bg_path = os.path.join(paths['src_imgs_dir'], 'RawImages_blank_B.png')
 
     # Load pickle file
     with open(PKL_FILE, 'rb') as f:
