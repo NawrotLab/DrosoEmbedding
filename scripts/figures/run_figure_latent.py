@@ -22,6 +22,7 @@ from src.visualization.visualize_performance import (
 )
 from src.utils.helpers import load_all_results, get_style
 from src.utils.logger import setup_logger
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, TASK_CONFIG, save_figure
 
 apply_style()
@@ -56,7 +57,7 @@ def plot_figure_latent(
     edges: Dict,
     shapes: Dict,
     bicolor_info: Dict = None,
-    out_path: str = 'results/CombiPlots/fig_latent_chptRuns_1.png',
+    out_path: str = 'results/CombiPlots/fig_latent.png',
     use_l_axis: bool = True,
     logger=None,
 ) -> None:
@@ -154,7 +155,9 @@ def main():
     logger = setup_logger(task_name="run_figure_hLatent", log_dir="logs/run_figure_hLatent")
     logger.info("Starting main")
 
-    BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
+    config = load_config()
+    paths = config['paths']
+    BASE_RESULTS_DIR = paths['checkpoints_dir']
     logger.info(f"BASE_RESULTS_DIR: {BASE_RESULTS_DIR}")
     logger.debug(f"Checking if BASE_RESULTS_DIR exists: {os.path.exists(BASE_RESULTS_DIR)}")
 
@@ -182,7 +185,7 @@ def main():
     logger.debug("Generating figure...")
     plot_figure_latent(results_dict, styles, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES,
                        bicolor_info=TASK_BICOLOR_INFO,
-                       out_path='results/CombiPlots/fig_Latent_v13.png', logger=logger)
+                       out_path=os.path.join(paths['output_dir'], 'fig_latent.png'), logger=logger)
     logger.info("Figure generation complete")
 
 

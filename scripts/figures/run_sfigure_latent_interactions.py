@@ -28,12 +28,10 @@ from src.visualization.visualize_performance import (
     draw_legend_panel,
 )
 from src.utils.helpers import get_style
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 
 apply_style()
-
-BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-OUT_PATH = 'results/CombiPlots/figS_figure_latent_interactions.pdf'
 
 TASK_II  = 'State_Modality_6'
 TASK_III = 'State_Modality_Valence_16'
@@ -54,13 +52,13 @@ _AXIS_ENDPOINTS = {
 _BEST_KEYS = {'transformer_latent_space', 'latent_labels'}
 
 
-def _load_best_pkl(task: str) -> dict:
+def _load_best_pkl(task: str, base_dir: str) -> dict:
     """Load only the keys we need from the most recent best pkl for a task.
 
     Bypasses load_all_results (which walks all run pkls) since this figure
     only needs the best checkpoint for two tasks.
     """
-    best_dir = Path(BASE_RESULTS_DIR) / task / 'best'
+    best_dir = Path(base_dir) / task / 'best'
     pkls = sorted(best_dir.glob('*.pkl'), key=lambda p: p.stat().st_mtime, reverse=True)
     if not pkls:
         raise FileNotFoundError(f"No best pkl found in {best_dir}")
@@ -88,7 +86,7 @@ def plot_sfigure_latent_interactions(
     class_ii, class_iii,
     styles, colors, edges,
     bicolor_info=None,
-    out_path=OUT_PATH,
+    out_path='results/CombiPlots/figS_latent_interactions.pdf',
 ):
     # ── projections ────────────────────────────────────────────────────────
     X_ii,  labels_ii  = best_ii['transformer_latent_space'],  best_ii['latent_labels']
@@ -202,11 +200,14 @@ def plot_sfigure_latent_interactions(
 
 
 def main():
+    config = load_config()
+    paths = config['paths']
+
     styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, _, TASK_BICOLOR_INFO = \
         get_style(style="styles")
 
-    best_ii  = _load_best_pkl(TASK_II)
-    best_iii = _load_best_pkl(TASK_III)
+    best_ii  = _load_best_pkl(TASK_II, paths['checkpoints_dir'])
+    best_iii = _load_best_pkl(TASK_III, paths['checkpoints_dir'])
 
     plot_sfigure_latent_interactions(
         best_ii=best_ii,
@@ -217,7 +218,7 @@ def main():
         colors=TASK_COLORS,
         edges=TASK_EDGECOLORS,
         bicolor_info=TASK_BICOLOR_INFO,
-        out_path=OUT_PATH,
+        out_path=os.path.join(paths['output_dir'], 'figS_latent_interactions.pdf'),
     )
 
 

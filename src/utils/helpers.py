@@ -54,10 +54,6 @@ def scatter_bicolor_cloud(ax, xs, ys, style, s=6, alpha=0.8, linewidth=0.3, zord
                s=s, alpha=alpha, linewidth=linewidth, zorder=zorder)
 
 
-# Shared configuration constants
-BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-
-
 def paths2neuropilpaths(X, config):
     prep = config["data"]["preprocessing"]
     base = "meanZ_logTs"
