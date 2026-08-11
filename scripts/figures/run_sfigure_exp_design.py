@@ -436,12 +436,12 @@ def build_figure():
     # ── Panel labels ──────────────────────────────────────────────────────
     lkw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', transform=fig.transFigure,
                va='top', ha='left')
-    fig.text(0.01,  0.97, 'a', **lkw)
+    fig.text(0.01,  0.99, 'a', **lkw)
     fig.text(0.01,  0.25, 'b', **lkw)
-    fig.text(0.295, 0.97, 'c', **lkw)
+    fig.text(0.285, 0.99, 'c', **lkw)
 
     # ── Save ──────────────────────────────────────────────────────────────
-    save_figure(fig, f'{OUTPUT_BASE}_S{SEED}.pdf', formats=('svg', 'pdf', 'png'))
+    save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))
 
 
 if __name__ == '__main__':
