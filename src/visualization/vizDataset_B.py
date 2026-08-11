@@ -1,6 +1,6 @@
 # Generates source images for Figure 1, panel B (example input sequences).
-# Output is saved to src/src_imgs/RawImages_B.png and manually cropped to
-# src/src_imgs/RawImages.png for use in run_figure_overview.py.
+# Output is saved directly to src/src_imgs/RawImages.png (whitespace-trimmed
+# via savefig bbox_inches='tight') for use in run_figure_overview.py.
 import pickle
 import os
 import random
@@ -137,8 +137,8 @@ def plot_meanZ(data, time_points, output_path, bg_path):
     plt.text(1.5, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=10)
 
 
-    plt.tight_layout(rect=[0, 0, 1, 0.93]) 
-    plt.savefig(output_path)
+    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.savefig(output_path, bbox_inches='tight', pad_inches=0.05)
     plt.close(fig)
 
 def main():
@@ -149,7 +149,7 @@ def main():
 
     LFM_PATH = os.path.join(paths['data_root'], 'Paul_LFM_Data')
     PKL_FILE = paths['peakIDs_Times_All']
-    OUTPUT_PATH = os.path.join(paths['src_imgs_dir'], 'RawImages_B.png')
+    OUTPUT_PATH = os.path.join(paths['src_imgs_dir'], 'RawImages.png')
     bg_path = os.path.join(paths['src_imgs_dir'], 'RawImages_blank_B.png')
 
     # Load pickle file
