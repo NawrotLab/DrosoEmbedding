@@ -24,11 +24,11 @@ def main(logger, config):
     timesID = config['data']['preprocessing']['times']
 
     if isolate_neuropil:
-        outputID = f'{config['data']['preprocessing']['method_ch']}_{timesID}_{config['data']['preprocessing']['neuropil']}'
+        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}_{config['data']['preprocessing']['neuropil']}"
     elif remove_neuropil:
-        outputID = f'{config['data']['preprocessing']['method_ch']}_{timesID}_KO_{config['data']['preprocessing']['neuropil']}'
+        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}_KO_{config['data']['preprocessing']['neuropil']}"
     else:
-        outputID = f'{config['data']['preprocessing']['method_ch']}_{timesID}'
+        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}"
     
     # Add template suffix if using aligned template
     if use_aligned_template:

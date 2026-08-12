@@ -16,8 +16,5 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 # python -c "import sys; print(sys.executable)"
 # python -c "import cv2; print('cv2 OK:', cv2.__version__)"
 
-# Run evaluation/plotting using the venv python explicitly 
-#  /rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.neuropils_importance_single_neuropil_models
-
 /rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.run_evaluation
 #  /rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.run_plotting

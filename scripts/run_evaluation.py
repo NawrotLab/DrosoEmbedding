@@ -208,7 +208,7 @@ def main():
     
     # Load config from pickle file
     # config_path = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}.pkl"
-    config_path = f"{config["paths"]["results_root"]}/config.pkl"
+    config_path = f"{config['paths']['results_root']}/config.pkl"
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config file not found at {config_path}. Make sure to train the model first.")  
     logger = setup_logger(task_name=config['run_id'], log_dir=os.path.join('logs/evaluation'))

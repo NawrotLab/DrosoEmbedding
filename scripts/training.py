@@ -274,7 +274,7 @@ if __name__ == "__main__":
     logger = setup_logger(task_name=config["run_id"], log_dir="logs/training")
     # Save config dictionary to pickle file
     # config_file = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}_{slurm_id}.pkl"
-    config_file = f'{config['paths']['root']}/results/{config['data']['task']}_{config['run_id']}/config.pkl'
+    config_file = f"{config['paths']['root']}/results/{config['data']['task']}_{config['run_id']}/config.pkl"
     os.makedirs(os.path.dirname(config_file), exist_ok=True)
     with open(config_file, 'wb') as f:
         pickle.dump(config, f)
