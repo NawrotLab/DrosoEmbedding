@@ -7,7 +7,7 @@ Modality, Valence) as in Fig 4 — one row per variant — so the approaches
 can be compared directly.
 
 Usage (from repo root):
-    python -m scripts.diagnostics.diag_KO_contrast_comparison
+    python -m scripts.analysis.diag_KO_contrast_comparison
 
 Outputs:
     results/diagnostics/KO_comparison/KO_contrast_comparison.pdf / .png
@@ -22,10 +22,7 @@ from matplotlib.gridspec import GridSpec
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
-from src.visualization.visualize_interpretability import (
-    plot_contrasts_horizontal,
-    DEFAULT_CONTRAST_SPEC,
-)
+from src.visualization.visualize_interpretability import plot_contrasts_horizontal
 from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
 
 apply_style()

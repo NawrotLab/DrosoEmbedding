@@ -15,14 +15,14 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 
 # Run script
-# python -m scripts.diagnostics.diag_KO_permutation
+# python -m scripts.analysis.diag_KO_permutation
 
-# python -m scripts.diagnostics.diag_gradcam_neuropil_importance
-# python -m scripts.analysis.run_viz_camueue
-# python -m scripts.analysis.run_neuropils_importance
-# python -m scripts.diagnostics.diag_preprocessing_KO
+# python -m scripts.analysis.diag_gradcam_neuropil_importance
+# python -m scripts.analysis.run_viz_cam
+# python -m scripts.analysis.run_neuropil_importance
+# python -m scripts.analysis.diag_preprocessing_KO
 
-# python -m scripts.diagnostics.diag_KO_data_coverage
+# python -m scripts.analysis.diag_KO_data_coverage
 
 # python -m scripts.figures.run_sfigure_latent_interactions
 # python -m scripts.figures.run_sfigure_training_curves

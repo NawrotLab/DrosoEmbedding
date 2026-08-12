@@ -10,7 +10,7 @@ For each neuropil KO directory:
   6. NaN / Inf     — data sanity check
 
 Usage (from repo root):
-    python scripts/diagnostics/diag_KO_quality.py
+    python -m scripts.analysis.diag_KO_quality
 
 Outputs:
     stdout                                    — structured per-neuropil report

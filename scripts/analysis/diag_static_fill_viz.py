@@ -9,7 +9,7 @@ This script verifies whether the static fill image contains meaningful spatial
 structure or is effectively zero (concern #1 with the baseline fill approach).
 
 Usage (from repo root):
-    python -m scripts.diagnostics.diag_static_fill_viz
+    python -m scripts.analysis.diag_static_fill_viz
 
 Outputs:
     results/diagnostics/static_fill_viz/static_fill_viz.png
@@ -22,7 +22,6 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
 import numpy as np
 import tifffile
 from scipy.ndimage import zoom

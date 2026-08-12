@@ -93,9 +93,6 @@ CONTRAST_SPEC = {
     },
 }
 
-# Ridge reference data produced by scripts/analysis/run_neuropil_importance.py
-RIDGE_DATADIR = '/rhomes/aabdel/DrosoEmbedding/results/Neuropil_Importance/aktuell/data'
-
 RANK_FLAG_THRESHOLD = 4   # flag neuropils whose rank shifts by this many positions
 
 # ── config ────────────────────────────────────────────────────────────────
@@ -106,6 +103,9 @@ logger = setup_logger(task_name=config['run_id'],
 
 # Preserve yaml-derived paths (pickle_path, models dir) before overwrite
 paths        = config['paths']
+
+# Ridge reference data produced by scripts/analysis/run_neuropil_importance.py
+RIDGE_DATADIR = os.path.join(paths['root'], 'results', 'Neuropil_Importance', 'aktuell', 'data')
 model_params = config['model']['parameters']
 train_params = config['training']
 
