@@ -21,30 +21,26 @@ Panel c (bottom-centre):
 
 Panel d (bottom-right):
     Error hierarchy for the 16-class task (State × Modality × Valence).
-    7-bar breakdown identical to figS_classification_analysis panel a.
+    7-bar breakdown, 7-type taxonomy (see src/analysis/error_taxonomy.py).
 
 Shared legend (fig_accuracy_v7 style) at the bottom.
 
 Usage (from repo root):
-    python scripts/figures/run_figure_accuracy_error.py
+    python -m scripts.figures.run_figure_accuracy_error
 
 Output:
     results/CombiPlots/{pdfs,pngs}/fig_accuracy_error.{pdf,png}
 """
 
-import gc
 import os
-import pickle
-import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from src.utils.logger import setup_logger
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
 from src.visualization.visualize_performance import (
     plot_confusion_matrix,
@@ -56,17 +52,20 @@ from src.utils.helpers import (
     load_all_results,
     get_style,
     load_h16_classification_reports,
+    load_h16_reports_and_cms,
+)
+from src.analysis.error_taxonomy import (
+    ERR6_KEYS, ERR6_COLOURS,
+    ERR16_TYPE_ORDER, ERR16_XLABELS, ERR16_COLOURS,
+    MODALITY_IDX_16, T7_MODALITY_PAIRS,
+    error_type_pct_6, error_type_pct_16,
+    modality_error_breakdown_16, t7_modality_involvement_16,
+    error_type_pct_16_subset,
 )
 
 apply_style()
 
-logger = setup_logger(task_name='fig_accuracy_error',
-                      log_dir='logs/run_figure_accuracy_error')
-
 # ── Configuration ──────────────────────────────────────────────────────────────
-BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
-OUT_DIR          = os.path.join('results', 'CombiPlots')
-
 TASK_ORDER = [
     'MetabolicState_2',
     'State_Modality_6',
@@ -80,248 +79,9 @@ TASK_LABELS = {
 CM_SUB_LABELS = ['i', 'ii', 'iii']
 CHANCE_LEVELS = [100 / 2, 100 / 6, 100 / 16]   # %, aligned with CM_SUB_LABELS
 
-# ── 6-class error taxonomy ─────────────────────────────────────────────────────
-# Index order matches TASK_CLASS_NAMES['State_Modality_6']:
-#   "Odor (S)", "Odor (F)", "Taste (S)", "Taste (F)",
-#   "Odor + Taste (S)", "Odor + Taste (F)"
-CLASS_PROPS_6 = [
-    ('Odor',     'Starved'),   # 0
-    ('Odor',     'Fed'),       # 1
-    ('Taste',    'Starved'),   # 2
-    ('Taste',    'Fed'),       # 3
-    ('Combined', 'Starved'),   # 4
-    ('Combined', 'Fed'),       # 5
-]
-
-ERR6_KEYS    = ['State', 'Modality', 'State\n× Modality']
-ERR6_COLOURS = ['#0072B2', '#009E73', '#D55E00']
-
-# ── 16-class error taxonomy (mirrors run_sfigure_error_structure.py) ───────────
-CLASS_PROPS_16 = [
-    ('Odor',     'Starved', +1),        # 0
-    ('Odor',     'Starved', -1),        # 1
-    ('Odor',     'Fed',     +1),        # 2
-    ('Odor',     'Fed',     -1),        # 3
-    ('Taste',    'Starved', +1),        # 4
-    ('Taste',    'Starved', -1),        # 5
-    ('Taste',    'Fed',     +1),        # 6
-    ('Taste',    'Fed',     -1),        # 7
-    ('Combined', 'Starved', (+1, +1)),  # 8
-    ('Combined', 'Starved', (-1, -1)),  # 9
-    ('Combined', 'Starved', (-1, +1)),  # 10  conflict
-    ('Combined', 'Starved', (+1, -1)),  # 11  conflict
-    ('Combined', 'Fed',     (+1, +1)),  # 12
-    ('Combined', 'Fed',     (-1, -1)),  # 13
-    ('Combined', 'Fed',     (-1, +1)),  # 14  conflict
-    ('Combined', 'Fed',     (+1, -1)),  # 15  conflict
-]
-
-ERR16_TYPE_ORDER = [1, 2, 3, 4, 6, 5, 7]
-ERR16_XLABELS = [
-    'Valence', 'State', 'Modality',
-    'Valence\n× State', 'Valence\n× Modality',
-    'State\n× Modality', 'Valence\n× State\n× Modality',
-]
-ERR16_COLOURS = {
-    1: '#E69F00',
-    2: '#0072B2',
-    3: '#009E73',
-    4: '#CC79A7',
-    5: '#D55E00',
-    6: '#56B4E9',
-    7: '#999999',
-}
-
-# ── Error classification functions ─────────────────────────────────────────────
-
-def _classify_error_6(i, j):
-    mod_i, state_i = CLASS_PROPS_6[i]
-    mod_j, state_j = CLASS_PROPS_6[j]
-    if mod_i == mod_j:    return 'State'
-    if state_i == state_j: return 'Modality'
-    return 'State\n× Modality'
-
-
-def _error_type_pct_6(cm):
-    counts = {k: 0 for k in ERR6_KEYS}
-    total_pred = int(np.array(cm).sum())
-    for i in range(6):
-        for j in range(6):
-            if i == j:
-                continue
-            n = int(cm[i, j])
-            if n == 0:
-                continue
-            counts[_classify_error_6(i, j)] += n
-    if total_pred == 0:
-        return {k: 0.0 for k in ERR6_KEYS}
-    return {k: 100.0 * v / total_pred for k, v in counts.items()}
-
-
-def _net_valence_16(cls_idx):
-    _, _, val = CLASS_PROPS_16[cls_idx]
-    if isinstance(val, tuple):
-        return val[0] if val[0] == val[1] else 0
-    return val
-
-
-def _classify_error_16(i, j):
-    mod_i, state_i, _ = CLASS_PROPS_16[i]
-    mod_j, state_j, _ = CLASS_PROPS_16[j]
-    same_mod   = (mod_i   == mod_j)
-    same_state = (state_i == state_j)
-    nv_i, nv_j = _net_valence_16(i), _net_valence_16(j)
-    same_val   = (nv_i != 0 and nv_j != 0 and nv_i == nv_j)
-
-    if same_mod:
-        if same_state:                       return 1   # Valence only
-        if same_val:                         return 2   # State only
-        return 4                                        # State × Valence
-    else:
-        if same_state and same_val:          return 3   # Modality only
-        if not same_state and same_val:      return 5   # State × Modality
-        if same_state and not same_val:      return 6   # Modality × Valence
-        return 7                                        # All three
-
-
-def _error_type_pct_16(cm):
-    counts = {t: 0 for t in range(1, 8)}
-    total_pred = int(np.array(cm).sum())
-    for i in range(16):
-        for j in range(16):
-            if i == j:
-                continue
-            n = int(cm[i, j])
-            if n == 0:
-                continue
-            counts[_classify_error_16(i, j)] += n
-    if total_pred == 0:
-        return {t: 0.0 for t in range(1, 8)}
-    return {t: 100.0 * v / total_pred for t, v in counts.items()}
-
-
-# ── Extra 16-class diagnostics (manuscript claim checks, log-only) ─────────────
-
-MODALITY_IDX_16 = {
-    mod: [i for i in range(16) if CLASS_PROPS_16[i][0] == mod]
-    for mod in ('Odor', 'Taste', 'Combined')
-}
-
-T7_MODALITY_PAIRS = [('Combined', 'Odor'), ('Combined', 'Taste'), ('Odor', 'Taste')]
-
-
-def _modality_error_breakdown_16(cm, true_idx):
-    """For true labels restricted to `true_idx` (all same modality), split
-    misclassifications into same-modality/diff-state, same-modality/same-state
-    (valence-only), and different-modality-entirely."""
-    same_mod_diff_state = same_mod_same_state = diff_mod = 0
-    for i in true_idx:
-        mod_i, state_i, _ = CLASS_PROPS_16[i]
-        for j in range(16):
-            if i == j:
-                continue
-            n = int(cm[i, j])
-            if n == 0:
-                continue
-            mod_j, state_j, _ = CLASS_PROPS_16[j]
-            if mod_j == mod_i:
-                if state_j == state_i:
-                    same_mod_same_state += n
-                else:
-                    same_mod_diff_state += n
-            else:
-                diff_mod += n
-    total = same_mod_diff_state + same_mod_same_state + diff_mod
-    if total == 0:
-        return None
-    return {
-        'same_modality_diff_state': same_mod_diff_state / total,
-        'same_modality_same_state_valence_only': same_mod_same_state / total,
-        'different_modality': diff_mod / total,
-    }
-
-
-def _t7_modality_involvement_16(cm):
-    """For T7 (Valence×State×Modality) errors, fraction of error mass where
-    true-or-predicted label falls in Odor / Taste / Combined, plus the
-    pairwise modality split (T7 always spans exactly two modalities)."""
-    counts = {'Odor': 0, 'Taste': 0, 'Combined': 0}
-    pair_counts = {p: 0 for p in T7_MODALITY_PAIRS}
-    total = 0
-    for i in range(16):
-        for j in range(16):
-            if i == j or _classify_error_16(i, j) != 7:
-                continue
-            n = int(cm[i, j])
-            if n == 0:
-                continue
-            mod_i, _, _ = CLASS_PROPS_16[i]
-            mod_j, _, _ = CLASS_PROPS_16[j]
-            total += n
-            counts[mod_i] += n
-            counts[mod_j] += n
-            pair_counts[tuple(sorted((mod_i, mod_j)))] += n
-    if total == 0:
-        return None
-    return {
-        'frac_odor':     counts['Odor'] / total,
-        'frac_taste':    counts['Taste'] / total,
-        'frac_combined': counts['Combined'] / total,
-        'pair_fracs':    {p: c / total for p, c in pair_counts.items()},
-    }
-
-
-def _error_type_pct_16_subset(cm, true_idx):
-    """Same 7-category decomposition as _error_type_pct_16, but restricted to
-    rows (true labels) in `true_idx`; denominator is errors from that subset only."""
-    counts = {t: 0 for t in range(1, 8)}
-    total = 0
-    for i in true_idx:
-        for j in range(16):
-            if i == j:
-                continue
-            n = int(cm[i, j])
-            if n == 0:
-                continue
-            counts[_classify_error_16(i, j)] += n
-            total += n
-    if total == 0:
-        return None
-    return {t: 100.0 * v / total for t, v in counts.items()}
-
-
-# ── Data loaders ───────────────────────────────────────────────────────────────
-
-def _load_h16_reports_and_cms(entry, n_classes):
-    """Single-pass loader: open each H16 pkl once and extract both
-    classification_report_dict and confusion_matrix.
-
-    Returns (reports, cms) — avoids two separate passes over the same files.
-    Only call for tasks that actually need confusion matrices (6- and 16-class).
-    For tasks that only need reports, use load_h16_classification_reports instead.
-    """
-    all_runs = entry.get('runs', {}).get('H16', [])
-    reports, cms = [], []
-    for i, run in enumerate(all_runs):
-        path = run.get('path')
-        if path is None:
-            continue
-        if i % 10 == 0:
-            logger.info(f'  loading pkl {i+1}/{len(all_runs)} …')
-        try:
-            with open(path, 'rb') as f:
-                data = pickle.load(f)
-            rpt = data.get('classification_report_dict')
-            cm  = data.get('confusion_matrix')
-            if rpt is not None:
-                reports.append(rpt)
-            if cm is not None and np.array(cm).shape == (n_classes, n_classes):
-                cms.append(np.array(cm))
-            del data
-            gc.collect()
-        except Exception as e:
-            logger.warning(f'  {path}: {e}')
-    return reports, cms
+# Tasks that need confusion matrices (panels c, d). MetabolicState_2 only
+# needs classification reports (panel b), so skip the extra CM load there.
+NEEDS_CMS = {'State_Modality_6', 'State_Modality_Valence_16'}
 
 
 # ── Panel draw functions ───────────────────────────────────────────────────────
@@ -451,7 +211,6 @@ def _draw_extra_legend(fig, ax_rect):
     y_header = 0.95
     y_ctrl   = 0.68
     y_model  = 0.42
-    y_mean   = 0.16
 
     ax.text(0.50, y_header, 'Key', ha='center', va='center',
             fontsize=fs, fontweight='bold', color='0.2')
@@ -469,269 +228,319 @@ def _draw_extra_legend(fig, ax_rect):
     ax.text(0.30, y_model, 'Model (50-run mean)', ha='left', va='center', fontsize=fs, color=col)
 
 
-# ── Load data ─────────────────────────────────────────────────────────────────
+# ── Data loading ─────────────────────────────────────────────────────────────
 
-logger.info('Loading styles …')
-styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = \
-    get_style('styles')
-
-logger.info(f'Loading results from {BASE_RESULTS_DIR} …')
-results = load_all_results(
-    BASE_RESULTS_DIR, TASK_CLASS_NAMES,
-    fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
-)
-
-all_reports_dict  = {}
-class_styles_dict = {}
-h16_cms_dict      = {}
-
-# Tasks that need confusion matrices (panels c, d). MetabolicState_2 only
-# needs classification reports (panel b), so skip the extra CM load there.
-NEEDS_CMS = {'State_Modality_6', 'State_Modality_Valence_16'}
-
-for task in TASK_ORDER:
-    entry = results[task]
-    n_cls = len(TASK_CLASS_NAMES[task])
-
-    if task in NEEDS_CMS:
-        logger.info(f'Loading reports + CMs for {task} …')
-        reports, cms = _load_h16_reports_and_cms(entry, n_cls)
-        h16_cms_dict[task] = cms
-        logger.info(f'  → {len(reports)} reports, {len(cms)} CMs')
-    else:
-        logger.info(f'Loading reports for {task} …')
-        reports = load_h16_classification_reports(entry)
-        h16_cms_dict[task] = []
-        logger.info(f'  → {len(reports)} reports')
-
-    all_reports_dict[task] = reports
-    entry['__h16_reports__'] = reports
-
-    cs = build_class_styles(
-        TASK_COLORS[task], TASK_EDGECOLORS[task], TASK_SHAPES[task],
-        TASK_BICOLOR_INFO.get(task, {}),
+def load_task_results(base_results_dir, task_class_names, task_colors,
+                       task_edgecolors, task_shapes, task_bicolor_info, logger):
+    """Load per-task results, classification reports, confusion matrices, and class styles."""
+    results = load_all_results(
+        base_results_dir, task_class_names,
+        fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
     )
-    class_styles_dict[task] = cs
-    entry['__class_styles__'] = cs
 
-# ── Error hierarchy statistics ─────────────────────────────────────────────────
+    all_reports_dict  = {}
+    class_styles_dict = {}
+    h16_cms_dict      = {}
 
-# 6-class
-entry_6   = results['State_Modality_6']
-cm6_best  = np.array(entry_6['best']['confusion_matrix'])
-cms_6     = h16_cms_dict['State_Modality_6']
-best_pct_6 = _error_type_pct_6(cm6_best)
-run_pcts_6 = np.array([[_error_type_pct_6(cm)[k] for k in ERR6_KEYS]
-                        for cm in cms_6])
-run_mean_6 = run_pcts_6.mean(axis=0) if len(run_pcts_6) > 0 else np.zeros(3)
-logger.info('Computing 6-class error hierarchy …')
-logger.info('6-class (best model): ' + '  '.join(f'{k}={best_pct_6[k]:.1f}%' for k in ERR6_KEYS))
+    for task in TASK_ORDER:
+        entry = results[task]
+        n_cls = len(task_class_names[task])
 
-# 16-class
-entry_16   = results['State_Modality_Valence_16']
-cm16_best  = np.array(entry_16['best']['confusion_matrix'])
-cms_16     = h16_cms_dict['State_Modality_Valence_16']
-best_pct_16 = _error_type_pct_16(cm16_best)
-run_pcts_16 = np.array([[_error_type_pct_16(cm)[t] for t in range(1, 8)]
-                         for cm in cms_16])
-run_mean_16 = run_pcts_16.mean(axis=0) if len(run_pcts_16) > 0 else np.zeros(7)
-logger.info('Computing 16-class error hierarchy …')
-logger.info('16-class (best model): ' + '  '.join(f'T{t}={best_pct_16[t]:.1f}%' for t in ERR16_TYPE_ORDER))
+        if task in NEEDS_CMS:
+            logger.info(f'Loading reports + CMs for {task} …')
+            reports, cms = load_h16_reports_and_cms(entry, n_cls, logger=logger)
+            h16_cms_dict[task] = cms
+            logger.info(f'  → {len(reports)} reports, {len(cms)} CMs')
+        else:
+            logger.info(f'Loading reports for {task} …')
+            reports = load_h16_classification_reports(entry)
+            h16_cms_dict[task] = []
+            logger.info(f'  → {len(reports)} reports')
 
-# ── Extra 16-class diagnostics (manuscript claim checks) ───────────────────────
-# All computed from the same 50 loaded reports/CMs used for the plotted bars
-# (mean across the 50 runs), not best-model-only.
+        all_reports_dict[task] = reports
+        entry['__h16_reports__'] = reports
 
-class_names_16 = TASK_CLASS_NAMES['State_Modality_Valence_16']
-reports_16     = all_reports_dict['State_Modality_Valence_16']
+        cs = build_class_styles(
+            task_colors[task], task_edgecolors[task], task_shapes[task],
+            task_bicolor_info.get(task, {}),
+        )
+        class_styles_dict[task] = cs
+        entry['__class_styles__'] = cs
 
-# 1. Per-class F1 (50-run mean), then Odor vs Taste class-group means.
-logger.info('─' * 60)
-logger.info('[1] 16-class per-class F1 (50-run mean):')
-f1_per_class_16 = {
-    cn: float(np.mean([r[cn]['f1-score'] for r in reports_16 if cn in r]))
-    for cn in class_names_16
-}
-for i, cn in enumerate(class_names_16):
-    logger.info(f'  [{i:2d}] {cn}: F1={f1_per_class_16[cn]:.3f}')
+    return results, all_reports_dict, class_styles_dict, h16_cms_dict
 
-mean_f1_odor  = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Odor']]))
-mean_f1_taste = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Taste']]))
-logger.info(f'  Odor classes (n=4)  mean F1 = {mean_f1_odor:.3f}')
-logger.info(f'  Taste classes (n=4) mean F1 = {mean_f1_taste:.3f}')
 
-# 2. True-label = Taste / Odor: same-modality-diff-state vs different-modality-entirely.
-logger.info('─' * 60)
-logger.info('[2] Misclassification breakdown by true-label modality (50-run mean of per-run fractions):')
-for mod in ('Taste', 'Odor'):
-    runs = [r for r in (_modality_error_breakdown_16(cm, MODALITY_IDX_16[mod]) for cm in cms_16) if r is not None]
-    if not runs:
-        logger.info(f'  True-label = {mod}: no misclassifications found in any run.')
-        continue
-    mean_bd = {k: float(np.mean([r[k] for r in runs])) for k in runs[0]}
-    logger.info(f'  True-label = {mod} (n={len(runs)} runs with >0 misclassifications):')
-    logger.info(f"    same-modality/diff-state (wrong fed/starved) = {100*mean_bd['same_modality_diff_state']:.1f}%")
-    logger.info(f"    same-modality/same-state (valence only)      = {100*mean_bd['same_modality_same_state_valence_only']:.1f}%")
-    logger.info(f"    different-modality entirely                  = {100*mean_bd['different_modality']:.1f}%")
+# ── Error hierarchy statistics ────────────────────────────────────────────────
 
-# 3. T7 (Valence×State×Modality) errors: true-or-predicted modality involvement.
-logger.info('─' * 60)
-logger.info(f'[3] T7 (Valence×State×Modality, {run_mean_16[6]:.1f}%) — modality involvement '
-            '(50-run mean of per-run fractions; true-or-pred label in category):')
-t7_runs = [r for r in (_t7_modality_involvement_16(cm) for cm in cms_16) if r is not None]
-if t7_runs:
-    logger.info(f'  involves Odor     = {100*float(np.mean([r["frac_odor"] for r in t7_runs])):.1f}%')
-    logger.info(f'  involves Taste    = {100*float(np.mean([r["frac_taste"] for r in t7_runs])):.1f}%')
-    logger.info(f'  involves Combined = {100*float(np.mean([r["frac_combined"] for r in t7_runs])):.1f}%')
-    logger.info('  pairwise modality split:')
-    for p in T7_MODALITY_PAIRS:
-        mean_pair = float(np.mean([r['pair_fracs'][p] for r in t7_runs]))
-        logger.info(f'    {p[0]} ↔ {p[1]} = {100*mean_pair:.1f}%')
-else:
-    logger.info('  No T7 errors found in any run.')
+def compute_error_statistics(results, h16_cms_dict, logger):
+    """Compute best-model and 50-run error-hierarchy percentages for the 6- and 16-class tasks."""
+    entry_6   = results['State_Modality_6']
+    cm6_best  = np.array(entry_6['best']['confusion_matrix'])
+    cms_6     = h16_cms_dict['State_Modality_6']
+    best_pct_6 = error_type_pct_6(cm6_best)
+    run_pcts_6 = np.array([[error_type_pct_6(cm)[k] for k in ERR6_KEYS]
+                            for cm in cms_6])
+    run_mean_6 = run_pcts_6.mean(axis=0) if len(run_pcts_6) > 0 else np.zeros(3)
+    logger.info('Computing 6-class error hierarchy …')
+    logger.info('6-class (best model): ' + '  '.join(f'{k}={best_pct_6[k]:.1f}%' for k in ERR6_KEYS))
 
-# 4. True-label = Combined only: 7-category decomposition restricted to that subset.
-logger.info('─' * 60)
-logger.info('[4] True-label = Combined only: 7-category error decomposition '
-            '(50-run mean, % of Combined-true errors):')
-combined_runs = [r for r in (_error_type_pct_16_subset(cm, MODALITY_IDX_16['Combined']) for cm in cms_16) if r is not None]
-if combined_runs:
-    combined_mean = {t: float(np.mean([r[t] for r in combined_runs])) for t in range(1, 8)}
-    for t in ERR16_TYPE_ORDER:
-        label = ERR16_XLABELS[ERR16_TYPE_ORDER.index(t)].replace(chr(10), ' ')
-        logger.info(f'  T{t} ({label}) = {combined_mean[t]:.1f}%')
-else:
-    logger.info('  No Combined-true errors found in any run.')
-logger.info('─' * 60)
+    entry_16   = results['State_Modality_Valence_16']
+    cm16_best  = np.array(entry_16['best']['confusion_matrix'])
+    cms_16     = h16_cms_dict['State_Modality_Valence_16']
+    best_pct_16 = error_type_pct_16(cm16_best)
+    run_pcts_16 = np.array([[error_type_pct_16(cm)[t] for t in range(1, 8)]
+                             for cm in cms_16])
+    run_mean_16 = run_pcts_16.mean(axis=0) if len(run_pcts_16) > 0 else np.zeros(7)
+    logger.info('Computing 16-class error hierarchy …')
+    logger.info('16-class (best model): ' + '  '.join(f'T{t}={best_pct_16[t]:.1f}%' for t in ERR16_TYPE_ORDER))
+
+    return dict(
+        best_pct_6=best_pct_6, run_pcts_6=run_pcts_6, run_mean_6=run_mean_6, cms_6=cms_6,
+        best_pct_16=best_pct_16, run_pcts_16=run_pcts_16, run_mean_16=run_mean_16, cms_16=cms_16,
+    )
+
+
+def log_manuscript_diagnostics(task_class_names, all_reports_dict, stats, logger):
+    """Log extra 16-class diagnostics used to check specific manuscript claims (log-only, not plotted).
+
+    All computed from the same 50 loaded reports/CMs used for the plotted bars
+    (mean across the 50 runs), not best-model-only.
+    """
+    class_names_16 = task_class_names['State_Modality_Valence_16']
+    reports_16     = all_reports_dict['State_Modality_Valence_16']
+    cms_16         = stats['cms_16']
+    run_mean_16    = stats['run_mean_16']
+
+    # 1. Per-class F1 (50-run mean), then Odor vs Taste class-group means.
+    logger.info('─' * 60)
+    logger.info('[1] 16-class per-class F1 (50-run mean):')
+    f1_per_class_16 = {
+        cn: float(np.mean([r[cn]['f1-score'] for r in reports_16 if cn in r]))
+        for cn in class_names_16
+    }
+    for i, cn in enumerate(class_names_16):
+        logger.info(f'  [{i:2d}] {cn}: F1={f1_per_class_16[cn]:.3f}')
+
+    mean_f1_odor  = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Odor']]))
+    mean_f1_taste = float(np.mean([f1_per_class_16[class_names_16[i]] for i in MODALITY_IDX_16['Taste']]))
+    logger.info(f'  Odor classes (n=4)  mean F1 = {mean_f1_odor:.3f}')
+    logger.info(f'  Taste classes (n=4) mean F1 = {mean_f1_taste:.3f}')
+
+    # 2. True-label = Taste / Odor: same-modality-diff-state vs different-modality-entirely.
+    logger.info('─' * 60)
+    logger.info('[2] Misclassification breakdown by true-label modality (50-run mean of per-run fractions):')
+    for mod in ('Taste', 'Odor'):
+        runs = [r for r in (modality_error_breakdown_16(cm, MODALITY_IDX_16[mod]) for cm in cms_16) if r is not None]
+        if not runs:
+            logger.info(f'  True-label = {mod}: no misclassifications found in any run.')
+            continue
+        mean_bd = {k: float(np.mean([r[k] for r in runs])) for k in runs[0]}
+        logger.info(f'  True-label = {mod} (n={len(runs)} runs with >0 misclassifications):')
+        logger.info(f"    same-modality/diff-state (wrong fed/starved) = {100*mean_bd['same_modality_diff_state']:.1f}%")
+        logger.info(f"    same-modality/same-state (valence only)      = {100*mean_bd['same_modality_same_state_valence_only']:.1f}%")
+        logger.info(f"    different-modality entirely                  = {100*mean_bd['different_modality']:.1f}%")
+
+    # 3. T7 (Valence×State×Modality) errors: true-or-predicted modality involvement.
+    logger.info('─' * 60)
+    logger.info(f'[3] T7 (Valence×State×Modality, {run_mean_16[6]:.1f}%) — modality involvement '
+                '(50-run mean of per-run fractions; true-or-pred label in category):')
+    t7_runs = [r for r in (t7_modality_involvement_16(cm) for cm in cms_16) if r is not None]
+    if t7_runs:
+        logger.info(f'  involves Odor     = {100*float(np.mean([r["frac_odor"] for r in t7_runs])):.1f}%')
+        logger.info(f'  involves Taste    = {100*float(np.mean([r["frac_taste"] for r in t7_runs])):.1f}%')
+        logger.info(f'  involves Combined = {100*float(np.mean([r["frac_combined"] for r in t7_runs])):.1f}%')
+        logger.info('  pairwise modality split:')
+        for p in T7_MODALITY_PAIRS:
+            mean_pair = float(np.mean([r['pair_fracs'][p] for r in t7_runs]))
+            logger.info(f'    {p[0]} ↔ {p[1]} = {100*mean_pair:.1f}%')
+    else:
+        logger.info('  No T7 errors found in any run.')
+
+    # 4. True-label = Combined only: 7-category decomposition restricted to that subset.
+    logger.info('─' * 60)
+    logger.info('[4] True-label = Combined only: 7-category error decomposition '
+                '(50-run mean, % of Combined-true errors):')
+    combined_runs = [r for r in (error_type_pct_16_subset(cm, MODALITY_IDX_16['Combined']) for cm in cms_16) if r is not None]
+    if combined_runs:
+        combined_mean = {t: float(np.mean([r[t] for r in combined_runs])) for t in range(1, 8)}
+        for t in ERR16_TYPE_ORDER:
+            label = ERR16_XLABELS[ERR16_TYPE_ORDER.index(t)].replace(chr(10), ' ')
+            logger.info(f'  T{t} ({label}) = {combined_mean[t]:.1f}%')
+    else:
+        logger.info('  No Combined-true errors found in any run.')
+    logger.info('─' * 60)
+
 
 # ── Figure layout ─────────────────────────────────────────────────────────────
 
-logger.info('Assembling figure …')
-RNG = np.random.default_rng(42)
+def build_figure(results, class_styles_dict, task_class_names, styles,
+                  run_pcts_6, run_mean_6, run_pcts_16, run_mean_16,
+                  all_reports_dict):
+    """Assemble the full 2-row, 4-panel figure. Returns the Figure (not yet saved)."""
+    rng = np.random.default_rng(42)
 
-fig = plt.figure(figsize=(FIGURE_WIDTH, 15))
+    fig = plt.figure(figsize=(FIGURE_WIDTH, 15))
 
-gs_outer = GridSpec(
-    2, 1, figure=fig,
-    height_ratios=[0.6, 1.0],
-    left=0.06, right=0.97,
-    top=0.94, bottom=0.28,
-    hspace=0.24,
-)
-
-# ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────────
-gs_top = GridSpecFromSubplotSpec(
-    1, 2, subplot_spec=gs_outer[0],
-    width_ratios=[1.0, 2.8],
-    wspace=0.13,
-)
-
-# Panel a: F1 scores
-ax_a = fig.add_subplot(gs_top[0])
-_draw_f1_panel(ax_a, results, all_reports_dict, class_styles_dict, RNG)
-
-# Panel b: 3 confusion matrices + colorbar (nested)
-gs_cm = GridSpecFromSubplotSpec(
-    1, 4, subplot_spec=gs_top[1],
-    width_ratios=[1.0, 1.0, 1.0, 0.12],
-    wspace=0.20,
-)
-ax_cm2  = fig.add_subplot(gs_cm[0])
-ax_cm6  = fig.add_subplot(gs_cm[1])
-ax_cm16 = fig.add_subplot(gs_cm[2])
-ax_cbar = fig.add_subplot(gs_cm[3])
-
-_cm_axes     = [ax_cm2, ax_cm6, ax_cm16]
-_cm_labeling = ['x_axis', 'x_axis', 'x_axis']
-
-for ax_cm, task, sub_lbl, axis_lbl in zip(
-    _cm_axes, TASK_ORDER, CM_SUB_LABELS, _cm_labeling
-):
-    entry = results[task]
-    plot_confusion_matrix(
-        cl_name=f'{task} model',
-        cm=entry['best']['confusion_matrix'],
-        class_names=TASK_CLASS_NAMES[task],
-        output_path=None,
-        dataID=task,
-        ax=ax_cm,
-        annot=False,
-        cbar=False,
-        axis_labeling=axis_lbl,
-        use_class_symbols=True,
-        styles=styles,
-        class_styles=entry['__class_styles__'],
+    gs_outer = GridSpec(
+        2, 1, figure=fig,
+        height_ratios=[0.6, 1.0],
+        left=0.06, right=0.97,
+        top=0.94, bottom=0.28,
+        hspace=0.24,
     )
-    title = f"{sub_lbl}. {TASK_LABELS[task].replace(chr(10), ' ')}"
-    ax_cm.set_title(title, fontsize=FONT_SIZES['subplot_title'],
-                    fontweight='bold', pad=4)
 
-# Shared vertical colorbar with chance-level markers
-sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=100))
-sm.set_array([])
-cbar = plt.colorbar(sm, cax=ax_cbar, orientation='vertical')
-cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
-               rotation=0, labelpad=10)
-cbar.ax.yaxis.set_label_coords(0.5, 1.10)
-cbar.set_ticks([0, 25, 50, 75, 100])
-cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
+    # ── Top row: panel a (F1) left + panel b (3 CMs + colorbar) right ─────────
+    gs_top = GridSpecFromSubplotSpec(
+        1, 2, subplot_spec=gs_outer[0],
+        width_ratios=[1.0, 2.8],
+        wspace=0.13,
+    )
 
-trans_y = cbar.ax.get_yaxis_transform()
-for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
-    cbar.ax.axhline(v, color='black', linestyle='--', linewidth=1, zorder=5)
-    cbar.ax.text(-0.7, v, lab, transform=trans_y,
-                 ha='right', va='center',
-                 fontsize=FONT_SIZES['colorbar'], fontweight='bold')
+    # Panel a: F1 scores
+    ax_a = fig.add_subplot(gs_top[0])
+    _draw_f1_panel(ax_a, results, all_reports_dict, class_styles_dict, rng)
 
-# ── Bottom row: panels c and d only ───────────────────────────────────────────
-gs_bot = GridSpecFromSubplotSpec(
-    1, 2, subplot_spec=gs_outer[1],
-    width_ratios=[1.0, 2.8],
-    wspace=0.13,
-)
-ax_c = fig.add_subplot(gs_bot[0])
-ax_d = fig.add_subplot(gs_bot[1])
+    # Panel b: 3 confusion matrices + colorbar (nested)
+    gs_cm = GridSpecFromSubplotSpec(
+        1, 4, subplot_spec=gs_top[1],
+        width_ratios=[1.0, 1.0, 1.0, 0.12],
+        wspace=0.20,
+    )
+    ax_cm2  = fig.add_subplot(gs_cm[0])
+    ax_cm6  = fig.add_subplot(gs_cm[1])
+    ax_cm16 = fig.add_subplot(gs_cm[2])
+    ax_cbar = fig.add_subplot(gs_cm[3])
 
-_draw_hierarchy_6(ax_c, run_pcts_6, run_mean_6, RNG)
-_draw_hierarchy_16(ax_d, run_pcts_16, run_mean_16, RNG)
+    _cm_axes     = [ax_cm2, ax_cm6, ax_cm16]
+    _cm_labeling = ['x_axis', 'x_axis', 'x_axis']
 
-# Top row sits above bottom row when rows overlap
-for _ax in [ax_a, ax_cm2, ax_cm6, ax_cm16, ax_cbar]:
-    _ax.set_zorder(3)
-    _ax.patch.set_visible(True)
-for _ax in [ax_c, ax_d]:
-    _ax.set_zorder(1)
+    for ax_cm, task, sub_lbl, axis_lbl in zip(
+        _cm_axes, TASK_ORDER, CM_SUB_LABELS, _cm_labeling
+    ):
+        entry = results[task]
+        plot_confusion_matrix(
+            cl_name=f'{task} model',
+            cm=entry['best']['confusion_matrix'],
+            class_names=task_class_names[task],
+            output_path=None,
+            dataID=task,
+            ax=ax_cm,
+            annot=False,
+            cbar=False,
+            axis_labeling=axis_lbl,
+            use_class_symbols=True,
+            styles=styles,
+            class_styles=entry['__class_styles__'],
+        )
+        title = f"{sub_lbl}. {TASK_LABELS[task].replace(chr(10), ' ')}"
+        ax_cm.set_title(title, fontsize=FONT_SIZES['subplot_title'],
+                        fontweight='bold', pad=4)
 
-# ── Panel labels ───────────────────────────────────────────────────────────────
-_label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
+    # Shared vertical colorbar with chance-level markers
+    sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=100))
+    sm.set_array([])
+    cbar = plt.colorbar(sm, cax=ax_cbar, orientation='vertical')
+    cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
+                   rotation=0, labelpad=10)
+    cbar.ax.yaxis.set_label_coords(0.5, 1.10)
+    cbar.set_ticks([0, 25, 50, 75, 100])
+    cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
 
-ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
-ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
-ax_c.text(  -0.18, 0.96, 'c.', transform=ax_c.transAxes,   **_label_kw)
+    trans_y = cbar.ax.get_yaxis_transform()
+    for v, lab in zip(CHANCE_LEVELS, CM_SUB_LABELS):
+        cbar.ax.axhline(v, color='black', linestyle='--', linewidth=1, zorder=5)
+        cbar.ax.text(-0.7, v, lab, transform=trans_y,
+                     ha='right', va='center',
+                     fontsize=FONT_SIZES['colorbar'], fontweight='bold')
 
-# Force layout so axis positions and tick locations are finalised.
-fig.canvas.draw()
+    # ── Bottom row: panels c and d only ───────────────────────────────────────
+    gs_bot = GridSpecFromSubplotSpec(
+        1, 2, subplot_spec=gs_outer[1],
+        width_ratios=[1.0, 2.8],
+        wspace=0.13,
+    )
+    ax_c = fig.add_subplot(gs_bot[0])
+    ax_d = fig.add_subplot(gs_bot[1])
 
-# Place 'd.' at the same figure-x as 'b.'
-pos_cm2 = ax_cm2.get_position()
-pos_d   = ax_d.get_position()
-fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
-fig_y_d = pos_d.y1  - 0.04 * pos_d.height
-fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
+    _draw_hierarchy_6(ax_c, run_pcts_6, run_mean_6, rng)
+    _draw_hierarchy_16(ax_d, run_pcts_16, run_mean_16, rng)
 
-# Clip y-axis spine to last visible tick (panels c and d).
-for _ax in [ax_c, ax_d]:
-    ylo, yhi = _ax.get_ylim()
-    ticks = sorted(t for t in _ax.get_yticks() if ylo <= t <= yhi)
-    if ticks:
-        _ax.spines['left'].set_bounds(0, ticks[-1])
+    # Top row sits above bottom row when rows overlap
+    for _ax in [ax_a, ax_cm2, ax_cm6, ax_cm16, ax_cbar]:
+        _ax.set_zorder(3)
+        _ax.patch.set_visible(True)
+    for _ax in [ax_c, ax_d]:
+        _ax.set_zorder(1)
 
-# ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────────
-draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
-_draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
+    # ── Panel labels ───────────────────────────────────────────────────────────
+    _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
 
-# ── Save ──────────────────────────────────────────────────────────────────────
-logger.info('Saving figure …')
-os.makedirs(OUT_DIR, exist_ok=True)
-save_figure(fig, os.path.join(OUT_DIR, 'fig_accuracy_error.pdf'))
-logger.info('Done.')
+    ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
+    ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
+    ax_c.text(  -0.18, 0.96, 'c.', transform=ax_c.transAxes,   **_label_kw)
+
+    # Force layout so axis positions and tick locations are finalised.
+    fig.canvas.draw()
+
+    # Place 'd.' at the same figure-x as 'b.'
+    pos_cm2 = ax_cm2.get_position()
+    pos_d   = ax_d.get_position()
+    fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
+    fig_y_d = pos_d.y1  - 0.04 * pos_d.height
+    fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
+
+    # Clip y-axis spine to last visible tick (panels c and d).
+    for _ax in [ax_c, ax_d]:
+        ylo, yhi = _ax.get_ylim()
+        ticks = sorted(t for t in _ax.get_yticks() if ylo <= t <= yhi)
+        if ticks:
+            _ax.spines['left'].set_bounds(0, ticks[-1])
+
+    # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────
+    draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
+    _draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
+
+    return fig
+
+
+# ── CLI entry point ────────────────────────────────────────────────────────────
+
+def main():
+    logger = setup_logger(task_name='fig_accuracy_error',
+                          log_dir='logs/run_figure_accuracy_error')
+    logger.info('Starting main')
+
+    config = load_config()
+    paths = config['paths']
+    base_results_dir = paths['checkpoints_dir']
+    out_dir = paths['output_dir']
+
+    logger.info('Loading styles …')
+    styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = \
+        get_style('styles')
+
+    logger.info(f'Loading results from {base_results_dir} …')
+    results, all_reports_dict, class_styles_dict, h16_cms_dict = load_task_results(
+        base_results_dir, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS,
+        TASK_SHAPES, TASK_BICOLOR_INFO, logger,
+    )
+
+    stats = compute_error_statistics(results, h16_cms_dict, logger)
+    log_manuscript_diagnostics(TASK_CLASS_NAMES, all_reports_dict, stats, logger)
+
+    logger.info('Assembling figure …')
+    fig = build_figure(
+        results, class_styles_dict, TASK_CLASS_NAMES, styles,
+        stats['run_pcts_6'], stats['run_mean_6'],
+        stats['run_pcts_16'], stats['run_mean_16'],
+        all_reports_dict,
+    )
+
+    logger.info('Saving figure …')
+    os.makedirs(out_dir, exist_ok=True)
+    save_figure(fig, os.path.join(out_dir, 'fig_accuracy_error.pdf'))
+    logger.info('Done.')
+
+
+if __name__ == '__main__':
+    main()

@@ -27,12 +27,9 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 # python -m scripts.figures.run_sfigure_latent_interactions
 # python -m scripts.figures.run_sfigure_training_curves
 python -m scripts.figures.run_figure_accuracy_error
-# python -m scripts.figures.run_sfigure_error_structure
-# python -m scripts.figures.run_sfigure_expDesign
+# python -m scripts.figures.run_sfigure_exp_design
 # python -m scripts.figures.run_figure_overview
 # python -m scripts.figures.run_figure_latent
-# python -m scripts.figures.run_figure_accuracy
-# python -m scripts.figures.run_figure_interpretability
 
 # python -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 # python -m scripts.figures.run_figure_gradcam_neuropils

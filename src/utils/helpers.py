@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from sklearn.manifold import TSNE
 import yaml
-from pathlib import Path
 import gc
 # import umap
 from matplotlib.path import Path as MplPath
@@ -520,3 +519,38 @@ def load_h16_classification_reports(entry):
         except Exception as e:
             print(f"[WARN] Failed to load {path}: {e}")
     return reports
+
+
+def load_h16_reports_and_cms(entry, n_classes, logger=None):
+    """Single-pass loader: open each H16 pkl once and extract both
+    classification_report_dict and confusion_matrix.
+
+    Returns (reports, cms) — avoids two separate passes over the same files.
+    Only call for tasks that actually need confusion matrices; for tasks
+    that only need reports, use load_h16_classification_reports instead.
+    """
+    all_runs = entry.get('runs', {}).get('H16', [])
+    reports, cms = [], []
+    for i, run in enumerate(all_runs):
+        path = run.get('path')
+        if path is None:
+            continue
+        if logger is not None and i % 10 == 0:
+            logger.info(f'  loading pkl {i+1}/{len(all_runs)} …')
+        try:
+            with open(path, 'rb') as f:
+                data = pickle.load(f)
+            rpt = data.get('classification_report_dict')
+            cm  = data.get('confusion_matrix')
+            if rpt is not None:
+                reports.append(rpt)
+            if cm is not None and np.array(cm).shape == (n_classes, n_classes):
+                cms.append(np.array(cm))
+            del data
+            gc.collect()
+        except Exception as e:
+            if logger is not None:
+                logger.warning(f'  {path}: {e}')
+            else:
+                print(f'[WARN] {path}: {e}')
+    return reports, cms
