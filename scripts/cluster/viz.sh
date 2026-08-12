@@ -3,7 +3,7 @@
 #SBATCH --time=10:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a6000:1
-#SBATCH --nodelist=agmn-srv-4
+#SBATCH --nodelist=agmn-srv-5
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem=16GB
@@ -15,6 +15,18 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 
 # Run script
+python3 -m scripts.figures.run_figure_overview
+python3 -m scripts.figures.run_sfigure_exp_design
+python3 -m src.visualization.vizDataset_B
+
+# 2, 
+python3 -m scripts.figures.run_figure_latent
+python3 -m scripts.figures.run_sfigure_latent_interactions
+
+# 3
+python3 -m scripts.figures.run_figure_accuracy_error
+
+############################################################################
 # python -m scripts.diagnostics.diag_KO_permutation
 
 # python -m scripts.diagnostics.diag_gradcam_neuropil_importance
@@ -27,7 +39,8 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 # python -m scripts.figures.run_sfigure_latent_interactions
 # python -m scripts.figures.run_sfigure_training_curves
 python -m scripts.figures.run_figure_accuracy_error
-# python -m scripts.figures.run_sfigure_exp_design
+# python -m scripts.figures.run_sfigure_error_structure
+# python -m scripts.figures.run_sfigure_expDesign
 # python -m scripts.figures.run_figure_overview
 # python -m scripts.figures.run_figure_latent
 
