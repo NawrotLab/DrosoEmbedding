@@ -12,8 +12,8 @@ TIMESTAMP=$(date +%Y%m%d)
 BATCH_DIR="logs/experiments/$TIMESTAMP"
 mkdir -p "$BATCH_DIR"
 
-Define your experiment configurations
-Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM
+# Define your experiment configurations
+# Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM
 CONFIGURATIONS=(
     #"C16_E16_H16 State_Modality_Valence_16 256 0.001 1000 16 16"
     "C2_E16_H16 MetabolicState_2 256 0.001 1000 16 16"

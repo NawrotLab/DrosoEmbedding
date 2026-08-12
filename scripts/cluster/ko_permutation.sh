@@ -9,7 +9,6 @@
 #SBATCH --mem=16GB
 #SBATCH --output=logs/slurm/%x-%j.out
 #SBATCH --error=logs/slurm/%x-%j.err
-#SBATCH --mail-user=abdelbaki.amina@icloud.com
 
 source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
