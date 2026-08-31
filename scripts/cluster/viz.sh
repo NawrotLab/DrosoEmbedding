@@ -41,8 +41,8 @@ python3 -m scripts.figures.run_figure_gradcam_neuropils
 # S4 — Neuropil Knockout Importance
 python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 
-# Candidate for removal — compare against Fig 4 / S4 above before deciding
-python3 -m scripts.figures.run_figure_interpretability
+# Note: run_figure_interpretability.py was an earlier, incorrect Fig 4 —
+# archived in scripts/figures/archive/, superseded by Fig 4 / S4 above.
 
 # ── Other visualization utilities (not paper figures) ──────────────────────
 # python3 -m src.visualization.vizDataset_B
