@@ -80,8 +80,8 @@ training_params = config['training']
 with open(config_path, 'rb') as f:
     config = pickle.load(f)
 
-DATADIR = "/rhomes/aabdel/DrosoEmbedding/results/Neuropil_Importance/aktuell/data"
-OUT_DIR = "/rhomes/aabdel/DrosoEmbedding/results/CombiPlots"
+DATADIR = os.path.join(paths['root'], "results", "Neuropil_Importance", "aktuell", "data")
+OUT_DIR = paths['output_dir']
 OUT_STEM = f"fig_Interpretability_{GRADCAM_LAYER}"
 EXAMPLES_DIR = os.path.join(OUT_DIR, "gradcam_examples")
 FEATUREMAPS_DIR = os.path.join(OUT_DIR, "feature_maps")
@@ -93,9 +93,9 @@ LAYER_MAP = {
 }
 
 # Image paths
-SKETCH_PATH = "/rhomes/aabdel/DrosoEmbedding/src/src_imgs/RidgeSketch.svg"
-GRADCAM_SKETCH_PATH = "/rhomes/aabdel/DrosoEmbedding/src/src_imgs/CAM_Sketch.svg"
-ATLAS_PATH = "/rhomes/aabdel/DrosoEmbedding/src/src_imgs/NeuropilsAtlas.svg"
+SKETCH_PATH = os.path.join(paths['src_imgs_dir'], 'RidgeSketch.svg')
+GRADCAM_SKETCH_PATH = os.path.join(paths['src_imgs_dir'], 'CAM_Sketch.svg')
+ATLAS_PATH = os.path.join(paths['src_imgs_dir'], 'NeuropilsAtlas.svg')
 
 # ════════════════════════════════════════════════
 # LOAD MODEL + DATA

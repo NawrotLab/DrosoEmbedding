@@ -70,7 +70,7 @@ with open(config_path, 'rb') as f:
     config = pickle.load(f)
 
 # ── NEW output directory to avoid overwriting ──
-OUTDIR = "/rhomes/aabdel/DrosoEmbedding/results/Neuropil_Importance/v4_ols_overfit_comparison"
+OUTDIR = os.path.join(paths['root'], "results", "Neuropil_Importance", "v4_ols_overfit_comparison")
 DATADIR = os.path.join(OUTDIR, "data")
 os.makedirs(OUTDIR, exist_ok=True)
 os.makedirs(DATADIR, exist_ok=True)

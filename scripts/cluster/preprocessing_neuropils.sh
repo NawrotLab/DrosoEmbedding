@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch)
 
 # Base directory
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 # Create a timestamp for this batch of experiments
@@ -82,7 +82,7 @@ $([ -n "${RECORDINGS_FILE}" ] && echo "export RECORDINGS_FILE=\"${RECORDINGS_FIL
 cd "$BASE_DIR"
 
 # Activate environment
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 
 # Run preprocessing
 python -m src.preprocessing.clean_dataset

@@ -11,7 +11,8 @@
 #SBATCH --error=logs/slurm/%x-%j.err
 
 # Optional: Activate virtualenv
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$BASE_DIR/.venv/bin/activate"
 
 
 # Run script

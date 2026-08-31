@@ -3,7 +3,7 @@
 # Simple script to submit multiple evaluation jobs with different configurations
 
 # Base directory
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 # Create a timestamp for this batch of experiments
@@ -49,7 +49,7 @@ export RUN_ID="${RUN_ID}"
 cd "$BASE_DIR"
 
 # Activate environment
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 
 # Run training
 python -m scripts.run_evaluation --run_name "${RUN_ID}"

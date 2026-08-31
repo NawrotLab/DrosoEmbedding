@@ -62,7 +62,7 @@ def main(config, logger):
     logger.info(f"Device: {config['device']}")
     logger.info(f"Slurm ID: {slurm_id}")
 
-    mlflow.set_tracking_uri("file:/rhomes/aabdel/DrosoEmbedding/mlflow")
+    mlflow.set_tracking_uri(f"file:{config['paths']['root']}/mlflow")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
 

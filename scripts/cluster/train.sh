@@ -13,7 +13,8 @@
 #SBATCH --error=logs/training/%j-%x.err
 
 
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$BASE_DIR/.venv/bin/activate"
 
 RUN_NAME="${SLURM_ARRAY_TASK_ID}"
 

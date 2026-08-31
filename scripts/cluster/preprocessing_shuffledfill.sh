@@ -3,7 +3,7 @@
 # Submit shuffled-baseline-fill KO preprocessing jobs for all 12 neuropils.
 # Run this directly from your terminal (don't use sbatch).
 
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 TIMESTAMP=$(date +%Y%m%d)
@@ -53,7 +53,7 @@ export RANDOM_SEED="42"
 $([ -n "${RECORDINGS_FILE}" ] && echo "export RECORDINGS_FILE=\"${RECORDINGS_FILE}\"")
 
 cd "$BASE_DIR"
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 python -m src.preprocessing.clean_dataset_shuffledfill
 EOF
 

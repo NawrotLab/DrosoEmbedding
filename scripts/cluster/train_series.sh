@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch)
 
 # Base directory
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 # Create a timestamp for this batch of experiments
@@ -62,7 +62,7 @@ export TRF_DIM=${TRF_DIM}
 cd "$BASE_DIR"
 
 # Activate environment
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 
 # Run training
 python -m scripts.training --run_name "${RUN_ID}"
