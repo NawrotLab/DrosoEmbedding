@@ -15,13 +15,13 @@ source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 
 # Run script
-python3 -m scripts.figures.run_figure_overview
-python3 -m scripts.figures.run_sfigure_exp_design
-python3 -m src.visualization.vizDataset_B
+# python3 -m scripts.figures.run_figure_overview
+# python3 -m scripts.figures.run_sfigure_exp_design
+# python3 -m src.visualization.vizDataset_B
 
-# 2, 
-python3 -m scripts.figures.run_figure_latent
-python3 -m scripts.figures.run_sfigure_latent_interactions
+# # 2, 
+# python3 -m scripts.figures.run_figure_latent
+# python3 -m scripts.figures.run_sfigure_latent_interactions
 
 # 3
 python3 -m scripts.figures.run_figure_accuracy_error
@@ -36,13 +36,6 @@ python3 -m scripts.figures.run_figure_accuracy_error
 
 # python -m scripts.diagnostics.diag_KO_data_coverage
 
-# python -m scripts.figures.run_sfigure_latent_interactions
-# python -m scripts.figures.run_sfigure_training_curves
-python -m scripts.figures.run_figure_accuracy_error
-# python -m scripts.figures.run_sfigure_error_structure
-# python -m scripts.figures.run_sfigure_expDesign
-# python -m scripts.figures.run_figure_overview
-# python -m scripts.figures.run_figure_latent
+# python -m scripts.figures.run_figure_accuracy_error
 
 # python -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
-# python -m scripts.figures.run_figure_gradcam_neuropils
