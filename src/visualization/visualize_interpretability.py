@@ -26,7 +26,7 @@ import io
 import matplotlib.transforms as mtransforms
 import tifffile
 from torchvision import transforms
-from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.visualization.figure_base import apply_style, FONT_SIZES, add_panel_label
 
 apply_style()
 
@@ -34,18 +34,6 @@ apply_style()
 # ════════════════════════════════════════════════
 # GradCAM computation (using pytorch-grad-cam)
 # ════════════════════════════════════════════════
-
-def add_panel_label(fig, ax, label, dx=0.0, dy=0.01):
-    bbox = ax.get_position()
-    fig.text(
-        bbox.x0 + dx,
-        bbox.y1 + dy,
-        label,
-        ha='left',
-        va='bottom',
-        fontsize=FONT_SIZES['panel_label'],
-        fontweight='bold'
-    )
 
 def load_image(path):
     ext = os.path.splitext(path)[1].lower()

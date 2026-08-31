@@ -21,7 +21,7 @@ import tifffile
 import cairosvg
 
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
 apply_style()
@@ -434,11 +434,9 @@ def build_figure():
              color=EXC_COL)
 
     # ── Panel labels ──────────────────────────────────────────────────────
-    lkw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', transform=fig.transFigure,
-               va='top', ha='left')
-    fig.text(0.01,  0.99, 'a', **lkw)
-    fig.text(0.01,  0.25, 'b', **lkw)
-    fig.text(0.285, 0.99, 'c', **lkw)
+    add_panel_label(fig, 'a', x=0.01,  y=0.99)
+    add_panel_label(fig, 'b', x=0.01,  y=0.25)
+    add_panel_label(fig, 'c', x=0.285, y=0.99)
 
     # ── Save ──────────────────────────────────────────────────────────────
     save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))

@@ -21,7 +21,7 @@ MARGINS = dict(left=0.06, right=0.96, top=0.93, bottom=0.15)
 
 # ── Font sizes (calibrated for FIGURE_WIDTH) ──────────────────────────────────
 FONT_SIZES = {
-    'panel_label':   13,   # a, b, c … panel letters (bold)
+    'panel_label':   16,   # a, b, c … panel letters (bold)
     'title':         17,   # structural row/column headers
     'subplot_title': 12,   # individual subplot titles
     'label':         14,   # xlabel / ylabel
@@ -69,6 +69,25 @@ def apply_style():
         'legend.fontsize':  FONT_SIZES['legend'],
         'figure.titlesize': FONT_SIZES['title'],
     })
+
+
+def add_panel_label(fig, label, ax=None, x=None, y=None, dx=None, dy=None):
+    """Draw a bold panel-letter label ('a', 'b', ...) in the shared house style.
+
+    Single source of truth for panel-label font/size/weight/format so every
+    figure renders them identically. Two ways to position it:
+      - pass `ax` to anchor the label just above that axes' top-left corner
+        (dx/dy are axes-fraction offsets from the corner; default -0.1/0.02)
+      - pass explicit figure-fraction `x`/`y` for a label spanning multiple
+        axes (a composite panel) — y is the panel's top edge.
+    """
+    kwargs = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', ha='left', va='top')
+    if ax is not None:
+        dx = -0.1 if dx is None else dx
+        dy = 0.02 if dy is None else dy
+        ax.text(dx, 1 + dy, label, transform=ax.transAxes, **kwargs)
+    else:
+        fig.text(x, y, label, **kwargs)
 
 
 def save_figure(fig, out_path, formats=('pdf', 'png'), dpi=DPI):

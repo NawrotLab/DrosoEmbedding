@@ -46,7 +46,7 @@ from src.visualization.visualize_interpretability import (
     plot_contrasts_horizontal,
 )
 from src.visualization.figure_base import (
-    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure,
+    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label,
 )
 
 apply_style()
@@ -179,10 +179,8 @@ gs = GridSpec(
 )
 
 # Panel labels
-fig.text(0.00, 0.95, 'a', ha='left',
-         fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.52, 0.95, 'b', ha='left',
-         fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+add_panel_label(fig, 'a', x=0.00, y=0.95)
+add_panel_label(fig, 'b', x=0.52, y=0.95)
 
 # ── Panel a: group heatmap ────────────────────────────────────────────────
 

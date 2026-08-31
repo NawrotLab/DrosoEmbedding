@@ -47,7 +47,7 @@ from src.visualization.visualize_interpretability import (
 )
 from src.data.dataset import compute_mean_frame_shape
 from src.visualization.figure_base import (
-    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure,
+    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label,
 )
 
 apply_style()
@@ -188,11 +188,11 @@ gs_bot = GridSpec(
 )
 
 # ── Panel labels ──────────────────────────────────────────────────────────
-fig.text(0.00, 0.92,  'a', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.25, 0.92,  'b', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.69, 0.92,  'c', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.00, 0.50,  'd', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
-fig.text(0.52, 0.50,  'e', ha='left', fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+add_panel_label(fig, 'a', x=0.00, y=0.92)
+add_panel_label(fig, 'b', x=0.25, y=0.92)
+add_panel_label(fig, 'c', x=0.69, y=0.92)
+add_panel_label(fig, 'd', x=0.00, y=0.50)
+add_panel_label(fig, 'e', x=0.52, y=0.50)
 
 # ═══════════════════ TOP ROW ═══════════════════
 

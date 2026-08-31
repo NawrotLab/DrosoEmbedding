@@ -41,7 +41,7 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
 from src.utils.logger import setup_logger
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 from src.visualization.visualize_performance import (
     plot_confusion_matrix,
     _plot_class_symbol,
@@ -473,21 +473,19 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
         _ax.set_zorder(1)
 
     # ── Panel labels ───────────────────────────────────────────────────────────
-    _label_kw = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
-
-    ax_a.text(  -0.18, 1.04, 'a.', transform=ax_a.transAxes,   **_label_kw)
-    ax_cm2.text(-0.18, 1.04, 'b.', transform=ax_cm2.transAxes, **_label_kw)
-    ax_c.text(  -0.18, 0.96, 'c.', transform=ax_c.transAxes,   **_label_kw)
+    add_panel_label(fig, 'a', ax=ax_a,   dx=-0.18, dy=0.04)
+    add_panel_label(fig, 'b', ax=ax_cm2, dx=-0.18, dy=0.04)
+    add_panel_label(fig, 'c', ax=ax_c,   dx=-0.18, dy=-0.04)
 
     # Force layout so axis positions and tick locations are finalised.
     fig.canvas.draw()
 
-    # Place 'd.' at the same figure-x as 'b.'
+    # Place 'd' at the same figure-x as 'b'
     pos_cm2 = ax_cm2.get_position()
     pos_d   = ax_d.get_position()
     fig_x_b = pos_cm2.x0 - 0.18 * pos_cm2.width
     fig_y_d = pos_d.y1  - 0.04 * pos_d.height
-    fig.text(fig_x_b, fig_y_d, 'd.', transform=fig.transFigure, **_label_kw)
+    add_panel_label(fig, 'd', x=fig_x_b, y=fig_y_d)
 
     # Clip y-axis spine to last visible tick (panels c and d).
     for _ax in [ax_c, ax_d]:

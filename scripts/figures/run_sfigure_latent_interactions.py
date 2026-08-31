@@ -29,7 +29,7 @@ from src.visualization.visualize_performance import (
 )
 from src.utils.helpers import get_style
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 
 apply_style()
 
@@ -115,8 +115,7 @@ def plot_sfigure_latent_interactions(
     title_y = [0.955, 0.705, 0.44]
 
     # ── Panel a — task ii, 2 × 1D ─────────────────────────────────────────
-    fig.text(panel_x, title_y[0], 'a',
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+    add_panel_label(fig, 'a', x=panel_x, y=title_y[0])
     fig.text(0.50, title_y[0], 'ii. State, Modality',
              ha='center', va='bottom', fontsize=FONT_SIZES['title'], weight='bold')
 
@@ -139,8 +138,7 @@ def plot_sfigure_latent_interactions(
         _add_1d_endpoint_labels(ax, proj_ii[key], display, xlim_scale=3.4)
 
     # ── Panel b — task iii, 3 × 1D ────────────────────────────────────────
-    fig.text(panel_x, title_y[1], 'b',
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+    add_panel_label(fig, 'b', x=panel_x, y=title_y[1])
     fig.text(0.50, title_y[1], 'iii. State, Modality, Valence',
              ha='center', va='bottom', fontsize=FONT_SIZES['title'], weight='bold')
 
@@ -163,8 +161,7 @@ def plot_sfigure_latent_interactions(
         _add_1d_endpoint_labels(ax, proj_iii[key], display, xlim_scale=2.2)
 
     # ── Panel c — task iii, 3 × 2D pairwise ───────────────────────────────
-    fig.text(panel_x, title_y[2], 'c',
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold')
+    add_panel_label(fig, 'c', x=panel_x, y=title_y[2])
     fig.text(0.50, title_y[2], 'iii. State, Modality, Valence — pairwise projections',
              ha='center', va='bottom', fontsize=FONT_SIZES['title'], weight='bold')
 

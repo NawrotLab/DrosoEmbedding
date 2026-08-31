@@ -23,7 +23,7 @@ from src.visualization.visualize_performance import (
 from src.utils.helpers import load_all_results, get_style
 from src.utils.logger import setup_logger
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, TASK_CONFIG, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, TASK_CONFIG, save_figure, add_panel_label
 
 apply_style()
 
@@ -68,11 +68,16 @@ def plot_figure_latent(
     task_names = ['i. State', 'ii. State, Modality', 'iii. State, Modality, Valence']
     task_y_pos = [0.83, 0.57, 0.31]
 
-    column_titles = ['a. Control t-SNE', 'b. Model t-SNE', 'c. Centroid projections', 'd. Accuracy']
+    column_titles = ['Control t-SNE', 'Model t-SNE', 'Centroid projections', 'Accuracy']
+    column_labels = ['a', 'b', 'c', 'd']
     column_positions = [0.18, 0.43, 0.65, 0.9]
 
     for x, title in zip(column_positions, column_titles):
-        fig.text(x, 0.95, title, ha='center', va='center', fontsize=FONT_SIZES['title'], weight='bold')
+        fig.text(x, 0.95, title, ha='center', va='bottom', fontsize=FONT_SIZES['title'], weight='bold')
+
+    col_lefts = gs.get_grid_positions(fig)[2]
+    for label, x in zip(column_labels, col_lefts):
+        add_panel_label(fig, label, x=x, y=0.95)
 
     # Plot each task
     for row, (task, task_name) in enumerate(zip(tasks, task_names)):

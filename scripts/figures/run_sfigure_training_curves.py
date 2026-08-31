@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure, add_panel_label
 
 apply_style()
 
@@ -188,10 +188,8 @@ ax_acc.set_ylabel('Validation Accuracy',  fontsize=FONT_SIZES['label'])
 ax_acc.set_xlabel('Epoch',                fontsize=FONT_SIZES['label'])
 
 # Panel labels (outside left spine via axes-fraction transform)
-ax_loss.text(-0.12, 1.02, 'a.', transform=ax_loss.transAxes,
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
-ax_acc.text( -0.12, 1.02, 'b.', transform=ax_acc.transAxes,
-             fontsize=FONT_SIZES['panel_label'], fontweight='bold', va='top')
+add_panel_label(fig, 'a', ax=ax_loss, dx=-0.12, dy=0.02)
+add_panel_label(fig, 'b', ax=ax_acc,  dx=-0.12, dy=0.02)
 
 # ── Legend in panel b, lower-left ─────────────────────────────────────────────
 style_handles = [

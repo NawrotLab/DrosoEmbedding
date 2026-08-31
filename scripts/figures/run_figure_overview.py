@@ -12,7 +12,7 @@ import matplotlib
 import fitz  # pymupdf
 
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 
 apply_style()
 
@@ -133,7 +133,7 @@ def main():
     labels = ['a', 'b', 'c', 'd', 'e']
 
     for ax, label in zip(axes.values(), labels):
-        ax.set_title(label, loc='left', fontsize=FONT_SIZES['panel_label'], color='black', fontweight='bold')
+        add_panel_label(fig, label, ax=ax)
         ax.set_xticks([]); ax.set_yticks([])
 
         if label == 'a':
