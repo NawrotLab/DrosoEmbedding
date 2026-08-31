@@ -37,7 +37,7 @@ def main(logger, config):
     
     ROOT_PATH = config['paths']['data_root']
     path_data = f'{ROOT_PATH}/Paul_LFM_Data'
-    path_output = f'/localscratch/aabdel/imgs4DL/{outputID}'
+    path_output = os.path.join(config['paths']['local_scratch_dir'], 'imgs4DL', outputID)
     path_baseFrame = f'{path_output}/BaseFrames/'
     # path_entireRecs = f'{ROOT_PATH}/imgs4DL/KO_niftis/'
     # path_pixelPlot = f'{ROOT_PATH}/LogTransformedPixelActivities'
