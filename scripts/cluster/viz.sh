@@ -15,28 +15,43 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 source "$BASE_DIR/.venv/bin/activate"
 
 
-# Run script
-# python3 -m scripts.figures.run_figure_overview
-# python3 -m scripts.figures.run_sfigure_exp_design
-# python3 -m src.visualization.vizDataset_B
+# ── Paper figures, in paper order ───────────────────────────────────────────
 
-# # 2, 
-# python3 -m scripts.figures.run_figure_latent
-# python3 -m scripts.figures.run_sfigure_latent_interactions
+# Fig 1 — Overview
+python3 -m scripts.figures.run_figure_overview
 
-# 3
+# S1 — Experimental Setup and Example Recordings
+python3 -m scripts.figures.run_sfigure_exp_design
+
+# S2 — Latent Space Interactions
+python3 -m scripts.figures.run_sfigure_latent_interactions
+
+# Fig 2 — Latent Space Visualization
+python3 -m scripts.figures.run_figure_latent
+
+# S3 — Training & Validation Curves
+python3 -m scripts.figures.run_sfigure_training_curves
+
+# Fig 3 — Classification Performance and Error Structure
 python3 -m scripts.figures.run_figure_accuracy_error
 
-############################################################################
-# python -m scripts.analysis.diag_KO_permutation
+# Fig 4 — Neuropil Importance (GradCAM-based)
+python3 -m scripts.figures.run_figure_gradcam_neuropils
 
+# S4 — Neuropil Knockout Importance
+python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
+
+# Candidate for removal — compare against Fig 4 / S4 above before deciding
+python3 -m scripts.figures.run_figure_interpretability
+
+# ── Other visualization utilities (not paper figures) ──────────────────────
+# python3 -m src.visualization.vizDataset_B
+
+############################################################################
+# Diagnostics / analysis (not paper figures)
+# python -m scripts.analysis.diag_KO_permutation
 # python -m scripts.analysis.diag_gradcam_neuropil_importance
 # python -m scripts.analysis.run_viz_cam
 # python -m scripts.analysis.run_neuropil_importance
 # python -m scripts.analysis.diag_preprocessing_KO
-
 # python -m scripts.analysis.diag_KO_data_coverage
-
-# python -m scripts.figures.run_figure_accuracy_error
-
-# python -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
