@@ -5,7 +5,7 @@ For each neuropil KO directory, checks which test set files are missing.
 No model loading — pure file existence check.
 
 Usage (from repo root):
-    python scripts/diagnostics/diag_KO_data_coverage.py
+    python -m scripts.analysis.diag_KO_data_coverage
 
 Outputs:
     results/diagnostics/KO_permutation/KO_data_coverage.csv

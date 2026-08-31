@@ -90,7 +90,7 @@ def main():
 
     outputID    = f'{method_ch}_{timesID}_KO_shuffled_{neuropil}'
     path_data   = f'{config["paths"]["data_root"]}/Paul_LFM_Data'
-    path_output = f'/localscratch/aabdel/imgs4DL/{outputID}'
+    path_output = os.path.join(config['paths']['local_scratch_dir'], 'imgs4DL', outputID)
     np_rng      = np.random.RandomState(random_seed)
 
     logger = setup_logger(task_name=f'shuffledfill_{neuropil}', log_dir='logs/slurm')

@@ -11,7 +11,7 @@ For each neuropil KO, samples N_SAMPLE test recordings and reports:
      (contiguity proxy: a single large block = OOD; many small holes = OK)
 
 Usage (from repo root):
-    python scripts/diagnostics/diag_preprocessing_KO.py
+    python -m scripts.analysis.diag_preprocessing_KO
 
 Output: structured text → stdout (paste directly into conversation)
 """

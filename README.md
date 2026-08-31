@@ -12,10 +12,11 @@ A CNN-Transformer model that classifies *Drosophila* whole-brain calcium imaging
 
 ```
 scripts/
-  training.py             # training entry point
-  run_evaluation.py       # evaluation and latent-space analysis
-  run_figure_*.py         # reproduce paper figures
-  shTrain.sh / shEval.sh  # SLURM job scripts
+  training.py              # training entry point
+  run_evaluation.py        # evaluation and latent-space analysis
+  figures/run_figure_*.py  # reproduce paper figures
+  analysis/                # diagnostic and analysis scripts
+  cluster/                 # SLURM job scripts
 src/
   data/dataset.py         # dataset and data loading
   models/cnn_transformer.py

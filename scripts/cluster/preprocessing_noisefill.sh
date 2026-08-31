@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch).
 # Format: "RUN_ID TIMES NEUROPIL [RECORDINGS_FILE]"
 
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 TIMESTAMP=$(date +%Y%m%d)
@@ -63,7 +63,7 @@ export REMOVE_NEUROPIL="false"
 $([ -n "${RECORDINGS_FILE}" ] && echo "export RECORDINGS_FILE=\"${RECORDINGS_FILE}\"")
 
 cd "$BASE_DIR"
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 python -m src.preprocessing.clean_dataset_noisefill
 EOF
 

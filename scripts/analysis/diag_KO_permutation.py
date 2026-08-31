@@ -10,7 +10,7 @@ Aggregates mean and std of ΔAccuracy across all runs.
 Saves a CSV and a heatmap (16 classes × 12 neuropils, values = mean ΔAcc).
 
 Usage (from repo root):
-    python scripts/diagnostics/diag_KO_permutation.py
+    python -m scripts.analysis.diag_KO_permutation
 
 Outputs:
     results/diagnostics/KO_permutation/KO_delta_accuracy_mean.csv
@@ -40,14 +40,11 @@ from src.data.dataset import CustomDataset
 from src.models.cnn_transformer import CNN_Transformer
 from src.models.model_io import load_model
 from src.utils.config_loader import load_config
-from src.utils.helpers import paths2neuropilpaths, get_predictions, get_predictions_with_probs
+from src.utils.helpers import paths2neuropilpaths, get_predictions_with_probs
 from src.utils.logger import setup_logger
 from src.utils.neuropil_masks import compute_neuropil_sizes, compute_neuropil_sizes_2d
 from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure
-from src.visualization.visualize_interpretability import (
-    plot_contrasts_horizontal,
-    DEFAULT_CONTRAST_SPEC,
-)
+from src.visualization.visualize_interpretability import plot_contrasts_horizontal
 
 apply_style()
 

@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch)
 
 # Base directory
-BASE_DIR="/rhomes/aabdel/DrosoEmbedding"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$BASE_DIR"
 
 # Create a timestamp for this batch of experiments
@@ -12,8 +12,8 @@ TIMESTAMP=$(date +%Y%m%d)
 BATCH_DIR="logs/experiments/$TIMESTAMP"
 mkdir -p "$BATCH_DIR"
 
-Define your experiment configurations
-Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM
+# Define your experiment configurations
+# Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM
 CONFIGURATIONS=(
     #"C16_E16_H16 State_Modality_Valence_16 256 0.001 1000 16 16"
     "C2_E16_H16 MetabolicState_2 256 0.001 1000 16 16"
@@ -62,7 +62,7 @@ export TRF_DIM=${TRF_DIM}
 cd "$BASE_DIR"
 
 # Activate environment
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+source "$BASE_DIR/.venv/bin/activate"
 
 # Run training
 python -m scripts.training --run_name "${RUN_ID}"

@@ -151,7 +151,7 @@ def main(config, logger):
     X_train, X_test, X_val, Y_train, Y_val,  Y_test = split_train_val_test(filtered_dict, labels, train_startingFrame, val_test_proportion)
 
     logger.info("User please check the pairings make sense! ;-)")
-    logger.info(f"We are spliiting into following: {args["split_by"]}")
+    logger.info(f"We are spliiting into following: {args['split_by']}")
     preview_random_samples(X_train, Y_train, n=2, set_name="train")
     preview_random_samples(X_val, Y_val, n=2, set_name="val")
     preview_random_samples(X_test, Y_test, n=2, set_name="test")

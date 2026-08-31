@@ -9,15 +9,13 @@
 #SBATCH --output=logs/slurm/%j-%x.out
 #SBATCH --error=logs/slurm/%j-%x.err
 
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$BASE_DIR/.venv/bin/activate"
 
 # Debug: confirm which python + which cv2 you’re using
 # which python
 # python -c "import sys; print(sys.executable)"
 # python -c "import cv2; print('cv2 OK:', cv2.__version__)"
 
-# Run evaluation/plotting using the venv python explicitly 
-#  /rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.neuropils_importance_single_neuropil_models
-
-/rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.run_evaluation
-#  /rhomes/aabdel/DrosoEmbedding/.venv/bin/python -m scripts.run_plotting
+"$BASE_DIR/.venv/bin/python" -m scripts.run_evaluation
+#  "$BASE_DIR/.venv/bin/python" -m scripts.run_plotting

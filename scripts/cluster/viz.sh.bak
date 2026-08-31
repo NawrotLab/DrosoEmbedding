@@ -11,8 +11,7 @@
 #SBATCH --error=logs/slurm/%x-%j.err
 
 # Optional: Activate virtualenv
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source "$BASE_DIR/.venv/bin/activate"
+source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
 
 
 # Run script
@@ -28,14 +27,14 @@ source "$BASE_DIR/.venv/bin/activate"
 python3 -m scripts.figures.run_figure_accuracy_error
 
 ############################################################################
-# python -m scripts.analysis.diag_KO_permutation
+# python -m scripts.diagnostics.diag_KO_permutation
 
-# python -m scripts.analysis.diag_gradcam_neuropil_importance
-# python -m scripts.analysis.run_viz_cam
-# python -m scripts.analysis.run_neuropil_importance
-# python -m scripts.analysis.diag_preprocessing_KO
+# python -m scripts.diagnostics.diag_gradcam_neuropil_importance
+# python -m scripts.analysis.run_viz_camueue
+# python -m scripts.analysis.run_neuropils_importance
+# python -m scripts.diagnostics.diag_preprocessing_KO
 
-# python -m scripts.analysis.diag_KO_data_coverage
+# python -m scripts.diagnostics.diag_KO_data_coverage
 
 # python -m scripts.figures.run_figure_accuracy_error
 

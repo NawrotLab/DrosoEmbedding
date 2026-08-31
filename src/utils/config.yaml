@@ -74,6 +74,7 @@ paths:
   pickle_base: "pickles/TrainValTest_LocalScratch_Paths-Labels"
   allTs_base: "/path/to/allTs_base"
   peakIDs_Times_All: '/path/to/IDs_logTs.pickle'
+  local_scratch_dir: "/path/to/local_scratch"
   # checkpoints_dir, src_imgs_dir, output_dir are derived from `root` in config_loader.py
 
 visualization:

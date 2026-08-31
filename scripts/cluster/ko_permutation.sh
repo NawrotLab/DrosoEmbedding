@@ -9,19 +9,19 @@
 #SBATCH --mem=16GB
 #SBATCH --output=logs/slurm/%x-%j.out
 #SBATCH --error=logs/slurm/%x-%j.err
-#SBATCH --mail-user=abdelbaki.amina@icloud.com
 
-source /rhomes/aabdel/DrosoEmbedding/.venv/bin/activate
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$BASE_DIR/.venv/bin/activate"
 
-cd /rhomes/aabdel/DrosoEmbedding
+cd "$BASE_DIR"
 
-# python -m scripts.diagnostics.diag_static_fill_viz                      # baseline fill diagnostic
-python -m scripts.diagnostics.diag_KO_quality --variant shuffled
-python -m scripts.diagnostics.diag_KO_permutation --variant shuffled
-python -m scripts.diagnostics.diag_KO_contrast_comparison
-# python -m scripts.diagnostics.diag_KO_quality --variant static
-# python -m scripts.diagnostics.diag_KO_permutation --variant static
-# python -m scripts.diagnostics.diag_KO_quality --variant noisefill
-# python -m scripts.diagnostics.diag_KO_permutation --variant noisefill
-# python -m scripts.diagnostics.diag_KO_quality                           # zero-fill
-# python -m scripts.diagnostics.diag_KO_permutation                       # zero-fill
+# python -m scripts.analysis.diag_static_fill_viz                      # baseline fill diagnostic
+python -m scripts.analysis.diag_KO_quality --variant shuffled
+python -m scripts.analysis.diag_KO_permutation --variant shuffled
+python -m scripts.analysis.diag_KO_contrast_comparison
+# python -m scripts.analysis.diag_KO_quality --variant static
+# python -m scripts.analysis.diag_KO_permutation --variant static
+# python -m scripts.analysis.diag_KO_quality --variant noisefill
+# python -m scripts.analysis.diag_KO_permutation --variant noisefill
+# python -m scripts.analysis.diag_KO_quality                           # zero-fill
+# python -m scripts.analysis.diag_KO_permutation                       # zero-fill
