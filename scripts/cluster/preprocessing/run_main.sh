@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch)
 
 # Base directory
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$BASE_DIR"
 
 # Create a timestamp for this batch of experiments

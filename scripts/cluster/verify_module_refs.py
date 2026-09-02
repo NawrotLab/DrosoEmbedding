@@ -1,13 +1,15 @@
 """
-Dry-run checker for scripts/cluster/*.sh.
+Dry-run checker for scripts/cluster/**/*.sh.
 
-Scans every shell script in this directory for `python -m <module.path>`
-invocations (active or commented-out — commented lines are toggle-able
-options in these scripts, not dead code) and checks that each referenced
-module actually exists as a file and parses without a SyntaxError.
+Scans every shell script under this directory (recursively, e.g.
+preprocessing/, training/, evaluation/, figures/) for `python -m
+<module.path>` invocations (active or commented-out — commented lines are
+toggle-able options in these scripts, not dead code) and checks that each
+referenced module actually exists as a file and parses without a
+SyntaxError.
 
 Does NOT run anything, needs no GPU/data/config — just repo-relative file
-and syntax checks. Run it whenever scripts/cluster/*.sh or the modules
+and syntax checks. Run it whenever a scripts/cluster/**/*.sh or the modules
 they reference change.
 
 Usage (from repo root):
@@ -46,16 +48,17 @@ def check_module(dotted: str) -> tuple[bool, str]:
 
 
 def main() -> int:
-    sh_files = sorted(CLUSTER_DIR.glob('*.sh'))
+    sh_files = sorted(CLUSTER_DIR.rglob('*.sh'))
     if not sh_files:
-        print(f'No .sh files found in {CLUSTER_DIR}')
+        print(f'No .sh files found under {CLUSTER_DIR}')
         return 1
 
-    # module -> set of scripts that reference it
+    # module -> set of scripts (relative path, e.g. "training/run_sweep.sh") that reference it
     refs: dict[str, set] = {}
     for sh_path in sh_files:
+        rel_name = str(sh_path.relative_to(CLUSTER_DIR))
         for module in find_module_refs(sh_path):
-            refs.setdefault(module, set()).add(sh_path.name)
+            refs.setdefault(module, set()).add(rel_name)
 
     if not refs:
         print('No `python -m ...` references found.')

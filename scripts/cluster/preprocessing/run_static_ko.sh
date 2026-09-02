@@ -4,7 +4,7 @@
 # Run this directly from your terminal (don't use sbatch).
 # Format: "RUN_ID TIMES NEUROPIL [RECORDINGS_FILE]"
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$BASE_DIR"
 
 TIMESTAMP=$(date +%Y%m%d)
@@ -26,8 +26,8 @@ CONFIGURATIONS=(
     "staticfill_OL   allTs OL"
     "staticfill_VMNP allTs VMNP"
 
-    # ── targeted fixes (uncomment as needed) ──────────────────────────────────
-    # "staticfill_fix_AL   allTs AL   ${BASE_DIR}/scripts/cluster/recording_filters/staticfill_fix.txt"
+    # ── targeted fixes for specific recordings, if ever needed ────────────────
+    # "staticfill_fix_AL allTs AL ${BASE_DIR}/scripts/cluster/preprocessing/recording_filters/staticfill_fix.txt"
 )
 
 for config in "${CONFIGURATIONS[@]}"; do

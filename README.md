@@ -16,7 +16,8 @@ scripts/
   run_evaluation.py        # evaluation and latent-space analysis
   figures/run_figure_*.py  # reproduce paper figures
   analysis/                # diagnostic and analysis scripts
-  cluster/                 # SLURM job scripts
+  cluster/                 # optional SLURM launchers (preprocessing/, training/,
+                            # evaluation/, figures/) -- see cluster/README.md
 src/
   data/dataset.py         # dataset and data loading
   models/cnn_transformer.py
