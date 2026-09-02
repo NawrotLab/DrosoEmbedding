@@ -151,6 +151,14 @@ def main():
         ax.imshow(img, aspect='equal')
         ax.set_xlim(0, img.size[0])
         ax.set_ylim(img.size[1], 0)
+        if label in ('d', 'e'):
+            # d/e's images are much wider than tall relative to their box,
+            # so centering (default) leaves a big empty gap above the image,
+            # between it and the label. Anchor to the top instead -- safe to
+            # do now since labels are positioned from the nominal grid, not
+            # from each axes' own post-aspect box (see below), so this can't
+            # un-align them the way it did before.
+            ax.set_anchor('N')
 
         for spine in ax.spines.values():
             spine.set_visible(False)
@@ -178,7 +186,7 @@ def main():
     _, tops, lefts, _ = gs.get_grid_positions(fig)
     row2_label_y = tops[1] - 0.02
     add_panel_label(fig, 'a', x=lefts[0], y=tops[0])
-    add_panel_label(fig, 'b', x=lefts[1], y=tops[0])
+    add_panel_label(fig, 'b', x=lefts[1] - 0.02, y=tops[0])
     add_panel_label(fig, 'c', x=lefts[3], y=tops[0])
     add_panel_label(fig, 'd', x=lefts[0], y=row2_label_y)
     add_panel_label(fig, 'e', x=lefts[3], y=row2_label_y)
