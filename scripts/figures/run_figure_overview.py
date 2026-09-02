@@ -186,7 +186,7 @@ def main():
     _, tops, lefts, _ = gs.get_grid_positions(fig)
     row2_label_y = tops[1] + 0.015
     add_panel_label(fig, 'a', x=lefts[0], y=tops[0])
-    add_panel_label(fig, 'b', x=lefts[1] - 0.02, y=tops[0])
+    add_panel_label(fig, 'b', x=lefts[1] + 0.01, y=tops[0])
     add_panel_label(fig, 'c', x=lefts[3], y=tops[0])
     add_panel_label(fig, 'd', x=lefts[0], y=row2_label_y)
     add_panel_label(fig, 'e', x=lefts[3], y=row2_label_y)
