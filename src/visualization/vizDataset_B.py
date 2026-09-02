@@ -47,7 +47,6 @@ def load_and_process_data(pkl_file, lfm_path, seed=777):
             substract_Baseline=True,
             t_base=[0, 200],
             save_baseframe=False,
-            knockOutNeuropil=False,
             neuropil_name='AL'
         )
         print(f'Loaded{rec_path}.')
@@ -133,8 +132,8 @@ def plot_meanZ(data, time_points, output_path, bg_path):
         ax.set_ylim(0, 1)
         ax.axis('off')
 
-    plt.text(0.3, 4.8, f"Pre-stimulus", ha='left', va='bottom', fontsize=10)
-    plt.text(1.5, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=10)
+    plt.text(0.3, 4.8, f"Pre-stimulus", ha='left', va='bottom', fontsize=18)
+    plt.text(1.5, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=18)
 
 
     plt.tight_layout(rect=[0, 0, 1, 0.93])

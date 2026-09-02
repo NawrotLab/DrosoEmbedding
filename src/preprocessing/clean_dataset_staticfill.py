@@ -137,7 +137,6 @@ def main():
             substract_Baseline=True,
             t_base=[0, 250],
             save_baseframe=False,
-            knockOutNeuropil=False,
             isolate_neuropil=False,
         )
 
