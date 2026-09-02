@@ -52,9 +52,10 @@ python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 
 ############################################################################
 # Diagnostics / analysis (not paper figures)
-# python -m scripts.analysis.diag_KO_permutation
-# python -m scripts.analysis.diag_gradcam_neuropil_importance
 # python -m scripts.analysis.run_viz_cam
 # python -m scripts.analysis.run_neuropil_importance
-# python -m scripts.analysis.diag_preprocessing_KO
-# python -m scripts.analysis.diag_KO_data_coverage
+
+# Note: diag_KO_permutation, diag_gradcam_neuropil_importance,
+# diag_preprocessing_KO, and diag_KO_data_coverage were development-time
+# diagnostics not used by any paper figure — archived in
+# scripts/analysis/archive/.
