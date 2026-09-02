@@ -13,10 +13,10 @@
 #SBATCH --error=logs/training/%j-%x.err
 
 
-# slurmd copies this script to its own spool dir before running it, so
-# BASH_SOURCE would point there instead of the repo -- use the directory
-# sbatch was invoked from instead.
-BASE_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
+# slurmd copies this script to its own spool dir and runs it there --
+# neither BASH_SOURCE nor the job's CWD/$SLURM_SUBMIT_DIR reliably point
+# at the repo on this cluster. $HOME does, so anchor on that instead.
+BASE_DIR="$HOME/DrosoEmbedding"
 source "$BASE_DIR/.venv/bin/activate"
 
 RUN_NAME="${SLURM_ARRAY_TASK_ID}"
