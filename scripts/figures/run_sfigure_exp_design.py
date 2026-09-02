@@ -344,7 +344,7 @@ def build_figure():
 
     outer = gridspec.GridSpec(
         1, 2, figure=fig,
-        width_ratios=[0.28, 0.72],
+        width_ratios=[0.33, 0.67],
         left=0.01, right=0.99,
         top=0.97, bottom=0.02,
         wspace=0.04,
@@ -399,7 +399,7 @@ def build_figure():
                 sp.set_edgecolor(INC_COL); sp.set_linewidth(1.5)
 
             if ci == 0:
-                ax.set_ylabel(label.lower(), fontsize=FONT_SIZES['small'],
+                ax.set_ylabel(label.lower(), fontsize=FONT_SIZES['label'],
                               rotation=90, ha='center', va='center',
                               labelpad=8)
 
@@ -434,9 +434,10 @@ def build_figure():
              color=EXC_COL)
 
     # ── Panel labels ──────────────────────────────────────────────────────
-    add_panel_label(fig, 'a', x=0.01,  y=0.99)
-    add_panel_label(fig, 'b', x=0.01,  y=0.25)
-    add_panel_label(fig, 'c', x=0.285, y=0.99)
+    col_c_left = outer.get_grid_positions(fig)[2][1]
+    add_panel_label(fig, 'a', x=0.01,        y=1.02)
+    add_panel_label(fig, 'b', x=0.01,        y=0.25)
+    add_panel_label(fig, 'c', x=col_c_left,  y=1.02)
 
     # ── Save ──────────────────────────────────────────────────────────────
     save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))

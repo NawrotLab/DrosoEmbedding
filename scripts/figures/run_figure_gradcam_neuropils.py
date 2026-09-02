@@ -188,9 +188,9 @@ gs_bot = GridSpec(
 )
 
 # ── Panel labels ──────────────────────────────────────────────────────────
-add_panel_label(fig, 'a', x=0.00, y=0.92)
-add_panel_label(fig, 'b', x=0.25, y=0.92)
-add_panel_label(fig, 'c', x=0.69, y=0.92)
+add_panel_label(fig, 'a', x=0.00, y=0.96)
+add_panel_label(fig, 'b', x=0.25, y=0.96)
+add_panel_label(fig, 'c', x=0.69, y=0.96)
 add_panel_label(fig, 'd', x=0.00, y=0.50)
 add_panel_label(fig, 'e', x=0.52, y=0.50)
 

@@ -70,10 +70,10 @@ def plot_figure_latent(
 
     column_titles = ['Control t-SNE', 'Model t-SNE', 'Centroid projections', 'Accuracy']
     column_labels = ['a', 'b', 'c', 'd']
-    column_positions = [0.18, 0.43, 0.65, 0.9]
+    column_positions = [0.18, 0.43, 0.62, 0.9]
 
     for x, title in zip(column_positions, column_titles):
-        fig.text(x, 0.95, title, ha='center', va='bottom', fontsize=FONT_SIZES['title'], weight='bold')
+        fig.text(x, 0.95, title, ha='center', va='top', fontsize=FONT_SIZES['title'], weight='bold')
 
     col_lefts = gs.get_grid_positions(fig)[2]
     for label, x in zip(column_labels, col_lefts):

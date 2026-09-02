@@ -152,6 +152,11 @@ def main():
         ax.imshow(img, aspect='equal')
         ax.set_xlim(0, img.size[0])
         ax.set_ylim(img.size[1], 0)
+        # Anchor to the top-left of the allocated box instead of centering --
+        # otherwise images with different aspect ratios shrink-to-fit around
+        # their own center, so the visible content (and how close it sits to
+        # the panel label above it) drifts differently per panel.
+        ax.set_anchor('NW')
 
         for spine in ax.spines.values():
             spine.set_visible(False)

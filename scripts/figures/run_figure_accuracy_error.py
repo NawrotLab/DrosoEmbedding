@@ -65,6 +65,12 @@ from src.analysis.error_taxonomy import (
 
 apply_style()
 
+# This figure's own x/y axis tick labels and axis titles run a bit larger
+# than the shared FONT_SIZES defaults -- kept local rather than bumping the
+# shared constants, which would affect every other figure too.
+_TICK_FS  = FONT_SIZES['tick'] + 3
+_LABEL_FS = FONT_SIZES['label'] + 3
+
 # ── Configuration ──────────────────────────────────────────────────────────────
 TASK_ORDER = [
     'MetabolicState_2',
@@ -134,11 +140,11 @@ def _draw_f1_panel(ax, results_dict, all_reports_dict, class_styles_dict, rng):
     ax.set_xticks([grp_cx[t] for t in TASK_ORDER])
     ax.set_xticklabels(
         [TASK_LABELS[t] for t in TASK_ORDER],
-        fontsize=FONT_SIZES['tick'], rotation=25, ha='right',
+        fontsize=_TICK_FS, rotation=25, ha='right',
     )
     ax.tick_params(axis='x', length=0)
     ax.set_ylim(0, 1)
-    ax.set_ylabel('F1 Score', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('F1 Score', fontsize=_LABEL_FS)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
 
@@ -147,7 +153,7 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
                          xtick_rotation=35, xtick_fontsize=None, bar_w=0.55):
     """Shared bar-chart core used by panels c and d. Bars show 50-run mean."""
     if xtick_fontsize is None:
-        xtick_fontsize = FONT_SIZES['tick']
+        xtick_fontsize = _TICK_FS
 
     ax.bar(xs, means, width=bar_w, facecolor='none',
            edgecolor='#094c80', linewidth=2, zorder=2)
@@ -162,13 +168,13 @@ def _draw_hierarchy_bars(ax, xs, means, run_pcts_cols, colors, xlabels, rng,
     for x, m in zip(xs, means):
         label_y = m + max(means) * 0.04
         ax.text(x, label_y, f'{m:.1f}%', ha='center', va='bottom',
-                fontsize=FONT_SIZES['tick'], fontweight='bold',
+                fontsize=_TICK_FS, fontweight='bold',
                 color='black', zorder=6)
 
     ax.set_xticks(xs)
     ax.set_xticklabels(xlabels, fontsize=xtick_fontsize,
                        rotation=xtick_rotation, ha='right')
-    ax.set_ylabel('% of all predictions', fontsize=FONT_SIZES['label'])
+    ax.set_ylabel('% of all predictions', fontsize=_LABEL_FS)
     ymax = max(means) * 1.45 if max(means) > 0 else 10
     ax.set_ylim(0, ymax)
     ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, integer=False))
@@ -433,7 +439,7 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
             class_styles=entry['__class_styles__'],
         )
         title = f"{sub_lbl}. {TASK_LABELS[task].replace(chr(10), ' ')}"
-        ax_cm.set_title(title, fontsize=FONT_SIZES['subplot_title'],
+        ax_cm.set_title(title, fontsize=FONT_SIZES['title'],
                         fontweight='bold', pad=4)
 
     # Shared vertical colorbar with chance-level markers

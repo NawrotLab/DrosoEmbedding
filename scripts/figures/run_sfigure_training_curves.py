@@ -24,7 +24,7 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from src.visualization.figure_base import apply_style, FONT_SIZES, save_figure, add_panel_label
+from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 
 apply_style()
 
@@ -134,7 +134,7 @@ x_max = X_MAX_HARD
 # ── Figure ────────────────────────────────────────────────────────────────────
 
 fig, (ax_loss, ax_acc) = plt.subplots(
-    2, 1, figsize=(10, 8), sharex=True,
+    2, 1, figsize=(FIGURE_WIDTH, 9), sharex=True,
     gridspec_kw=dict(hspace=0.25),
 )
 fig.subplots_adjust(left=0.12, right=0.97, top=0.94, bottom=0.09)

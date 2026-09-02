@@ -178,9 +178,10 @@ gs = GridSpec(
     wspace=0.35,
 )
 
-# Panel labels
-add_panel_label(fig, 'a', x=0.00, y=0.95)
-add_panel_label(fig, 'b', x=0.52, y=0.95)
+# Panel labels -- raised to clear the "<- neg | pos ->" endpoint annotations
+# that plot_contrasts_horizontal draws above each contrast sub-panel in b
+add_panel_label(fig, 'a', x=0.00, y=0.98)
+add_panel_label(fig, 'b', x=0.52, y=0.98)
 
 # ── Panel a: group heatmap ────────────────────────────────────────────────
 

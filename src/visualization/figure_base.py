@@ -21,7 +21,7 @@ MARGINS = dict(left=0.06, right=0.96, top=0.93, bottom=0.15)
 
 # ── Font sizes (calibrated for FIGURE_WIDTH) ──────────────────────────────────
 FONT_SIZES = {
-    'panel_label':   16,   # a, b, c … panel letters (bold)
+    'panel_label':   19,   # a, b, c … panel letters (bold)
     'title':         17,   # structural row/column headers
     'subplot_title': 12,   # individual subplot titles
     'label':         14,   # xlabel / ylabel
@@ -71,7 +71,7 @@ def apply_style():
     })
 
 
-def add_panel_label(fig, label, ax=None, x=None, y=None, dx=None, dy=None):
+def add_panel_label(fig, label, ax=None, x=None, y=None, dx=None, dy=None, va='top'):
     """Draw a bold panel-letter label ('a', 'b', ...) in the shared house style.
 
     Single source of truth for panel-label font/size/weight/format so every
@@ -80,8 +80,10 @@ def add_panel_label(fig, label, ax=None, x=None, y=None, dx=None, dy=None):
         (dx/dy are axes-fraction offsets from the corner; default -0.1/0.02)
       - pass explicit figure-fraction `x`/`y` for a label spanning multiple
         axes (a composite panel) — y is the panel's top edge.
+    `va` defaults to 'top' (label sits just below y); pass va='bottom' to
+    pair a label with a title that itself uses va='bottom' at the same y.
     """
-    kwargs = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', ha='left', va='top')
+    kwargs = dict(fontsize=FONT_SIZES['panel_label'], fontweight='bold', ha='left', va=va)
     if ax is not None:
         dx = -0.1 if dx is None else dx
         dy = 0.02 if dy is None else dy
