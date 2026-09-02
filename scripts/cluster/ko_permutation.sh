@@ -10,7 +10,10 @@
 #SBATCH --output=logs/slurm/%x-%j.out
 #SBATCH --error=logs/slurm/%x-%j.err
 
-BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+# slurmd copies this script to its own spool dir before running it, so
+# BASH_SOURCE would point there instead of the repo -- use the directory
+# sbatch was invoked from instead.
+BASE_DIR="${SLURM_SUBMIT_DIR:-$(pwd)}"
 source "$BASE_DIR/.venv/bin/activate"
 
 cd "$BASE_DIR"
