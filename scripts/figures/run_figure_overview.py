@@ -133,7 +133,6 @@ def main():
     labels = ['a', 'b', 'c', 'd', 'e']
 
     for ax, label in zip(axes.values(), labels):
-        add_panel_label(fig, label, ax=ax)
         ax.set_xticks([]); ax.set_yticks([])
 
         if label == 'a':
@@ -164,6 +163,23 @@ def main():
     cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
     new_w, new_h = pos.width * shrink, pos.height * shrink
     axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
+
+    # Panel labels, placed after layout is finalised. a/b/c/d are positioned
+    # from the shared GridSpec's nominal row/column boundaries rather than
+    # each axes' own (post aspect='equal') box: imshow(aspect='equal') on
+    # differently-shaped images shrinks each axes' box individually around
+    # its own center, so per-axes anchoring (ax.transAxes) made labels that
+    # should align (a/b/c share a row; a/d share a column) drift apart even
+    # though the underlying grid geometry is identical. 'e' keeps per-axes
+    # anchoring since it alone gets manually repositioned above.
+    gs = axes['1'].get_gridspec()
+    _, tops, lefts, _ = gs.get_grid_positions(fig)
+    add_panel_label(fig, 'a', x=lefts[0], y=tops[0])
+    add_panel_label(fig, 'b', x=lefts[1], y=tops[0])
+    add_panel_label(fig, 'c', x=lefts[3], y=tops[0])
+    add_panel_label(fig, 'd', x=lefts[0], y=tops[1])
+    add_panel_label(fig, 'e', ax=axes['5'])
+
     save_figure(fig, out_path, formats=('png', 'svg', 'pdf'), dpi=500)
 
 
