@@ -435,9 +435,9 @@ def build_figure():
 
     # ── Panel labels ──────────────────────────────────────────────────────
     col_c_left = outer.get_grid_positions(fig)[2][1]
-    add_panel_label(fig, 'a', x=0.01,             y=1.02)
+    add_panel_label(fig, 'a', x=0.01,             y=1.0)
     add_panel_label(fig, 'b', x=0.01,             y=0.25)
-    add_panel_label(fig, 'c', x=col_c_left - 0.02, y=1.02)
+    add_panel_label(fig, 'c', x=col_c_left - 0.02, y=1.0)
 
     # ── Save ──────────────────────────────────────────────────────────────
     save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))
