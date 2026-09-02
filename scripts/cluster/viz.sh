@@ -53,11 +53,11 @@ python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 ############################################################################
 # Diagnostics / analysis (not paper figures)
 # python -m scripts.analysis.run_viz_cam
-# python -m scripts.analysis.run_neuropil_importance
 
 # Note: diag_KO_permutation, diag_gradcam_neuropil_importance,
 # diag_preprocessing_KO, diag_KO_data_coverage, diag_KO_quality,
-# diag_static_fill_viz, and diag_KO_contrast_comparison were development-time
-# diagnostics not used by any paper figure — removed. See git history to
-# recover them (also removed scripts/cluster/ko_permutation.sh, which only
-# ran these).
+# diag_static_fill_viz, diag_KO_contrast_comparison, and
+# run_neuropil_importance (ridge-regression neuropil importance, superseded
+# by the GradCAM-based approach in Fig 4) were removed — not used by any
+# paper figure. See git history to recover them (also removed
+# scripts/cluster/ko_permutation.sh, which only ran the diag_* scripts).
