@@ -57,17 +57,9 @@ def paths2neuropilpaths(X, config):
     prep = config["data"]["preprocessing"]
     base = "meanZ_logTs"
 
-    # sanity check
-    if prep["isolate_neuropil"] and prep["remove_neuropil"]:
-        raise ValueError(
-            "Both isolate_neuropil and remove_neuropil are True. Choose only one."
-        )
-
     # decide new folder name
     if prep["isolate_neuropil"]:
         new_base = f"{base}_{prep['neuropil']}"
-    elif prep["remove_neuropil"]:
-        new_base = f"{base}_KO_{prep['neuropil']}"
     else:
         return X  # nothing to do
 

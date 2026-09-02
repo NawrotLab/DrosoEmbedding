@@ -50,7 +50,6 @@ def apply_env_overrides(config):
         'DROSO_ALLT_BASE': ['paths', 'allTs_base'],
         'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
         'DROSO_LOCAL_SCRATCH': ['paths', 'local_scratch_dir'],
-        'REMOVE_NEUROPIL': ['data', 'preprocessing', 'remove_neuropil'],
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
         }
     
@@ -107,7 +106,6 @@ def setup_derived_parameters(config):
     # Set up neuropil-specific parameters
     neuropil = config["data"]["preprocessing"]["neuropil"]
     isolate  = config["data"]["preprocessing"]["isolate_neuropil"]
-    remove   = config["data"]["preprocessing"]["remove_neuropil"]
     use_aligned_template = config["data"]["preprocessing"].get("use_aligned_neuropil_template", False)
     if isolate:
         if use_aligned_template:
@@ -116,9 +114,6 @@ def setup_derived_parameters(config):
         else:
             logT_name = f"logTs_{neuropil}"
             allT_name = f"allTs_{neuropil}"
-    elif remove:
-        logT_name = f"logTs_KO_{neuropil}"
-        allT_name = f"allTs_KO_{neuropil}"
     else:
         logT_name = "logTs"
         allT_name = "allTs"

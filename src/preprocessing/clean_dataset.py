@@ -8,16 +8,14 @@ import tifffile
 import time
 import pickle
 from src.utils.config_loader import load_config
-# from src.utils.imgTools import knockNeuropilOut
 from src.utils.logger import setup_logger
 from src.utils.imgTools import load_and_normNIFTI
 
 
 
 def main(logger, config):
-    # get variables 
+    # get variables
     neuropil = config['data']['preprocessing']['neuropil']
-    remove_neuropil = config['data']['preprocessing']['remove_neuropil']
     isolate_neuropil = config['data']['preprocessing']['isolate_neuropil']
     use_aligned_template = config['data']['preprocessing'].get('use_aligned_neuropil_template', False)
     basepoints = config['data']['preprocessing']['base_points']
@@ -25,8 +23,6 @@ def main(logger, config):
 
     if isolate_neuropil:
         outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}_{config['data']['preprocessing']['neuropil']}"
-    elif remove_neuropil:
-        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}_KO_{config['data']['preprocessing']['neuropil']}"
     else:
         outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}"
     
@@ -84,7 +80,7 @@ def main(logger, config):
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             
-            rec_data = load_and_normNIFTI(nifti, substract_Baseline=True, t_base=[0, 250], save_baseframe=False, knockOutNeuropil=remove_neuropil, isolate_neuropil=isolate_neuropil, neuropil_name=neuropil, use_aligned_template=use_aligned_template)
+            rec_data = load_and_normNIFTI(nifti, substract_Baseline=True, t_base=[0, 250], save_baseframe=False, isolate_neuropil=isolate_neuropil, neuropil_name=neuropil, use_aligned_template=use_aligned_template)
             if timesID == 'logTs':
                 times = id_times_dict[file_name]
             elif timesID == 'allTs':

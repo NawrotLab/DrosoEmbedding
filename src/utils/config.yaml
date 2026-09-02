@@ -16,7 +16,6 @@ data:
     method_ch: 'meanZ'
     times: 'logTs'  #'logTs'
     neuropil: 'VMMP'
-    remove_neuropil: false
     isolate_neuropil: false
     use_aligned_neuropil_template: false
     

@@ -9,7 +9,7 @@ CONFIG = load_config()
 
 
 
-def load_and_normNIFTI(file_path, substract_Baseline = False, t_base = [0,250], save_baseframe = False, knockOutNeuropil = False, isolate_neuropil = False, neuropil_name = 'AL', use_aligned_template = False):
+def load_and_normNIFTI(file_path, substract_Baseline = False, t_base = [0,250], save_baseframe = False, isolate_neuropil = False, neuropil_name = 'AL', use_aligned_template = False):
     file_name = file_path.split('/')[-1].split('.')[0]
     recNr = file_name.split('_')[-1]
     data_array = np.rot90(nib.load(file_path).get_fdata(), k=3)
@@ -123,30 +123,6 @@ def load_and_normNIFTI(file_path, substract_Baseline = False, t_base = [0,250], 
 
 
 
-
-    if knockOutNeuropil:
-        if use_aligned_template:
-            # Load template mask (already in aligned/template space)
-            # normalized_data is in aligned space with shape (output_shape[0], output_shape[1], output_shape[2], time)
-            # Template mask has shape (output_shape[0], output_shape[1], output_shape[2])
-            # The template mask is a max projection, so it may cover more than a single recording's neuropil
-            # but this is correct - we apply it in aligned space, then extract only the data region when reverting
-            template_masks = nib.load(template_path).get_fdata()
-            template_mask_3d = template_masks[:, :, :, idx_neuropil[0]]
-            # Ensure binary and add time dimension
-            neuropil_binary = (template_mask_3d > 0).astype(np.float32)
-            neuropil_binary = neuropil_binary[:, :, :, np.newaxis]  # Add time dimension: (y, x, z, 1)
-        else:
-            neuropil_binary = nib.load(mask_path).get_fdata()[:, :, :, idx_neuropil]
-            neuropil_binary = np.transpose(neuropil_binary, (1, 0, 2, 3))  # just to match data_array shape
-        
-        # Broadcast aka. "stretch" the binary mask to match the shape of data_array
-        neuropil_binary_broadcasted = np.broadcast_to(neuropil_binary, normalized_data.shape)
-        # Verify shapes match
-        if neuropil_binary_broadcasted.shape != normalized_data.shape:
-            raise ValueError(f"Mask shape {neuropil_binary_broadcasted.shape} doesn't match data shape {normalized_data.shape}")
-        # Set elements in data_array to NaN where neuropil_binary is 1
-        normalized_data[neuropil_binary_broadcasted == 1] = np.nan
 
     if isolate_neuropil:
         if use_aligned_template:
