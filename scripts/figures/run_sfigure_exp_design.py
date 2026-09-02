@@ -344,7 +344,7 @@ def build_figure():
 
     outer = gridspec.GridSpec(
         1, 2, figure=fig,
-        width_ratios=[0.33, 0.67],
+        width_ratios=[0.37, 0.63],
         left=0.01, right=0.99,
         top=0.97, bottom=0.02,
         wspace=0.04,
@@ -371,7 +371,7 @@ def build_figure():
     # ── Panel A ───────────────────────────────────────────────────────────
     ax_a = fig.add_subplot(left_gs[0])
     try:
-        ax_a.imshow(load_svg(PANEL_A_SVG), aspect='equal')
+        ax_a.imshow(load_svg(PANEL_A_SVG), aspect='auto')
     except Exception as e:
         ax_a.text(0.5, 0.5, f'[Panel A]\n{e}',
                   ha='center', va='center', transform=ax_a.transAxes,
@@ -399,7 +399,7 @@ def build_figure():
                 sp.set_edgecolor(INC_COL); sp.set_linewidth(1.5)
 
             if ci == 0:
-                ax.set_ylabel(label.lower(), fontsize=FONT_SIZES['label'],
+                ax.set_ylabel(label.lower(), fontsize=11,
                               rotation=90, ha='center', va='center',
                               labelpad=8)
 
@@ -435,9 +435,9 @@ def build_figure():
 
     # ── Panel labels ──────────────────────────────────────────────────────
     col_c_left = outer.get_grid_positions(fig)[2][1]
-    add_panel_label(fig, 'a', x=0.01,        y=1.02)
-    add_panel_label(fig, 'b', x=0.01,        y=0.25)
-    add_panel_label(fig, 'c', x=col_c_left,  y=1.02)
+    add_panel_label(fig, 'a', x=0.01,             y=1.02)
+    add_panel_label(fig, 'b', x=0.01,             y=0.25)
+    add_panel_label(fig, 'c', x=col_c_left - 0.02, y=1.02)
 
     # ── Save ──────────────────────────────────────────────────────────────
     save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))
