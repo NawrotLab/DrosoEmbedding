@@ -44,8 +44,8 @@ python3 -m scripts.figures.run_figure_gradcam_neuropils
 # S4 — Neuropil Knockout Importance
 python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 
-# Note: run_figure_interpretability.py was an earlier, incorrect Fig 4 —
-# archived in scripts/figures/archive/, superseded by Fig 4 / S4 above.
+# Note: an earlier, incorrect Fig 4 (run_figure_interpretability.py) was
+# removed — superseded by Fig 4 / S4 above. See git history to recover it.
 
 # ── Other visualization utilities (not paper figures) ──────────────────────
 # python3 -m src.visualization.vizDataset_B
@@ -56,6 +56,8 @@ python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
 # python -m scripts.analysis.run_neuropil_importance
 
 # Note: diag_KO_permutation, diag_gradcam_neuropil_importance,
-# diag_preprocessing_KO, and diag_KO_data_coverage were development-time
-# diagnostics not used by any paper figure — archived in
-# scripts/analysis/archive/.
+# diag_preprocessing_KO, diag_KO_data_coverage, diag_KO_quality,
+# diag_static_fill_viz, and diag_KO_contrast_comparison were development-time
+# diagnostics not used by any paper figure — removed. See git history to
+# recover them (also removed scripts/cluster/ko_permutation.sh, which only
+# ran these).
