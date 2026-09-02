@@ -164,21 +164,24 @@ def main():
     new_w, new_h = pos.width * shrink, pos.height * shrink
     axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
 
-    # Panel labels, placed after layout is finalised. a/b/c/d are positioned
-    # from the shared GridSpec's nominal row/column boundaries rather than
-    # each axes' own (post aspect='equal') box: imshow(aspect='equal') on
-    # differently-shaped images shrinks each axes' box individually around
-    # its own center, so per-axes anchoring (ax.transAxes) made labels that
-    # should align (a/b/c share a row; a/d share a column) drift apart even
-    # though the underlying grid geometry is identical. 'e' keeps per-axes
-    # anchoring since it alone gets manually repositioned above.
+    # Panel labels, placed after layout is finalised, all from the shared
+    # GridSpec's nominal row/column boundaries rather than each axes' own
+    # (post aspect='equal') box: imshow(aspect='equal') on differently-shaped
+    # images shrinks each axes' box individually around its own center, so
+    # per-axes anchoring (ax.transAxes) made labels that should align (a/b/c
+    # share a row; a/d and c/e share a column) drift apart even though the
+    # underlying grid geometry is identical. d/e share one y a bit below the
+    # nominal row-1 top -- 'e' is additionally shrunk 10% around its own
+    # center (above), which pulls its own box's top down from that nominal
+    # line, so anchoring both to the same explicit y aligns them exactly.
     gs = axes['1'].get_gridspec()
     _, tops, lefts, _ = gs.get_grid_positions(fig)
+    row2_label_y = tops[1] - 0.02
     add_panel_label(fig, 'a', x=lefts[0], y=tops[0])
     add_panel_label(fig, 'b', x=lefts[1], y=tops[0])
     add_panel_label(fig, 'c', x=lefts[3], y=tops[0])
-    add_panel_label(fig, 'd', x=lefts[0], y=tops[1])
-    add_panel_label(fig, 'e', ax=axes['5'])
+    add_panel_label(fig, 'd', x=lefts[0], y=row2_label_y)
+    add_panel_label(fig, 'e', x=lefts[3], y=row2_label_y)
 
     save_figure(fig, out_path, formats=('png', 'svg', 'pdf'), dpi=500)
 
