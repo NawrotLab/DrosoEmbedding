@@ -67,7 +67,7 @@ GROUPINGS = [
     ("Odor + Taste",     lambda p: p['stim'] in ('MM', 'MC')),
     ("Appetitive",       lambda p: p['valence'] == 'P'),
     ("Aversive",         lambda p: p['valence'] == 'N'),
-    ("App. + Aversive",  lambda p: p['stim'] == 'MC'),
+    ("App. + Avs.",      lambda p: p['stim'] == 'MC'),
 ]
 
 
@@ -371,7 +371,7 @@ def build_figure():
     # ── Panel A ───────────────────────────────────────────────────────────
     ax_a = fig.add_subplot(left_gs[0])
     try:
-        ax_a.imshow(load_svg(PANEL_A_SVG), aspect='auto')
+        ax_a.imshow(load_svg(PANEL_A_SVG), aspect='equal')
     except Exception as e:
         ax_a.text(0.5, 0.5, f'[Panel A]\n{e}',
                   ha='center', va='center', transform=ax_a.transAxes,
