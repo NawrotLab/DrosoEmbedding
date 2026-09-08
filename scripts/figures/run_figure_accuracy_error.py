@@ -482,8 +482,8 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
         _ax.set_zorder(1)
 
     # ── Panel labels ───────────────────────────────────────────────────────────
-    add_panel_label(fig, 'a', ax=ax_a,   dx=-0.18, dy=0.04)
-    add_panel_label(fig, 'b', ax=ax_cm2, dx=-0.18, dy=0.04)
+    add_panel_label(fig, 'a', ax=ax_a,   dx=-0.18, dy=0.08)
+    add_panel_label(fig, 'b', ax=ax_cm2, dx=-0.18, dy=0.08)
     add_panel_label(fig, 'c', ax=ax_c,   dx=-0.18, dy=-0.04)
 
     # Force layout so axis positions and tick locations are finalised.
