@@ -206,7 +206,7 @@ def main():
     # only the top-level GridSpec does). No header text anymore, so this
     # only needs to be tall enough for that clearance, not a title.
     gs_b = GridSpecFromSubplotSpec(
-        4, 1, subplot_spec=b_subplotspec, hspace=0.15,
+        4, 1, subplot_spec=b_subplotspec, hspace=0.3,
         height_ratios=[0.15, 1, 1, 1],
     )
     b_row_axes = []
