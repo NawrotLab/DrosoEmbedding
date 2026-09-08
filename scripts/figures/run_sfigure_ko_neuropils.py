@@ -195,6 +195,7 @@ plot_heatmap_groups_abs(
     group_profiles_abs=df_group,
     neuropil_names=NEUROPILS,
     annotate=False,
+    cbar_label='Size-normalized ΔAccuracy',
 )
 
 # ── Panel b: contrast plots ───────────────────────────────────────────────
