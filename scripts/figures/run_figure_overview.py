@@ -197,21 +197,15 @@ def main():
     axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
 
     # Panel b: 3 stacked rows (Odor, Taste, Combi_M), replacing the single
-    # placeholder axes with a nested GridSpec in its exact spot.
+    # placeholder axes with a nested GridSpec spanning its exact spot --
+    # same top/bottom extent as panels a/c, no reserved margin. Separation
+    # between rows comes entirely from hspace.
     b_subplotspec = axes['2'].get_subplotspec()
     axes['2'].remove()
-    # 4 rows, not 3: row 0 is a small empty spacer so the first data row's
-    # top-anchored image (aspect='auto' fills its whole box) doesn't touch
-    # label 'b' (GridSpecFromSubplotSpec has no top/bottom margin params --
-    # only the top-level GridSpec does). No header text anymore, so this
-    # only needs to be tall enough for that clearance, not a title.
-    gs_b = GridSpecFromSubplotSpec(
-        4, 1, subplot_spec=b_subplotspec, hspace=0.3,
-        height_ratios=[0.15, 1, 1, 1],
-    )
+    gs_b = GridSpecFromSubplotSpec(3, 1, subplot_spec=b_subplotspec, hspace=0.3)
     b_row_axes = []
     for i, cond in enumerate(panel_b_data.keys()):
-        ax_row = fig.add_subplot(gs_b[i + 1, 0])
+        ax_row = fig.add_subplot(gs_b[i, 0])
         draw_meanZ_row(ax_row, panel_b_data[cond]['meanZ'], panel_b_time_points[cond], panel_b_bg)
         b_row_axes.append(ax_row)
 
