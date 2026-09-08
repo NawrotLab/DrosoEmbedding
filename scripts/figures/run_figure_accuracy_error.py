@@ -438,9 +438,12 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
             styles=styles,
             class_styles=entry['__class_styles__'],
         )
-        title = f"{sub_lbl}. {TASK_LABELS[task].replace(chr(10), ' ')}"
-        ax_cm.set_title(title, fontsize=FONT_SIZES['title'],
-                        fontweight='bold', pad=4)
+        # Bare numbering (i/ii/iii), positioned at the same axes-fraction
+        # height as the colorbar's "Prediction (%)" title below
+        # (set_label_coords y=1.10) so they align across the row.
+        ax_cm.text(0.5, 1.10, sub_lbl, transform=ax_cm.transAxes,
+                   ha='center', va='bottom',
+                   fontsize=FONT_SIZES['title'], fontweight='bold')
 
     # Shared vertical colorbar with chance-level markers
     sm = plt.cm.ScalarMappable(cmap='Blues', norm=plt.Normalize(vmin=0, vmax=100))
