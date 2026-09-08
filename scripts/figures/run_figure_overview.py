@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 from matplotlib.gridspec import GridSpecFromSubplotSpec
-import numpy as np
 from PIL import Image
 import cairosvg
 import io
@@ -11,11 +10,10 @@ import re
 import shutil
 import subprocess
 import matplotlib
-# from pdf2image import convert_from_path
 import fitz  # pymupdf
 
 from src.utils.config_loader import load_config
-from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
+from src.visualization.figure_base import apply_style, FIGURE_WIDTH, save_figure, add_panel_label
 from src.visualization.vizDataset_B import (
     load_and_process_data, get_time_points, draw_meanZ_row,
 )
@@ -146,9 +144,9 @@ def main():
         figsize=(FIGURE_WIDTH, 12),
         gridspec_kw={
             'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5],
-            # Explicit margins instead of tight_layout()'s automatic guessing
-            # (removed below) -- deterministic, won't silently drift if
-            # anything else about the panels' content changes later.
+            # Explicit margins rather than tight_layout()'s automatic
+            # guessing -- deterministic, won't silently drift if anything
+            # else about the panels' content changes later.
             'left': 0.04, 'right': 0.98,
             'top': 0.90, 'bottom': 0.04,
             'wspace': 0.12, 'hspace': 0.15,
@@ -203,11 +201,9 @@ def main():
     b_subplotspec = axes['2'].get_subplotspec()
     axes['2'].remove()
     gs_b = GridSpecFromSubplotSpec(3, 1, subplot_spec=b_subplotspec, hspace=0.3)
-    b_row_axes = []
     for i, cond in enumerate(panel_b_data.keys()):
         ax_row = fig.add_subplot(gs_b[i, 0])
         draw_meanZ_row(ax_row, panel_b_data[cond]['meanZ'], panel_b_time_points[cond], panel_b_bg)
-        b_row_axes.append(ax_row)
 
     # Panel labels, placed after layout is finalised, all from the shared
     # GridSpec's nominal row/column boundaries rather than each axes' own

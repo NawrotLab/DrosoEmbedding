@@ -9,8 +9,6 @@ import os
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.transforms as mtransforms
-import sys
 from src.utils.imgTools import load_and_normNIFTI
 from src.utils.config_loader import load_config
 import matplotlib.image as mpimg
@@ -158,11 +156,7 @@ def main():
     
     # Get time points
     time_points = get_time_points(pkl, data)
-    
-    # Create plots
-    # plot_brain_stacks(data, time_points, OUTPUT_PATH)
-    
-    # Save additional plot
+
     plot_meanZ(data, time_points, OUTPUT_PATH, bg_path)
 
 
