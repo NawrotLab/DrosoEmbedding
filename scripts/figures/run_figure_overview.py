@@ -127,7 +127,7 @@ def main():
     fig, axes = plt.subplot_mosaic(
         layout,
         figsize=(FIGURE_WIDTH, 12),
-        gridspec_kw={'width_ratios': [0.9, 0.9, 1.8, 2.4], 'height_ratios': [3, 5]}
+        gridspec_kw={'width_ratios': [0.85, 0.85, 1.7, 2.6], 'height_ratios': [3, 5]}
     )
 
     labels = ['a', 'b', 'c', 'd', 'e']
