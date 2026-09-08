@@ -134,13 +134,7 @@ def plot_meanZ(data, time_points, output_path, bg_path):
     for row_idx, key in enumerate(data.keys()):
         draw_meanZ_row(axes[row_idx], data[key]['meanZ'], time_points[key], bg_img)
 
-    plt.text(0.3, 4.8, f"Pre-stimulus", ha='left', va='bottom', fontsize=18)
-    # "Pre-stimulus" at fontsize 18 measures ~1.85 data-units wide starting
-    # at x=0.3 (measured directly) -- this must start well past that.
-    plt.text(2.3, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=18)
-
-
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    plt.tight_layout()
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0.05)
     plt.close(fig)
 

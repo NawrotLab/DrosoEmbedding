@@ -1,6 +1,5 @@
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
-import matplotlib.transforms as mtransforms
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 import numpy as np
 from PIL import Image
@@ -201,34 +200,20 @@ def main():
     # placeholder axes with a nested GridSpec in its exact spot.
     b_subplotspec = axes['2'].get_subplotspec()
     axes['2'].remove()
-    # top=0.90 reserves the top 10% of panel b's box for the header text
-    # below, so it doesn't compete with label 'b' (which sits at the same
-    # tops[0] line as labels a/c -- shouldn't move independently of them).
-    # 4 rows, not 3: row 0 is an empty spacer reserving room for the header
-    # text below (GridSpecFromSubplotSpec has no top/bottom margin params --
-    # only the top-level GridSpec does), so label 'b' can stay at the same
-    # tops[0] line as labels a/c instead of moving independently of them.
+    # 4 rows, not 3: row 0 is a small empty spacer so the first data row's
+    # top-anchored image (aspect='auto' fills its whole box) doesn't touch
+    # label 'b' (GridSpecFromSubplotSpec has no top/bottom margin params --
+    # only the top-level GridSpec does). No header text anymore, so this
+    # only needs to be tall enough for that clearance, not a title.
     gs_b = GridSpecFromSubplotSpec(
         4, 1, subplot_spec=b_subplotspec, hspace=0.15,
-        height_ratios=[0.35, 1, 1, 1],
+        height_ratios=[0.15, 1, 1, 1],
     )
     b_row_axes = []
     for i, cond in enumerate(panel_b_data.keys()):
         ax_row = fig.add_subplot(gs_b[i + 1, 0])
         draw_meanZ_row(ax_row, panel_b_data[cond]['meanZ'], panel_b_time_points[cond], panel_b_bg)
         b_row_axes.append(ax_row)
-
-    # Header text above the first row, at the same data-x positions as the
-    # overlay extents (draw_meanZ_row sets xlim=(0,6) on every row).
-    header_trans = mtransforms.blended_transform_factory(
-        b_row_axes[0].transData, b_row_axes[0].transAxes)
-    b_row_axes[0].text(0.3, 1.08, "Pre-stimulus", ha='left', va='bottom',
-                        fontsize=18, transform=header_trans)
-    # "Pre-stimulus" at fontsize 18 measures ~1.85 data-units wide starting
-    # at x=0.3 (measured directly, not estimated) -- this needs to start
-    # well past that to avoid overlapping it.
-    b_row_axes[0].text(2.3, 1.08, "image sequence (dt = 1 s)", ha='left', va='bottom',
-                        fontsize=18, transform=header_trans)
 
     # Panel labels, placed after layout is finalised, all from the shared
     # GridSpec's nominal row/column boundaries rather than each axes' own
