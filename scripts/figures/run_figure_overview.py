@@ -1,9 +1,13 @@
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+import matplotlib.transforms as mtransforms
+from matplotlib.gridspec import GridSpecFromSubplotSpec
 import numpy as np
 from PIL import Image
 import cairosvg
 import io
 import os
+import pickle
 import re
 import shutil
 import subprocess
@@ -13,6 +17,9 @@ import fitz  # pymupdf
 
 from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
+from src.visualization.vizDataset_B import (
+    load_and_process_data, get_time_points, draw_meanZ_row,
+)
 
 apply_style()
 
@@ -112,7 +119,18 @@ def main():
     DrosoDoc = fitz.open(os.path.join(src_imgs_dir, 'DrosoImaging.pdf'))[0]
     pix = DrosoDoc.get_pixmap(dpi=300)
     DrosoImage = Image.open(io.BytesIO(pix.tobytes("png")))
-    RawData = Image.open(os.path.join(src_imgs_dir, 'RawImages.png'))
+
+    # Panel b: built live from raw LFM data (Odor/Taste/Combi_M), same as
+    # vizDataset_B.py's standalone preview -- see draw_meanZ_row() there,
+    # shared rather than duplicated, so there's no separate manually-edited
+    # image asset to keep in sync with the actual pipeline.
+    lfm_path = os.path.join(paths['data_root'], 'Paul_LFM_Data')
+    with open(paths['peakIDs_Times_All'], 'rb') as f:
+        pkl = pickle.load(f)
+    panel_b_data = load_and_process_data(pkl, lfm_path)
+    panel_b_time_points = get_time_points(pkl, panel_b_data)
+    panel_b_bg = mpimg.imread(os.path.join(src_imgs_dir, 'RawImages_blank_B.png'))
+
     ExpHierarchy = load_svg(os.path.join(src_imgs_dir, 'expHierarchy.svg'))
     ModelImage = load_svg(os.path.join(src_imgs_dir, 'ModelArch.svg'))
     LatentSketch = load_svg(os.path.join(src_imgs_dir, 'LatentSketch.svg'))
@@ -141,12 +159,13 @@ def main():
     labels = ['a', 'b', 'c', 'd', 'e']
 
     for ax, label in zip(axes.values(), labels):
+        if label == 'b':
+            continue  # built separately below as a nested 3-row sub-grid
+
         ax.set_xticks([]); ax.set_yticks([])
 
         if label == 'a':
             img = DrosoImage
-        elif label == 'b':
-            img = RawData
         elif label == 'c':
             img = ExpHierarchy
         elif label == 'd':
@@ -177,6 +196,39 @@ def main():
     cx, cy = pos.x0 + pos.width / 2, pos.y0 + pos.height / 2
     new_w, new_h = pos.width * shrink, pos.height * shrink
     axes['5'].set_position([cx - new_w / 2, cy - new_h / 2, new_w, new_h])
+
+    # Panel b: 3 stacked rows (Odor, Taste, Combi_M), replacing the single
+    # placeholder axes with a nested GridSpec in its exact spot.
+    b_subplotspec = axes['2'].get_subplotspec()
+    axes['2'].remove()
+    # top=0.90 reserves the top 10% of panel b's box for the header text
+    # below, so it doesn't compete with label 'b' (which sits at the same
+    # tops[0] line as labels a/c -- shouldn't move independently of them).
+    # 4 rows, not 3: row 0 is an empty spacer reserving room for the header
+    # text below (GridSpecFromSubplotSpec has no top/bottom margin params --
+    # only the top-level GridSpec does), so label 'b' can stay at the same
+    # tops[0] line as labels a/c instead of moving independently of them.
+    gs_b = GridSpecFromSubplotSpec(
+        4, 1, subplot_spec=b_subplotspec, hspace=0.15,
+        height_ratios=[0.35, 1, 1, 1],
+    )
+    b_row_axes = []
+    for i, cond in enumerate(panel_b_data.keys()):
+        ax_row = fig.add_subplot(gs_b[i + 1, 0])
+        draw_meanZ_row(ax_row, panel_b_data[cond]['meanZ'], panel_b_time_points[cond], panel_b_bg)
+        b_row_axes.append(ax_row)
+
+    # Header text above the first row, at the same data-x positions as the
+    # overlay extents (draw_meanZ_row sets xlim=(0,6) on every row).
+    header_trans = mtransforms.blended_transform_factory(
+        b_row_axes[0].transData, b_row_axes[0].transAxes)
+    b_row_axes[0].text(0.3, 1.08, "Pre-stimulus", ha='left', va='bottom',
+                        fontsize=18, transform=header_trans)
+    # "Pre-stimulus" at fontsize 18 measures ~1.85 data-units wide starting
+    # at x=0.3 (measured directly, not estimated) -- this needs to start
+    # well past that to avoid overlapping it.
+    b_row_axes[0].text(2.3, 1.08, "image sequence (dt = 1 s)", ha='left', va='bottom',
+                        fontsize=18, transform=header_trans)
 
     # Panel labels, placed after layout is finalised, all from the shared
     # GridSpec's nominal row/column boundaries rather than each axes' own

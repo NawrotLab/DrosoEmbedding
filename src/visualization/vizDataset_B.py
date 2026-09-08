@@ -1,17 +1,31 @@
 # Generates source images for Figure 1, panel B (example input sequences).
-# Output is saved directly to src/src_imgs/RawImages.png (whitespace-trimmed
-# via savefig bbox_inches='tight') for use in run_figure_overview.py.
+# Standalone (main()) saves a preview PNG to src/src_imgs/RawImages.png, but
+# run_figure_overview.py no longer loads that file -- it imports
+# load_and_process_data/get_time_points/draw_meanZ_row directly and builds
+# panel B live, so there's no separate manual/cropped image asset to keep in
+# sync.
 import pickle
 import os
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.transforms as mtransforms
 import sys
 from src.utils.imgTools import load_and_normNIFTI
 from src.utils.config_loader import load_config
 import matplotlib.image as mpimg
 
 
+# [xmin, xmax, ymin, ymax] for each of the 6 overlaid images (1 pre-stimulus
+# + 5 sequence frames) on top of the row's background PNG.
+OVERLAY_EXTENTS = [
+    [0.11, 0.81, 0.145, 0.82],
+    [1.48, 2.18, 0.142, 0.82],
+    [2.4, 3.1, 0.142, 0.82],
+    [3.3, 4.0, 0.142, 0.82],
+    [4.2, 4.9, 0.142, 0.82],
+    [5.15, 5.85, 0.142, 0.82],
+]
 
 
 def load_and_process_data(pkl_file, lfm_path, seed=777):
@@ -21,13 +35,12 @@ def load_and_process_data(pkl_file, lfm_path, seed=777):
     # Filter and group recordings
     rec_names = list(pkl_file.keys())
     filtered = [r for r in rec_names if not r.split('_')[0][-1].endswith('C')]
-    
+
     # Group by condition
     conditions = {
         'Odor': [r for r in filtered if r[1] == 'O'],
         'Taste': [r for r in filtered if r[1] == 'T'],
         'Combi_M': [r for r in filtered if r[1:3] == 'MM'],
-        'Combi_C': [r for r in filtered if r[1:3] == 'MC']
     }
     
     # Set random seed for reproducibility
@@ -81,6 +94,29 @@ def get_time_points(pkl, data):
 
 
 
+def draw_meanZ_row(ax, meanZ_data, time_points_row, bg_img, overlay_extents=OVERLAY_EXTENTS):
+    """
+    Draw one row (background PNG + 6 overlaid frames: 1 pre-stimulus + 5
+    sequence) onto the given axes. Shared by plot_meanZ() below and
+    run_figure_overview.py's panel B, so the two can never drift apart.
+    """
+    ax.imshow(bg_img, extent=[0, 6, 0, 1], zorder=0)
+
+    images = [meanZ_data[:, :, t] for t in time_points_row]
+    for i, img in enumerate(images):
+        ax.imshow(img, extent=overlay_extents[i], alpha=0.8, cmap='magma', zorder=1)
+
+    ax.set_xlim(0, 6)
+    ax.set_ylim(0, 1)
+    # imshow() defaults aspect to 'equal' (rcParams['image.aspect']) unless
+    # told otherwise, which locks this row's box to the extent's 6:1 data
+    # ratio regardless of how much space its axes was actually given --
+    # 'auto' lets it fill whatever box it's placed in (a nested row in
+    # Fig 1's panel B, or its own subplot here).
+    ax.set_aspect('auto')
+    ax.axis('off')
+
+
 def plot_meanZ(data, time_points, output_path, bg_path):
     """
     Plots a figure with as many rows as data.keys(), each row has a background PNG
@@ -96,44 +132,12 @@ def plot_meanZ(data, time_points, output_path, bg_path):
         axes = [axes]
 
     for row_idx, key in enumerate(data.keys()):
-        meanZ_data = data[key]['meanZ']
-        images = [
-            meanZ_data[:, :, time_points[key][0]],
-            meanZ_data[:, :, time_points[key][1]],
-            meanZ_data[:, :, time_points[key][2]],
-            meanZ_data[:, :, time_points[key][3]],
-            meanZ_data[:, :, time_points[key][4]],
-            meanZ_data[:, :, time_points[key][5]],
-        ]
-
-        ax = axes[row_idx]
-
-        # Plot the background over the full width (x=0 to 3, y=0 to 1)
-        ax.imshow(bg_img, extent=[0, 6, 0, 1], zorder=0)
-
-        # [xmin, xmax, ymin, ymax]
-        overlays_extents = [
-            [0.11, 0.81, 0.145, 0.82],
-            [1.48, 2.18, 0.142, 0.82],
-            [2.4, 3.1, 0.142, 0.82],
-            [3.3, 4.0, 0.142, 0.82],
-            [4.2, 4.9, 0.142, 0.82],
-            [5.15, 5.85, 0.142, 0.82],   
-        ]
-
-
-
-
-        # Overlay each image in its respective "column"
-        for i, img in enumerate(images):
-            ax.imshow(img, extent=overlays_extents[i], alpha=0.8, cmap='magma', zorder=1)
-
-        ax.set_xlim(0, 6)
-        ax.set_ylim(0, 1)
-        ax.axis('off')
+        draw_meanZ_row(axes[row_idx], data[key]['meanZ'], time_points[key], bg_img)
 
     plt.text(0.3, 4.8, f"Pre-stimulus", ha='left', va='bottom', fontsize=18)
-    plt.text(1.5, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=18)
+    # "Pre-stimulus" at fontsize 18 measures ~1.85 data-units wide starting
+    # at x=0.3 (measured directly) -- this must start well past that.
+    plt.text(2.3, 4.8, f"image sequence (dt = 1 s)", ha='left', va='bottom', fontsize=18)
 
 
     plt.tight_layout(rect=[0, 0, 1, 0.93])
