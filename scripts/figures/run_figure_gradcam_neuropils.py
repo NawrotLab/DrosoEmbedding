@@ -237,6 +237,7 @@ plot_heatmap_groups_abs(
     group_profiles_abs=df_group,
     neuropil_names=NEUROPILS,
     annotate=False,
+    cbar_label='Mean Grad-CAM++ attribution',
 )
 
 # ── Panel e: GradCAM contrast plots (3 sub-panels) ────────────────────────
@@ -249,6 +250,7 @@ plot_contrasts_horizontal(
     group_contrasts_abs=df_contrast,
     neuropil_names=NEUROPILS,
     sort_by_modality=True,
+    show_scalebar=False,
 )
 
 # ════════════════════════════════════════════════

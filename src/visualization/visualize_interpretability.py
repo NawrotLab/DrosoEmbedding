@@ -796,7 +796,7 @@ def plot_gradcam_pooled(
 
         ax_cb = fig.add_subplot(inner_gs[:, ncols])
         fig.colorbar(im_ref, cax=ax_cb)
-        ax_cb.set_ylabel('GradCAM intensity', fontsize=FONT_SIZES['label'], labelpad=6)
+        ax_cb.set_ylabel('Mean Grad-CAM++ attribution', fontsize=FONT_SIZES['label'], labelpad=6)
 
     # ── Vertical shift (positive = up, negative = down) ────
     if y_shift != 0.0:
@@ -823,7 +823,7 @@ def plot_gradcam_pooled(
 def plot_heatmap_groups_abs(
     ax, group_profiles_abs, neuropil_names=None,
     cmap='viridis', annotate=True, fontsize_annot=None, title=None,
-    normalize=True, vmax=0.85,
+    normalize=True, vmax=0.85, cbar_label='Importance Weights',
 ):
     """Grouped absolute importance heatmap."""
     if neuropil_names is None:
@@ -854,7 +854,7 @@ def plot_heatmap_groups_abs(
     divider = make_axes_locatable(ax)
     cax = divider.append_axes("right", size="3%", pad=0.08)
     cbar = ax.figure.colorbar(im, cax=cax)
-    cbar.set_label('Importance Weights', fontsize=FONT_SIZES['label'], labelpad=6)
+    cbar.set_label(cbar_label, fontsize=FONT_SIZES['label'], labelpad=6)
     return ax
 
 
@@ -886,6 +886,7 @@ def plot_contrasts_horizontal(
     contrast_spec=None, uniform_xlim=True,
     sort_by_modality=False,
     fontsize_title=None, fontsize_labels=None, fontsize_legend=None,
+    show_scalebar=True,
 ):
     """
     3-panel HORIZONTAL contrast barplots.
@@ -986,7 +987,7 @@ def plot_contrasts_horizontal(
         ax.spines['bottom'].set_visible(False)
 
     # Scalebar on bottom-right corner of last (valence) panel
-    if xlim_max is not None:
+    if show_scalebar and xlim_max is not None:
         scale_val = 0.1
         last_ax = axes[-1]
         sb_x_start = xlim_max * 0.4
