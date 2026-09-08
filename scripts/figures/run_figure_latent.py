@@ -80,7 +80,11 @@ def plot_figure_latent(
     col_lefts, col_rights = gs.get_grid_positions(fig)[2:4]
     column_centers = [(l + r) / 2 for l, r in zip(col_lefts, col_rights)]
 
+    # "Centroid projections" nudged slightly left of its true center -- small
+    # enough to keep clear of label 'c' (still ~0.02 margin at this offset).
+    title_offsets = {'Centroid projections': -0.02}
     for x, title in zip(column_centers, column_titles):
+        x += title_offsets.get(title, 0)
         fig.text(x, 0.95, title, ha='center', va='top', fontsize=FONT_SIZES['title'], weight='bold')
 
     # Only 'c' gets nudged left of its column edge -- it's the one that was
