@@ -127,7 +127,15 @@ def main():
     fig, axes = plt.subplot_mosaic(
         layout,
         figsize=(FIGURE_WIDTH, 12),
-        gridspec_kw={'width_ratios': [0.85, 0.85, 1.7, 2.6], 'height_ratios': [3, 5]}
+        gridspec_kw={
+            'width_ratios': [1, 1, 2, 2], 'height_ratios': [3, 5],
+            # Explicit margins instead of tight_layout()'s automatic guessing
+            # (removed below) -- deterministic, won't silently drift if
+            # anything else about the panels' content changes later.
+            'left': 0.04, 'right': 0.98,
+            'top': 0.90, 'bottom': 0.04,
+            'wspace': 0.12, 'hspace': 0.15,
+        }
     )
 
     labels = ['a', 'b', 'c', 'd', 'e']
@@ -162,8 +170,6 @@ def main():
 
         for spine in ax.spines.values():
             spine.set_visible(False)
-
-    plt.tight_layout(pad=1)
 
     # Shrink subplot 'e' by ~10%
     pos = axes['5'].get_position()
