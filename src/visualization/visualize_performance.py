@@ -1877,7 +1877,7 @@ def plot_accuracy_vs_dimension(
     ref_level = baseline if baseline is not None else chance_level
     ref_label = f'Baseline Accuracy: {ref_level:.1f}%' if baseline is not None else f'Chance: {ref_level:.1f}%'
     ax.axhline(y=ref_level, color='gray', linestyle='--', alpha=0.7, linewidth=1)
-    ax.text(0.08, y_min + 1, ref_label,
+    ax.text(0.15, y_min + 1, ref_label,
             transform=ax.get_yaxis_transform(), color='gray', va='bottom', fontsize=FONT_SIZES['label'])
 
     ax.spines['left'].set_bounds(y_min, y_max)
