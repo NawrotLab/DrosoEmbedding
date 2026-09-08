@@ -438,9 +438,7 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
             styles=styles,
             class_styles=entry['__class_styles__'],
         )
-        # Bare numbering (i/ii/iii), positioned at the same axes-fraction
-        # height as the colorbar's "Prediction (%)" title below
-        # (set_label_coords y=1.02) so they align across the row.
+        # Bare numbering (i/ii/iii), kept close to the heatmap below it.
         ax_cm.text(0.5, 1.02, sub_lbl, transform=ax_cm.transAxes,
                    ha='center', va='bottom',
                    fontsize=FONT_SIZES['title'], fontweight='bold')
@@ -451,7 +449,7 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
     cbar = plt.colorbar(sm, cax=ax_cbar, orientation='vertical')
     cbar.set_label('Prediction (%)', fontsize=FONT_SIZES['colorbar'],
                    rotation=0, labelpad=10)
-    cbar.ax.yaxis.set_label_coords(0.5, 1.02)
+    cbar.ax.yaxis.set_label_coords(0.5, 1.10)
     cbar.set_ticks([0, 25, 50, 75, 100])
     cbar.ax.tick_params(labelsize=FONT_SIZES['colorbar'])
 
