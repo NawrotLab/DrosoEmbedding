@@ -1,6 +1,6 @@
 """
-Supplementary Figure — Training & Validation Curves (v2)
-=========================================================
+Supplementary Figure — Training & Validation Curves
+====================================================
 Two-panel figure showing mean ± 1 SD across all 50 H16 runs per task.
 
 Panel a (top):  training loss (solid) + validation loss (dashed) with shaded bands
@@ -10,7 +10,7 @@ Usage (from repo root):
     python scripts/figures/run_sfigure_training_curves.py
 
 Output:
-    results/CombiPlots/{pdfs,pngs}/figS_training_curves_v2.{pdf,png}
+    results/CombiPlots/{pdfs,pngs}/figS_training_curves.{pdf,png}
 """
 
 import gc
@@ -31,7 +31,7 @@ apply_style()
 # ── Configuration ─────────────────────────────────────────────────────────────
 BASE_RESULTS_DIR = Path('results') / '_chkpt_finals'
 OUT_DIR          = Path('results') / 'CombiPlots'
-FIGURE_STEM      = 'figS_training_curves_v2'
+FIGURE_STEM      = 'figS_training_curves'
 
 SHORT_RUN_THRESHOLD  = 500   # epochs — flagged to console but included
 MIN_RUNS_FOR_XLIM    = 10    # clip x-axis to last epoch with ≥ this many runs
@@ -188,8 +188,8 @@ ax_acc.set_ylabel('Validation Accuracy',  fontsize=FONT_SIZES['label'])
 ax_acc.set_xlabel('Epoch',                fontsize=FONT_SIZES['label'])
 
 # Panel labels (outside left spine via axes-fraction transform)
-add_panel_label(fig, 'a', ax=ax_loss, dx=-0.12, dy=0.02)
-add_panel_label(fig, 'b', ax=ax_acc,  dx=-0.12, dy=0.02)
+add_panel_label(fig, 'a', ax=ax_loss, dx=-0.06, dy=0.02)
+add_panel_label(fig, 'b', ax=ax_acc,  dx=-0.06, dy=0.02)
 
 # ── Legend in panel b, lower-left ─────────────────────────────────────────────
 style_handles = [

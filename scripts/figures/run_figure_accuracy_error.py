@@ -5,7 +5,7 @@ Two-row layout:
 
 Panel a (top, full width):
     Model confusion matrices for the 2-class, 6-class, and 16-class tasks
-    side by side (same Blues colormap / 0–100% normalisation as fig_accuracy_v7).
+    side by side (same Blues colormap / 0–100% normalisation throughout).
     Sub-labels i, ii, iii. Shared vertical colorbar on the right with chance-level
     dashed lines.
 
@@ -23,7 +23,7 @@ Panel d (bottom-right):
     Error hierarchy for the 16-class task (State × Modality × Valence).
     7-bar breakdown, 7-type taxonomy (see src/analysis/error_taxonomy.py).
 
-Shared legend (fig_accuracy_v7 style) at the bottom.
+Shared legend at the bottom.
 
 Usage (from repo root):
     python -m scripts.figures.run_figure_accuracy_error
@@ -500,7 +500,7 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
         if ticks:
             _ax.spines['left'].set_bounds(0, ticks[-1])
 
-    # ── Shared legend (fig_accuracy_v7 style) + Control/Model/mean key ───────
+    # ── Shared legend + Control/Model/mean key ───────
     draw_legend_panel(fig, styles, line_y=0.17, ax_rect=[0.03, 0.02, 0.77, 0.13])
     _draw_extra_legend(fig, ax_rect=[0.83, 0.02, 0.15, 0.13])
 
