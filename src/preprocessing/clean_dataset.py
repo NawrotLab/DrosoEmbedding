@@ -19,12 +19,11 @@ def main(logger, config):
     isolate_neuropil = config['data']['preprocessing']['isolate_neuropil']
     use_aligned_template = config['data']['preprocessing'].get('use_aligned_neuropil_template', False)
     basepoints = config['data']['preprocessing']['base_points']
-    timesID = config['data']['preprocessing']['times']
 
     if isolate_neuropil:
-        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}_{config['data']['preprocessing']['neuropil']}"
+        outputID = f"{config['data']['preprocessing']['method_ch']}_allTs_{config['data']['preprocessing']['neuropil']}"
     else:
-        outputID = f"{config['data']['preprocessing']['method_ch']}_{timesID}"
+        outputID = f"{config['data']['preprocessing']['method_ch']}_allTs"
     
     # Add template suffix if using aligned template
     if use_aligned_template:
@@ -81,10 +80,7 @@ def main(logger, config):
                 os.makedirs(output_dir)
             
             rec_data = load_and_normNIFTI(nifti, substract_Baseline=True, t_base=[0, 250], save_baseframe=False, isolate_neuropil=isolate_neuropil, neuropil_name=neuropil, use_aligned_template=use_aligned_template)
-            if timesID == 'logTs':
-                times = id_times_dict[file_name]
-            elif timesID == 'allTs':
-                times = np.arange(0, rec_data.shape[3])
+            times = np.arange(0, rec_data.shape[3])
 
             for t in times:
                 meanZ = np.nanmean(rec_data[:,:,:,t], axis=2)

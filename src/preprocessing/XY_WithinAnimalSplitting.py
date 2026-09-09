@@ -8,7 +8,16 @@ import re
 import random
 
 
-def collect_image_paths(root_path, exclude_controls):
+def collect_image_paths(root_path, id_times_dict, timesID, exclude_controls):
+    """Build recording -> [anchor_path, ...].
+
+    `root_path` always points at the full-frame ('allTs') directory --
+    clean_dataset.py no longer ever materializes a separate 'logTs'
+    directory. When `timesID == 'logTs'`, anchor frame indices are looked
+    up directly from `id_times_dict` (the peak-times cache) instead of
+    walking a physical subset directory; when `timesID == 'allTs'`, every
+    frame present on disk for that recording is used, as before.
+    """
     recording_paths_dict = {}
     for root, directories, files in os.walk(root_path):
         if 'BaseFrames' in directories: directories.remove('BaseFrames')
@@ -17,8 +26,14 @@ def collect_image_paths(root_path, exclude_controls):
             directories = [d for d in directories if d[-5] != 'C']
         for rec in directories:
             current_dir = os.path.join(root, rec)
+            if timesID == 'logTs':
+                if rec not in id_times_dict:
+                    continue
+                paths = [os.path.join(current_dir, f'{rec}_{t}.tiff') for t in id_times_dict[rec]]
+            else:
+                paths = [os.path.join(current_dir, file) for file in os.listdir(current_dir)]
             logger.info(f'Adding images from {rec}')
-            recording_paths_dict[rec] = [os.path.join(current_dir, file) for file in os.listdir(current_dir)]
+            recording_paths_dict[rec] = paths
     return recording_paths_dict
 
 
@@ -137,11 +152,18 @@ def main(config, logger):
 
     ROOT_PATH = paths["data_root"]
     RECORDING_LIST= paths["recodings_df"]
-    PROSESSED_DATA_PATH = f'{paths["imgs4DL"]}/{PREPROCESSING_ID}'
+    # The physical directory is always the full-frame ('allTs') one --
+    # clean_dataset.py no longer ever materializes a separate 'logTs'
+    # directory -- while PREPROCESSING_ID (and thus the pickle name below)
+    # keeps describing the frame *selection* ('logTs' = peaks only).
+    PROSESSED_DATA_PATH = f'{paths["imgs4DL"]}/{args["method_ch"]}_allTs'
 
     PICKLE_OUTPATH = f'{paths["root"]}/pickles/TrainValTest_LocalScratch_Paths-Labels/{config["data"]["split_strategy"]}/{PREPROCESSING_ID}_{outID}.pickle'
 
-    rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, exclude_controls=exclude_controls)
+    with open(paths['peakIDs_Times_All'], 'rb') as file:
+        id_times_dict = pickle.load(file)
+
+    rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, id_times_dict, args['times'], exclude_controls=exclude_controls)
     filtered_dict, labels = filterRecordings_and_returnLabels(rec_paths_dict, CLASSES, include_StimType=include_StimType, include_Valence= include_Valence, include_MetaboliteState= include_MetaboliteState)
 
     if config['training']['shuffle_labels_consistantly']: 
