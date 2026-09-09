@@ -19,7 +19,7 @@ from src.data.dataset import CustomDataset
 from src.models.cnn_transformer import CNN_Transformer
 from src.models.model_io import load_model
 from src.utils.helpers import get_predictions_with_probs
-from src.utils.neuropil_masks import compute_neuropil_sizes, compute_neuropil_sizes_2d
+from src.utils.neuropil_masks import compute_neuropil_sizes_2d
 
 # ── constants ─────────────────────────────────────────────────────────────────
 
@@ -245,7 +245,6 @@ def load_or_run_ko_permutation(
 def aggregate_ko_by_group(
     stack: np.ndarray,
     neuropils,
-    size_norm: str = '2d',
     config: dict = None,
     rng: random.Random = None,
     logger=None,
@@ -258,11 +257,7 @@ def aggregate_ko_by_group(
     Parameters
     ----------
     stack     : (n_runs, n_classes, n_neuropils) in pp — from load_or_run_ko_permutation
-    size_norm : '2d' | '3d' | None
-                '2d'  → divide by mean 2D pixel footprint / 1k pixels
-                '3d'  → divide by mean 3D voxel count / 10k voxels
-                None  → no normalisation (raw percentage points)
-    config    : base YAML config dict (needed for size_norm != None)
+    config    : base YAML config dict, needed for the 2D size normalisation
 
     Returns
     -------
@@ -278,12 +273,9 @@ def aggregate_ko_by_group(
 
     delta_mean = np.nanmean(stack, axis=0)   # (n_classes, n_neuropils)
 
-    if size_norm == '3d':
-        sizes = compute_neuropil_sizes(config, rng=rng, logger=logger)
-        delta_mean = delta_mean / (sizes / 10_000)
-    elif size_norm == '2d':
-        sizes = compute_neuropil_sizes_2d(config, rng=rng, logger=logger)
-        delta_mean = delta_mean / (sizes / 1_000)
+    # Normalise by each neuropil's mean 2D pixel footprint (per 1k pixels)
+    sizes = compute_neuropil_sizes_2d(config, rng=rng, logger=logger)
+    delta_mean = delta_mean / (sizes / 1_000)
 
     n_classes = delta_mean.shape[0]
 

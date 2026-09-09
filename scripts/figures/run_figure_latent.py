@@ -71,12 +71,9 @@ def plot_figure_latent(
     column_titles = ['Control t-SNE', 'Model t-SNE', 'Centroid projections', 'Accuracy']
     column_labels = ['a', 'b', 'c', 'd']
 
-    # Column titles centered on each column's actual geometric center (not a
-    # hand-tuned guess) so a long title like "Centroid projections" doesn't
-    # drift into its neighbor's space -- it previously used a fixed x=0.62,
-    # well left of column c's true center (~0.67), which pushed the title's
-    # rendered span *toward* label 'c' at the column's left edge instead of
-    # away from it.
+    # Column titles centered on each column's actual geometric center rather
+    # than a hand-tuned guess, so a long title like "Centroid projections"
+    # doesn't drift into a neighboring panel's space.
     col_lefts, col_rights = gs.get_grid_positions(fig)[2:4]
     column_centers = [(l + r) / 2 for l, r in zip(col_lefts, col_rights)]
 

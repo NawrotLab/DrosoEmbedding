@@ -42,7 +42,7 @@ python3 -m scripts.figures.run_figure_accuracy_error
 python3 -m scripts.figures.run_figure_gradcam_neuropils
 
 # S4 — Neuropil Knockout Importance
-python3 -m scripts.figures.run_sfigure_ko_neuropils --norm 2d
+python3 -m scripts.figures.run_sfigure_ko_neuropils
 
 # Note: an earlier, incorrect Fig 4 (run_figure_interpretability.py) was
 # removed — superseded by Fig 4 / S4 above. See git history to recover it.

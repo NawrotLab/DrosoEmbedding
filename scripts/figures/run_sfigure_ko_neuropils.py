@@ -20,7 +20,6 @@ Use --recompute to force a fresh pass.
 
 Usage (from repo root):
     python scripts/figures/run_sfigure_ko_neuropils.py
-    python scripts/figures/run_sfigure_ko_neuropils.py --norm 3d
     python scripts/figures/run_sfigure_ko_neuropils.py --recompute
 """
 
@@ -72,14 +71,9 @@ NUM_WORKERS = 4
 # ════════════════════════════════════════════════
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--norm', default='2d', choices=['2d', '3d', 'none'],
-                    help='Size normalisation: 2d (default), 3d, or none')
 parser.add_argument('--recompute', action='store_true',
                     help='Ignore cache and rerun the full 50-run permutation')
 args = parser.parse_args()
-
-size_norm = None if args.norm == 'none' else args.norm
-out_stem  = f'{OUT_STEM}_norm{args.norm}'
 
 # ════════════════════════════════════════════════
 # LOAD CONFIG + TEST DATA
@@ -145,7 +139,6 @@ rng = random.Random(42)
 df_group, df_contrast = aggregate_ko_by_group(
     stack=stack,
     neuropils=NEUROPILS,
-    size_norm=size_norm,
     config=config,
     rng=rng,
     logger=logger,
@@ -153,10 +146,8 @@ df_group, df_contrast = aggregate_ko_by_group(
 
 # save CSVs alongside the cache
 os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
-df_group.to_csv(CACHE_PATH.replace('raw_delta_stack.npy',
-                                    f'group_profiles_norm{args.norm}.csv'))
-df_contrast.to_csv(CACHE_PATH.replace('raw_delta_stack.npy',
-                                       f'contrasts_norm{args.norm}.csv'))
+df_group.to_csv(CACHE_PATH.replace('raw_delta_stack.npy', 'group_profiles.csv'))
+df_contrast.to_csv(CACHE_PATH.replace('raw_delta_stack.npy', 'contrasts.csv'))
 
 # ════════════════════════════════════════════════
 # ASSEMBLE FIGURE
@@ -185,10 +176,6 @@ add_panel_label(fig, 'b', x=0.52, y=0.98)
 
 # ── Panel a: group heatmap ────────────────────────────────────────────────
 
-norm_label = {'2d': 'Mean ΔAccuracy per 1k px [pp / 1k px]',
-              '3d': 'Mean ΔAccuracy per 10k vox [pp / 10k vox]',
-              'none': 'Mean ΔAccuracy [pp]'}[args.norm]
-
 ax_heat = fig.add_subplot(gs[0, 0])
 plot_heatmap_groups_abs(
     ax=ax_heat,
@@ -216,6 +203,6 @@ plot_contrasts_horizontal(
 # ════════════════════════════════════════════════
 
 os.makedirs(OUT_DIR, exist_ok=True)
-save_figure(fig, os.path.join(OUT_DIR, f'{out_stem}.pdf'),
+save_figure(fig, os.path.join(OUT_DIR, f'{OUT_STEM}.pdf'),
             formats=('png', 'svg', 'pdf'))
 logger.info('Done.')
