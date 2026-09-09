@@ -3,18 +3,18 @@ Figure — Classification Performance and Error Structure
 =======================================================
 Two-row layout:
 
-Panel a (top, full width):
+Panel a (top-left):
+    F1 scores for all three tasks in a single grouped bar chart.
+    One control bar + one model bar per task, with per-class dots in the
+    shared class-colour scheme.
+
+Panel b (top-right):
     Model confusion matrices for the 2-class, 6-class, and 16-class tasks
     side by side (same Blues colormap / 0–100% normalisation throughout).
     Sub-labels i, ii, iii. Shared vertical colorbar on the right with chance-level
     dashed lines.
 
-Panel b (bottom-left):
-    F1 scores for all three tasks in a single grouped bar chart.
-    One control bar + one model bar per task, with per-class dots in the
-    shared class-colour scheme.
-
-Panel c (bottom-centre):
+Panel c (bottom-left):
     Error hierarchy for the 6-class task (State × Modality).
     3 bars: State, Modality, State × Modality — as % of total errors.
     50-run dots + mean line, same colour scheme as panel d.

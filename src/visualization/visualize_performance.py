@@ -8,16 +8,16 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import torch
-from matplotlib.colors import ListedColormap, BoundaryNorm, Normalize
-from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from matplotlib.colors import Normalize
+from matplotlib.gridspec import GridSpec
+from pytorch_grad_cam import GradCAM
 from pytorch_grad_cam.utils.model_targets import ClassifierOutputTarget
 from sklearn.manifold import TSNE
 
 from src.utils.helpers import (
     HALF_CIRCLE_LEFT, HALF_CIRCLE_RIGHT,
     scatter_bicolor, scatter_bicolor_cloud,
-    _color_for_group, get_group_map,
+    get_group_map,
 )
 
 Tensor = torch.Tensor
@@ -642,97 +642,6 @@ def plot_umap_latent(latent_2d,
         return fig, ax
 
     return ax
-
-
-# def reshape_transform4Cam(tensor):
-#     # Handle tensors with 5 dimensions (e.g., from 3D models)
-#     # print(f"Original tensor shape: {tensor.shape}")  # Debugging
-
-#     if tensor.dim() == 5:  # Example shape: [B, C, D, H, W]
-#         # Collapse depth dimension (D), returning to [B, C, H, W]
-#         tensor = tensor.mean(dim=2)  # Take mean across the depth dimension
-#     # print(f"Transformed tensor shape: {tensor.shape}")  # Debugging
-
-#     # Ensure tensor is 4D: [N, C, H, W]
-#     return tensor
-
-
-
-# def plot_classes_cam(model, device, dataloader, class_names, output_path, cam_method = GradCAM, classifier_target_layer = 3, reshape = True):
-
-
-#     # 1. Convert dataloader into dictionary with respective classes
-#     data_by_class = dataloader2dictionary(dataloader, class_names)
-
-#     # 2. Plot Input Tensors.
-#     plot_InputTensors(data_by_class, output_path, 'Mean_InputTensors')
-#     print(f'Mean Input Tensors saved: {output_path}')
-
-#     # 3. Set Model up for Evaluation and initiate cam
-#     model.eval()
-#     target_layer =  model.cnn[classifier_target_layer]
-#     if reshape:
-#         cam = cam_method(model=model, target_layers=[target_layer], reshape_transform=reshape_transform4Cam)
-#     else:
-#         cam = cam_method(model=model, target_layers=[target_layer])
-
-#     # 4. Get all heatmaps and sort in a dictionary
-#     heatmaps = {class_name: [] for class_name in class_names}
-#     for class_idx, (class_label, class_tensor) in enumerate(data_by_class.items()):
-#         for image in class_tensor: #Shape: 5,1,128,128
-#             if len(image.shape) == 3:
-#                 image = image.unsqueeze(0).float().to(device)  # Shape: 1,1,128,128
-#                 # image = image.unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
-#             else:
-#                 image = image[0:1].float().to(device)  # Shape: 1,1,128,128
-
-#                 # image = image[0, :, :, :].unsqueeze(0).unsqueeze(0).float().to(device) #Shape: 1,1,1,128,128
-#             heatmap = cam(input_tensor=image, targets=[ClassifierOutputTarget(class_idx)]) # class_label
-#             heatmap_2D = heatmap[0]
-#             heatmaps[class_label].append(heatmap_2D) #result_img
-
-#     # 5. Calculate mean Grad-CAM heatmap for each class
-#     # Median and Max Cams dont work as well.
-#     mean_class_heatmaps = {}
-#     for class_label, heatmap_list in heatmaps.items():
-#         mean_class_heatmaps[class_label] = np.mean(heatmap_list, axis =0)
-
-#     # 6. plot the mean heatmaps
-#     plot_MeanCam(mean_class_heatmaps, output_path, f'Mean_{cam_method.__name__}_L{classifier_target_layer}')
-
-#     return mean_class_heatmaps
-
-
-# def plot_MeanCam(mean_cam_dictionary, output_path, output_name = 'Mean Cam', plot_title = 'Mean Cam', figsize=(10,8)):
-#     """
-#     Plots a grid of mean arrays from a dictionary containing arrays of shape (128, 128).
-#     """
-
-#     num_classes = len(mean_cam_dictionary)
-#     cols = 4  # Fixed columns
-#     rows = (num_classes + cols - 1) // cols  # Compute required rows
-
-#     fig, axes = plt.subplots(rows, cols, figsize=figsize)
-#     axes = axes.flatten()
-
-#     for idx, (title, array) in enumerate(mean_cam_dictionary.items()):
-#         if idx < len(axes):  # Avoid IndexError if there are more arrays than axes
-#             ax = axes[idx]
-#             ax.imshow(array, cmap='viridis')
-#             ax.set_title(title)
-#             ax.axis("off")
-
-#     # Turn off any remaining empty subplots
-#     for idx in range(len(mean_cam_dictionary), len(axes)):
-#         axes[idx].axis("off")
-
-
-#     plt.tight_layout()
-#     # plt.suptitle(plot_title, fontsize=18)
-#     # plt.colorbar(im, ax=axes, location='right', shrink=0.7, aspect=20)  # Add a shared colorbar
-
-#     out_name = f'{output_path}{output_name}.png'
-#     plt.savefig(out_name)
 
 
 def reshape_transform_for_cam(t: Tensor) -> Tensor:

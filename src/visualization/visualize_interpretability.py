@@ -13,7 +13,6 @@ Changes vs. original
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 import matplotlib.image as mpimg
 import torch
@@ -26,7 +25,7 @@ import io
 import matplotlib.transforms as mtransforms
 import tifffile
 from torchvision import transforms
-from src.visualization.figure_base import apply_style, FONT_SIZES, add_panel_label
+from src.visualization.figure_base import apply_style, FONT_SIZES
 
 apply_style()
 

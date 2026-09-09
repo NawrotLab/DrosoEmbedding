@@ -23,7 +23,6 @@ Bottom row (2 equal columns, independent GridSpec):
 import os
 import pickle
 
-import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
@@ -47,7 +46,7 @@ from src.visualization.visualize_interpretability import (
 )
 from src.data.dataset import compute_mean_frame_shape
 from src.visualization.figure_base import (
-    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label,
+    apply_style, FIGURE_WIDTH, save_figure, add_panel_label,
 )
 
 apply_style()

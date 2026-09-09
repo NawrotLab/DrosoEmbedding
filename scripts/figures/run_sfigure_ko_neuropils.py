@@ -37,7 +37,7 @@ from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
 
 from src.analysis.ko_permutation import (
-    NEUROPILS, GROUP_ORDER, CONTRAST_PAIRS,
+    NEUROPILS,
     load_or_run_ko_permutation,
     aggregate_ko_by_group,
 )
@@ -46,7 +46,7 @@ from src.visualization.visualize_interpretability import (
     plot_contrasts_horizontal,
 )
 from src.visualization.figure_base import (
-    apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label,
+    apply_style, FIGURE_WIDTH, save_figure, add_panel_label,
 )
 
 apply_style()
