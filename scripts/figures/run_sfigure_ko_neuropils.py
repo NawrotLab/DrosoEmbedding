@@ -62,7 +62,7 @@ RUN_PREFIX = f'{TASK}_C16_E16_H16_'
 N_RUNS     = 50
 
 CACHE_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
-OUT_STEM   = f'sfig_ko_neuropils_{VARIANT}'
+OUT_STEM   = f'figS_ko_neuropils_{VARIANT}'
 
 BATCH_SIZE  = 256
 NUM_WORKERS = 4
