@@ -131,7 +131,7 @@ correct_cams, correct_labels, correct_paths = compute_gradcam_per_sample(
 )
 
 logger.info('Computing mean raw frame shape for GradCAM upscaling…')
-mean_H, mean_W = compute_mean_frame_shape(correct_paths, n_sample=200, logger=logger)
+mean_H, mean_W = compute_mean_frame_shape(correct_paths, allTs_path, n_sample=200, logger=logger)
 BRAIN_SHAPE = (128, round(128 * mean_W / mean_H))
 logger.info(f'BRAIN_SHAPE set to {BRAIN_SHAPE}')
 

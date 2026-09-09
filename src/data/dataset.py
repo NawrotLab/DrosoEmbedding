@@ -188,7 +188,7 @@ class CustomDataset(Dataset):
         return sample.shape
 
 
-def compute_mean_frame_shape(paths, n_sample=200, seed=0, logger=None):
+def compute_mean_frame_shape(paths, allTs_path, n_sample=200, seed=0, logger=None):
     """Return (mean_H, mean_W) of raw (pre-transform) TIFF frames.
 
     Reads a random subset of *paths* without applying any transform so the
@@ -198,9 +198,13 @@ def compute_mean_frame_shape(paths, n_sample=200, seed=0, logger=None):
 
     Parameters
     ----------
-    paths     : list[str]  – image file paths (e.g. correct_paths from GradCAM)
-    n_sample  : int        – how many frames to sample (capped at len(paths))
-    seed      : int        – RNG seed for reproducible sampling
+    paths      : list[str]  – pickled image paths (e.g. correct_paths from GradCAM)
+                 -- only their recording name + filename are used; frames are
+                 always read from `allTs_path`, since the pickled path's own
+                 directory may no longer physically exist.
+    allTs_path : str        – root directory holding the full-frame TIFFs
+    n_sample   : int        – how many frames to sample (capped at len(paths))
+    seed       : int        – RNG seed for reproducible sampling
     """
     def _log(msg):
         if logger: logger.info(msg)
@@ -210,7 +214,8 @@ def compute_mean_frame_shape(paths, n_sample=200, seed=0, logger=None):
     idx = rng.choice(len(paths), size=min(n_sample, len(paths)), replace=False)
     heights, widths = [], []
     for i in idx:
-        img = tifffile.imread(paths[i])
+        real_path = os.path.join(allTs_path, os.path.basename(os.path.dirname(paths[i])), os.path.basename(paths[i]))
+        img = tifffile.imread(real_path)
         # tifffile returns (H, W) for grayscale or (H, W, C) for colour
         heights.append(img.shape[0])
         widths.append(img.shape[1])
