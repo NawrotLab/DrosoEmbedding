@@ -8,7 +8,7 @@ import re
 import random
 
 
-def collect_image_paths(root_path, id_times_dict, timesID, exclude_controls):
+def collect_image_paths(root_path, id_times_dict, timesID, exclude_controls, logger):
     """Build recording -> [anchor_path, ...].
 
     `root_path` always points at the full-frame ('allTs') directory --
@@ -119,7 +119,7 @@ def split_train_val_test(rec_paths_dict, labels, train_startingFrame, val_test_p
 
     return X_train, X_test, X_val, Y_train, Y_val,  Y_test
 
-def preview_random_samples(X, Y, n=5, set_name="train"):
+def preview_random_samples(X, Y, logger, n=5, set_name="train"):
     logger.info(f"\nRandom {n} samples from {set_name} set:")
     indices = random.sample(range(len(X)), n)
     for i in indices:
@@ -163,7 +163,7 @@ def main(config, logger):
     with open(paths['peakIDs_Times_All'], 'rb') as file:
         id_times_dict = pickle.load(file)
 
-    rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, id_times_dict, args['times'], exclude_controls=exclude_controls)
+    rec_paths_dict = collect_image_paths(PROSESSED_DATA_PATH, id_times_dict, args['times'], exclude_controls, logger)
     filtered_dict, labels = filterRecordings_and_returnLabels(rec_paths_dict, CLASSES, include_StimType=include_StimType, include_Valence= include_Valence, include_MetaboliteState= include_MetaboliteState)
 
     if config['training']['shuffle_labels_consistantly']: 
@@ -174,9 +174,9 @@ def main(config, logger):
 
     logger.info("User please check the pairings make sense! ;-)")
     logger.info(f"We are spliiting into following: {args['split_by']}")
-    preview_random_samples(X_train, Y_train, n=2, set_name="train")
-    preview_random_samples(X_val, Y_val, n=2, set_name="val")
-    preview_random_samples(X_test, Y_test, n=2, set_name="test")
+    preview_random_samples(X_train, Y_train, logger, n=2, set_name="train")
+    preview_random_samples(X_val, Y_val, logger, n=2, set_name="val")
+    preview_random_samples(X_test, Y_test, logger, n=2, set_name="test")
 
     with open(PICKLE_OUTPATH, 'wb') as file:
         pickle.dump((X_train, X_val, X_test, Y_train, Y_val, Y_test), file)

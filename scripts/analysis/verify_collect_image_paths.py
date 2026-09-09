@@ -45,7 +45,7 @@ def main():
     logger.info(f"Calling collect_image_paths() against: {processed_data_path}")
     rec_paths_dict = collect_image_paths(
         processed_data_path, id_times_dict, 'logTs',
-        exclude_controls=args['exclude_controls'],
+        args['exclude_controls'], logger,
     )
     reconstructed = {
         parse_rec_frame(p) for paths_list in rec_paths_dict.values() for p in paths_list
