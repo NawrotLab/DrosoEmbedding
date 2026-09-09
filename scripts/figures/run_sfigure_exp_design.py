@@ -10,7 +10,7 @@ All frames are resized to a uniform shape (min H × min W) and normalised
 globally (1st / 99th percentile across the entire panel).
 """
 
-import os, re, io, random
+import os, re, io, random, pickle
 
 import numpy as np
 import matplotlib as mpl
@@ -39,7 +39,9 @@ PANEL_A_SVG = os.path.join(paths['src_imgs_dir'], 'LFM_Sketch.svg')
 
 DATA_ROOT  = paths['imgs4DL']
 ALL_TS_DIR = os.path.join(DATA_ROOT, "meanZ_allTs")
-LOG_TS_DIR = os.path.join(DATA_ROOT, "meanZ_logTs")
+
+with open(paths['peakIDs_Times_All'], 'rb') as _f:
+    ID_TIMES_DICT = pickle.load(_f)
 
 OUTPUT_BASE = os.path.join(paths['output_dir'], 'figS_exp_design')
 
@@ -102,18 +104,19 @@ def get_all_recordings(all_ts_dir):
 _ie_cache = {}
 
 def get_included_excluded(rec_name):
-    """Return (sorted included indices, sorted excluded indices)."""
+    """Return (sorted included indices, sorted excluded indices).
+
+    "Included" = the peak timepoints selected during preprocessing, looked
+    up directly from the peak-times cache (id_times_dict) -- there is no
+    physical "logTs" directory to walk any more.
+    """
     if rec_name in _ie_cache:
         return _ie_cache[rec_name]
 
     all_dir = os.path.join(ALL_TS_DIR, rec_name)
-    log_dir = os.path.join(LOG_TS_DIR, rec_name)
-
     all_f = {int(f.replace('.tiff', '').split('_')[-1])
              for f in os.listdir(all_dir) if f.endswith('.tiff')}
-    log_f = {int(f.replace('.tiff', '').split('_')[-1])
-             for f in os.listdir(log_dir) if f.endswith('.tiff')
-             } if os.path.isdir(log_dir) else set()
+    log_f = set(ID_TIMES_DICT.get(rec_name, []))
 
     result = (sorted(log_f), sorted(all_f - log_f))
     _ie_cache[rec_name] = result

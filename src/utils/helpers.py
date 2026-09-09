@@ -55,12 +55,8 @@ def scatter_bicolor_cloud(ax, xs, ys, style, s=6, alpha=0.8, linewidth=0.3, zord
 
 def paths2neuropilpaths(X, config):
     prep = config["data"]["preprocessing"]
-    base = "meanZ_logTs"
 
-    # decide new folder name
-    if prep["isolate_neuropil"]:
-        new_base = f"{base}_{prep['neuropil']}"
-    else:
+    if not prep["isolate_neuropil"]:
         return X  # nothing to do
 
     X_new = []
@@ -68,12 +64,14 @@ def paths2neuropilpaths(X, config):
         p = Path(p)
         parts = list(p.parts)
 
-        try:
-            idx = parts.index(base)
-        except ValueError:
-            raise ValueError(f"Expected '{base}' in path but got:\n{p}")
+        # accept either naming: older pickles' paths say "meanZ_logTs"
+        # (a directory that no longer gets created), newer ones say
+        # "meanZ_allTs" -- clean_dataset.py only ever writes the latter now.
+        base = next((b for b in ("meanZ_logTs", "meanZ_allTs") if b in parts), None)
+        if base is None:
+            raise ValueError(f"Expected 'meanZ_logTs' or 'meanZ_allTs' in path but got:\n{p}")
 
-        parts[idx] = new_base
+        parts[parts.index(base)] = f"{base}_{prep['neuropil']}"
         X_new.append(str(Path(*parts)))
 
     return X_new
