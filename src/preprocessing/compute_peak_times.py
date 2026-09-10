@@ -1,21 +1,28 @@
 """
-Reproduces the two-stage "peak timepoint" selection that originally produced
+Reproduces the "peak timepoint" selection that originally produced
 IDs_logTs.pickle (paths['peakIDs_Times_All']) in an earlier, separate project
 (MSc_DL4DrosoWBCI) -- ported here so the full pipeline from raw NIfTI to
 training pickle lives in one reproducible place.
 
-Stage 1 -- stimulus-epoch QC gate (detect_stimulus_epochs):
-    Sums raw pixel activity per frame, smooths it, and finds runs above the
-    75th-percentile threshold. A recording only qualifies if it shows exactly
-    N_EPOCHS_EXPECTED clean stimulus-response epochs (FRAMES_PER_EPOCH evenly
-    spaced timepoints each) -- recordings that don't are excluded.
+compute_peak_times(): baseline-subtracts and log10-transforms the recording
+(this is where "logTs" comes from), then keeps any timepoint after
+MIN_PEAK_FRAME where at least Z_CONSISTENCY_FRAC of z-slices show
+above-(global-mean) log-activity -- i.e. broad, near-simultaneous activation
+across most of the imaged volume.
 
-Stage 2 -- peak timepoint selection (compute_peak_times):
-    Baseline-subtracts and log10-transforms the recording (this is where
-    "logTs" comes from), then keeps any timepoint after MIN_PEAK_FRAME where
-    at least Z_CONSISTENCY_FRAC of z-slices show above-(global-mean)
-    log-activity -- i.e. broad, near-simultaneous activation across most of
-    the imaged volume.
+The original project also had a stimulus-epoch QC gate (detect_stimulus_epochs
+/ find_threshold_crossings, in Preprocessing/FindPeakTimes.py) that produced
+an automatic first-pass recording-inclusion list. That list was then, per the
+original Get_ID_logTs.py, used as a static filter -- not re-run live -- and
+full-scale verification showed a live re-run of that gate does NOT agree with
+which recordings ended up in the final IDs_logTs.pickle for ~62/240
+recordings, meaning the original inclusion decision involved manual curation
+on top of the automatic pass that can't be recovered from code alone.
+Deliberately not ported here: this project has no pipeline for new/future
+recordings, so the gate would have no use, and reproducing only the automatic
+half of the decision would misrepresent it as more automatic than it was.
+Recording inclusion for this project is instead always taken directly from
+the existing IDs_logTs.pickle's keys.
 
 get_baseline_frame() from the original code is not ported separately: it
 computed the exact same bare-normalize -> mean-over-baseline-window ->
@@ -45,56 +52,13 @@ from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
 from src.utils.imgTools import load_and_normNIFTI
 
-# ── Stage 1: stimulus-epoch QC gate ─────────────────────────────────────────
-EPOCH_WINDOW_SIZE  = 50            # frames, moving-average smoothing window
-EPOCH_QUANTILE     = 0.75          # threshold = this quantile of raw summed activity
-FRAMES_PER_EPOCH   = 5             # timepoints kept per detected epoch
-N_EPOCHS_EXPECTED  = 3             # a recording must show exactly this many epochs
-CROSSING_WINDOW    = (200, 1100)   # index range (into the smoothed trace) searched for crossings
-
-# ── Stage 2: peak timepoint selection ───────────────────────────────────────
 BASELINE_T         = [0, 250]      # baseline window, passed to load_and_normNIFTI
 MIN_PEAK_FRAME     = 250           # peaks are only ever looked for after this frame
 Z_CONSISTENCY_FRAC = 0.9           # fraction of z-slices that must be above threshold
 
 
-def find_threshold_crossings(activity, threshold, frames_per_epoch=FRAMES_PER_EPOCH,
-                              window=CROSSING_WINDOW):
-    """Evenly-spaced timepoints within each contiguous run of `activity` above
-    `threshold`, restricted to index range `window`. Mirrors the original
-    find_threshold_crossings_with_timepoints() exactly, including its use of
-    the smoothed trace's own index space (not raw frame numbers)."""
-    crossings = []
-    crossing_started = False
-    start_index = None
-    for i, value in enumerate(activity):
-        if window[0] <= i <= window[1] and value > threshold:
-            if not crossing_started:
-                start_index = i
-                crossing_started = True
-        else:
-            if crossing_started:
-                end_index = i - 1
-                crossing_started = False
-                crossings.extend(np.linspace(start_index, end_index, frames_per_epoch, dtype=int))
-    if crossing_started:
-        crossings.extend(np.linspace(start_index, len(activity) - 1, frames_per_epoch, dtype=int))
-    return crossings
-
-
-def detect_stimulus_epochs(nifti_path):
-    """Stage 1: crossing timepoints for one recording. A recording qualifies
-    iff this returns exactly N_EPOCHS_EXPECTED * FRAMES_PER_EPOCH entries."""
-    data = load_and_normNIFTI(nifti_path)  # bare min-max normalization, no baseline subtraction
-    activity_summed = data.sum(axis=(0, 1, 2))
-    weights = np.repeat(1.0, EPOCH_WINDOW_SIZE) / EPOCH_WINDOW_SIZE
-    activity_smoothed = np.convolve(activity_summed, weights, 'valid')
-    threshold = np.quantile(activity_summed, EPOCH_QUANTILE)
-    return find_threshold_crossings(activity_smoothed, threshold)
-
-
 def compute_peak_times(nifti_path):
-    """Stage 2: the list of 'peak' (logTs) frame indices for one recording."""
+    """The list of 'peak' (logTs) frame indices for one recording."""
     data = load_and_normNIFTI(nifti_path, substract_Baseline=True, t_base=BASELINE_T)
     log_data = np.log10(data + 1e-10)
     mean_activity_zt = log_data.mean(axis=(0, 1))  # (z, t)
@@ -130,17 +94,9 @@ def main():
         logger.info(f'Recording filter active: {len(recording_filter)} recordings from {recordings_file}')
 
     id_times_dict = {}
-    excluded = {}
     for nifti in tqdm(niftis):
         file_name = os.path.basename(nifti).split('.')[0]
         if recording_filter and file_name not in recording_filter:
-            continue
-
-        crossings = detect_stimulus_epochs(nifti)
-        if len(crossings) != N_EPOCHS_EXPECTED * FRAMES_PER_EPOCH:
-            excluded[file_name] = crossings
-            logger.info(f'{file_name}: excluded ({len(crossings)} epoch crossings, '
-                        f'expected {N_EPOCHS_EXPECTED * FRAMES_PER_EPOCH})')
             continue
 
         id_times_dict[file_name] = compute_peak_times(nifti)
@@ -150,8 +106,8 @@ def main():
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, 'wb') as f:
         pickle.dump(id_times_dict, f)
-    logger.info(f'Wrote {len(id_times_dict)} recordings ({len(excluded)} excluded) to {out_path}')
-    logger.info('This is a re-derivation for verification/future-data purposes only -- it does '
+    logger.info(f'Wrote {len(id_times_dict)} recordings to {out_path}')
+    logger.info('This is a re-derivation for verification purposes only -- it does '
                 'NOT overwrite paths["peakIDs_Times_All"]. Run '
                 'scripts/analysis/verify_compute_peak_times.py before trusting it for anything.')
 
