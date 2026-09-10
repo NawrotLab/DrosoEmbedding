@@ -98,7 +98,8 @@ test_loader = DataLoader(
 )
 
 classifier, _, _, _, _, _ = load_model(
-    CNN_Transformer, model_params, paths['models'], device, logger,
+    CNN_Transformer, model_params, paths['models'], device,
+    run_id=config['run_id'], logger=logger,
 )
 if classifier is None:
     raise FileNotFoundError('Trained model not found.')

@@ -78,7 +78,8 @@ def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> di
     logger.info(f"Loading Model with parameters: {model_params} in {config_train['device']}.")
     # Load model
     classifier, _, train_loss, val_loss, train_acc, val_acc = load_model(
-        CNN_Transformer, model_params, paths['models'], config_train['device'], logger
+        CNN_Transformer, model_params, paths['models'], config_train['device'],
+        run_id=run_id, logger=logger
     )
     if classifier is None:
         raise FileNotFoundError("Trained model not found.")

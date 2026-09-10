@@ -183,7 +183,8 @@ def main():
         model_params,
         model_dir,
         config_train["device"],
-        logger,
+        run_id=run_name,
+        logger=logger,
     )
     if model is None:
         raise FileNotFoundError(f"Trained model not found in {model_dir}")

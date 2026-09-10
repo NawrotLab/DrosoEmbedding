@@ -172,7 +172,7 @@ def run_ko_permutation(
 
         _log(f'── Run {run_dir.name} ──')
         classifier, *_ = load_model(CNN_Transformer, model_params,
-                                     models_dir, device, logger)
+                                     models_dir, device, logger=logger)
         if classifier is None:
             _log(f'Checkpoint missing in {run_dir.name}, skipping.')
             continue

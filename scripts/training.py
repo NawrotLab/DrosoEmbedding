@@ -135,7 +135,8 @@ def main(config, logger):
             Classifier, start_epoch, prev_train_loss, prev_val_loss, prev_train_acc, prev_val_acc = load_model(CNN_Transformer,
                                                                                   model_params,
                                                                                   outPath_model,
-                                                                                  config["device"])
+                                                                                  config["device"],
+                                                                                  run_id=config["run_id"])
             criterion_name = config["training"]["criterion"]
             label_smoothing = config["training"]["label_smoothing"]
             criterion_cls = getattr(nn, criterion_name)
@@ -215,6 +216,7 @@ def main(config, logger):
                 best_output_path=best_dir,
                 model_class=CNN_Transformer,
                 params=model_params,
+                run_id=config["run_id"],
                 monitor=training_params.get('monitor', 'val_acc'),          # 'val_acc' or 'val_loss'
                 mode=training_params.get('mode', 'max'),                    # 'max' for acc, 'min' for loss
             )
@@ -235,9 +237,10 @@ def main(config, logger):
                        params=model_params,
                        output_path=outPath_model,
                        train_loss=training_loss,
-                       val_loss=validation_loss, 
+                       val_loss=validation_loss,
                        train_acc=train_acc,
-                       val_acc=val_acc, 
+                       val_acc=val_acc,
+                       run_id=config["run_id"],
                        logger=logger)
             
 

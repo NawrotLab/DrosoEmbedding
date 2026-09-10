@@ -5,6 +5,18 @@ import hashlib
 from typing import Optional, List, Tuple
 
 
+def _checkpoint_filename(model_class: type, params: dict, run_id: Optional[str] = None) -> str:
+    """Deterministic checkpoint filename from hyperparameters, optionally
+    prefixed with run_id. Hyperparameters alone are NOT unique across seeds
+    within the same sweep (e.g. every C2_E16_H16_* run shares them) -- run_id
+    disambiguates those when checkpoints from many runs land in one flat
+    directory (e.g. a published models/<task>/ folder)."""
+    model_params = {k: v for k, v in (params or {}).items() if k != 'num_epochs'}
+    param_str = "_".join([f"{k}={model_params[k]}" for k in sorted(model_params)])
+    base = f"{model_class.__name__}_{param_str}.pth"
+    return f"{run_id}_{base}" if run_id else base
+
+
 def save_model(
     model: torch.nn.Module,
     epoch: int = 0,
@@ -15,6 +27,7 @@ def save_model(
     val_loss: Optional[List[float]] = None,
     train_acc: Optional[List[float]] = None,
     val_acc: Optional[List[float]] = None,
+    run_id: Optional[str] = None,
     logger=None,
 ) -> None:
     if logger is None:
@@ -23,9 +36,7 @@ def save_model(
 
     # filename (deterministic)
     model_class = model_class or model.__class__
-    model_params = {k: v for k, v in (params or {}).items() if k != 'num_epochs'}
-    param_str = "_".join([f"{k}={model_params[k]}" for k in sorted(model_params)])
-    model_save_path = os.path.join(output_path, f"{model_class.__name__}_{param_str}.pth")
+    model_save_path = os.path.join(output_path, _checkpoint_filename(model_class, params, run_id))
 
     # canonicalize state_dict (strip DDP 'module.' if present)
     sd = model.state_dict()
@@ -63,16 +74,25 @@ def load_model(
     params: dict,
     output_path: str,
     device: torch.device,
+    run_id: Optional[str] = None,
     logger=None,
 ) -> Tuple[Optional[torch.nn.Module], int, List[float], List[float], List[float], List[float]]:
     if logger is None:
         logger = logging.getLogger("ModelIO")
 
     # filename (deterministic; same as save)
-    model_params = {k: v for k, v in (params or {}).items() if k != 'num_epochs'}
-    param_str = "_".join([f"{k}={model_params[k]}" for k in sorted(model_params)])
-    model_save_path = os.path.join(output_path, f"{model_class.__name__}_{param_str}.pth")
+    model_save_path = os.path.join(output_path, _checkpoint_filename(model_class, params, run_id))
     logger.info(f"Loading model from {model_save_path}")
+
+    if not os.path.exists(model_save_path) and run_id:
+        # Fall back to the pre-run_id naming, for runs/checkpoints saved
+        # before run_id was added to the filename (e.g. a run resumed after
+        # this change, or an existing per-run directory on the cluster where
+        # the run_id is already implied by the directory itself).
+        legacy_path = os.path.join(output_path, _checkpoint_filename(model_class, params, run_id=None))
+        if os.path.exists(legacy_path):
+            logger.info(f"No run_id-prefixed checkpoint found; falling back to legacy path {legacy_path}")
+            model_save_path = legacy_path
 
     if not os.path.exists(model_save_path):
         logger.info(f"Model file not found at {model_save_path}")

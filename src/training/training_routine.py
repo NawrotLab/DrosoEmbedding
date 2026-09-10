@@ -21,6 +21,7 @@ def train_seq_seq_Classifier(model: torch.nn.Module,
                              best_output_path: Optional[str] = None,
                              model_class: Optional[type] = None,
                              params: Optional[dict] = None,
+                             run_id: Optional[str] = None,
                              monitor: str = "val_acc",   # or "val_loss"
                              mode: str = "max"):
     """
@@ -135,6 +136,7 @@ def train_seq_seq_Classifier(model: torch.nn.Module,
                                val_loss=val_loss,
                                train_acc=train_acc,
                                val_acc=val_acc,
+                               run_id=run_id,
                                logger=logger)
                     logger.info(f"[best] epoch {current_epoch} improved {monitor} → {metric:.6f}; saved.")
         if track_best and current_epoch >= save_after and not have_best:
