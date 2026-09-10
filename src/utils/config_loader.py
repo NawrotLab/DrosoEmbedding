@@ -51,6 +51,8 @@ def apply_env_overrides(config):
         'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
         'DROSO_LOCAL_SCRATCH': ['paths', 'local_scratch_dir'],
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
+        'SHUFFLE_LABELS_CONSISTENTLY': ['training', 'shuffle_labels_consistantly'],
+        'SHUFFLE_LABELS_NAIVE': ['training', 'shuffle_labels_naive'],
         }
     
     for env_var, config_path in env_mappings.items():

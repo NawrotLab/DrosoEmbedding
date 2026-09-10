@@ -13,23 +13,28 @@ BATCH_DIR="logs/experiments/$TIMESTAMP"
 mkdir -p "$BATCH_DIR"
 
 # Define your experiment configurations
-# Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM
+# Format: RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM SHUFFLE_LABELS_CONSISTENTLY
+# SHUFFLE_LABELS_CONSISTENTLY=true trains on the SHUFFLED_meanZ_..._{pickle_id}.pickle labels
+# instead of the real ones -- this is how a "control" run (see paths['pickle_path_shuffled']
+# in config_loader.py) is produced. Give it a RUN_ID that says so (e.g. a "Ctr" tag) so the
+# resulting run_id/checkpoint name is self-documenting.
 CONFIGURATIONS=(
-    #"C16_E16_H16 State_Modality_Valence_16 256 0.001 1000 16 16"
-    "C2_E16_H16 MetabolicState_2 256 0.001 1000 16 16"
-    # "C16_E8_H16 State_Modality_Valence_16 256 0.001 1000 8 16"
+    #"C16_E16_H16 State_Modality_Valence_16 256 0.001 1000 16 16 false"
+    "C2_E16_H16 MetabolicState_2 256 0.001 1000 16 16 false"
+    # "C16_E8_H16 State_Modality_Valence_16 256 0.001 1000 8 16 false"
 
-    # "C2_E16_H2 MetabolicState_2 256 0.001 1000 16 2"
-    # "C6_E16_H64 State_Modality_6 256 0.001 1000 16 64"
-    # "C16_E16_H2 State_Modality_Valence_16 256 0.001 1000 16 2"
-    
+    # "C2_E16_H2 MetabolicState_2 256 0.001 1000 16 2 false"
+    # "C6_E16_H64 State_Modality_6 256 0.001 1000 16 64 false"
+    # "C16_E16_H2 State_Modality_Valence_16 256 0.001 1000 16 2 false"
+    # "C2_Ctr_E16 MetabolicState_2 256 0.001 1000 16 16 true"
+
 )
 
 
 # Submit each configuration as a separate job
 for config in "${CONFIGURATIONS[@]}"; do
     # Parse configuration
-    read -r RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM <<< "$config"
+    read -r RUN_ID TASK BATCH_SIZE LEARNING_RATE EPOCHS CNN_DIM TRF_DIM SHUFFLE_LABELS_CONSISTENTLY <<< "$config"
     
     # Create job name
     JOB_NAME="${RUN_ID}"
@@ -57,6 +62,7 @@ export LEARNING_RATE=${LEARNING_RATE}
 export EPOCHS=${EPOCHS}
 export CNN_DIM=${CNN_DIM}
 export TRF_DIM=${TRF_DIM}
+export SHUFFLE_LABELS_CONSISTENTLY=${SHUFFLE_LABELS_CONSISTENTLY}
 
 # Change to project directory
 cd "$BASE_DIR"
