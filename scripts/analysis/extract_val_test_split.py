@@ -52,6 +52,12 @@ def main():
     args = config['data']['preprocessing']
 
     logger.info(f"Task: {config['data']['task']}")
+    logger.info(f"Effective pickle_id: {config['data']['pickle_id']}")
+    logger.info(f"Effective split_by: {args['split_by']}")
+    logger.info(f"Effective include_StimType={args['include_StimType']} "
+                f"include_Valence={args['include_Valence']} "
+                f"include_MetaboliteState={args['include_MetaboliteState']} "
+                f"exclude_controls={args['exclude_controls']}")
     logger.info(f"Loading existing split pickle: {paths['pickle_path']}")
     with open(paths['pickle_path'], 'rb') as f:
         X_train_orig, X_val_orig, X_test_orig, Y_train_orig, Y_val_orig, Y_test_orig = pickle.load(f)
