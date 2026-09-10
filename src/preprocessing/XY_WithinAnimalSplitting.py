@@ -119,6 +119,64 @@ def split_train_val_test(rec_paths_dict, labels, train_startingFrame, val_test_p
 
     return X_train, X_test, X_val, Y_train, Y_val,  Y_test
 
+
+def parse_rec_frame(path):
+    """(recording_id, frame_number) from a stored image path -- the same
+    two path components CustomDataset._get_sequence_paths() relies on;
+    everything else in the path (including its absolute prefix) is
+    irrelevant and never used for loading."""
+    rec_id = path.split('/')[-2]
+    frame_num = int(path.split('_')[-1].split('.')[0])
+    return rec_id, frame_num
+
+
+def split_train_val_test_from_assignment(rec_paths_dict, labels, train_startingFrame, val_test_assignment):
+    """Like split_train_val_test(), but reconstructs the exact published
+    val/test split from a precomputed {recording_id: {frame_number: 'val'
+    | 'test'}} assignment instead of re-deriving it with
+    sklearn.train_test_split(random_state=42).
+
+    Why this exists: train-set membership and all labels are fully
+    deterministic (a pure frame-index threshold + regex label matching),
+    so they're safe to recompute fresh from IDs_logTs.pickle +
+    Recordings_df.xlsx on any machine. The val/test 50/50 split is NOT --
+    train_test_split's result depends on the input list's order, which
+    depends on collect_image_paths()'s os.walk() directory-listing order,
+    which is filesystem-dependent and not portable. This function trades
+    that one irreproducible piece of information for a small, explicit
+    lookup instead of a large pickle full of server-specific paths.
+
+    Returns (X_train, X_test, X_val, Y_train, Y_val, Y_test, missing),
+    where `missing` lists any (recID, frameNr) pair with no entry in
+    val_test_assignment -- should be empty; a non-empty result means the
+    assignment doesn't cover every val-eligible frame this run produced,
+    and the mismatch needs to be understood before trusting the output.
+    """
+    X_train, Y_train = [], []
+    X_val, Y_val = [], []
+    X_test, Y_test = [], []
+    missing = []
+
+    for recID, recPaths, label in zip(rec_paths_dict.keys(), rec_paths_dict.values(), labels):
+        for path in recPaths:
+            _, frameNr = parse_rec_frame(path)
+            if frameNr > train_startingFrame:
+                X_train.append(path)
+                Y_train.append(label)
+            else:
+                split = val_test_assignment.get(recID, {}).get(frameNr)
+                if split == 'val':
+                    X_val.append(path)
+                    Y_val.append(label)
+                elif split == 'test':
+                    X_test.append(path)
+                    Y_test.append(label)
+                else:
+                    missing.append((recID, frameNr))
+
+    return X_train, X_test, X_val, Y_train, Y_val, Y_test, missing
+
+
 def preview_random_samples(X, Y, logger, n=5, set_name="train"):
     logger.info(f"\nRandom {n} samples from {set_name} set:")
     indices = random.sample(range(len(X)), n)
