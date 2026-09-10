@@ -54,6 +54,10 @@ def apply_env_overrides(config):
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
         'SHUFFLE_LABELS_CONSISTENTLY': ['training', 'shuffle_labels_consistantly'],
         'SHUFFLE_LABELS_NAIVE': ['training', 'shuffle_labels_naive'],
+        'SPLIT_BY': ['data', 'preprocessing', 'split_by'],
+        'INCLUDE_STIM_TYPE': ['data', 'preprocessing', 'include_StimType'],
+        'INCLUDE_VALENCE': ['data', 'preprocessing', 'include_Valence'],
+        'INCLUDE_METABOLITE_STATE': ['data', 'preprocessing', 'include_MetaboliteState'],
         }
     
     for env_var, config_path in env_mappings.items():
@@ -70,6 +74,8 @@ def apply_env_overrides(config):
                 current[config_path[-1]] = int(os.environ[env_var])
             elif isinstance(original_value, float):
                 current[config_path[-1]] = float(os.environ[env_var])
+            elif isinstance(original_value, list):
+                current[config_path[-1]] = os.environ[env_var].split(',')
             else:
                 current[config_path[-1]] = os.environ[env_var]
 
