@@ -1,7 +1,6 @@
 # run_evaluation.py
 import os
 import pickle
-import torch
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import numpy as np
@@ -12,13 +11,8 @@ from src.models.model_io import load_model
 from src.models.cnn_transformer import CNN_Transformer
 from src.utils.logger import setup_logger
 from src.utils.helpers import get_latent_space, get_predictions, compute_tsne
-from src.utils.analysis import (
-    cosine_intra_class, cosine_inter_class,
-    euclidean_intra_class, euclidean_inter_class,
-    silhouette_scores, compute_centroid_tsne_payload
-)
-from src.visualization.visualize_performance import plot_mean_cams, compute_class_mean_cams
-from pytorch_grad_cam import GradCAM, HiResCAM, ScoreCAM, GradCAMPlusPlus, AblationCAM, XGradCAM, EigenCAM, FullGrad
+from src.visualization.visualize_performance import compute_class_mean_cams
+from pytorch_grad_cam import GradCAM
 from src.utils.helpers import paths2neuropilpaths
 
 
@@ -85,13 +79,8 @@ def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> di
         raise FileNotFoundError("Trained model not found.")
 
     # Inference
-    # Get both latent spaces
-    cnn_latent_space, latent_labels = get_latent_space(classifier, test_loader, config_test['device'], return_cnn_latent=True)
-    logger.info(f"CNN Latent Space shape: {cnn_latent_space.shape}")
-    # logger.info(f"CNN Latent Space range: {np.max(cnn_latent_space), np.min(cnn_latent_space)}")
     transformer_latent_space, latent_labels = get_latent_space(classifier, test_loader, config_test['device'], return_cnn_latent=False)
     logger.info(f"Transformer Latent Space shape: {transformer_latent_space.shape}")
-    # logger.info(f"Transformer Latent Space range: {np.max(transformer_latent_space), np.min(transformer_latent_space)}")
     y_pred, y_true = get_predictions(classifier, test_loader, config_test['device'])
     Y_pred_VAL, Y_true_VAL = get_predictions(classifier, val_loader, config_test['device'])
 
@@ -107,17 +96,9 @@ def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> di
     max_items_per_class=None,     # reasonable cap; set None to use all
     return_all=False)
 
-    # for cls, arr in mean_cams.items():
-    #     logger.info(f"{cls}: {arr.shape}, dtype={arr.dtype}, min={arr.min():.3f}, max={arr.max():.3f}")
-    
-    # logger.info(f"Computed mean CAMs. Shapes: {mean_cams.values()}")
-
-    # fig = plot_mean_cams(mean_cams, cols=4, figsize=(10, 8), suptitle="Mean Grad-CAM (Layer 3)", add_colorbar=True, save_path="Mean_GradCAM_L3.png")
-
     # Metrics
     accuracy = accuracy_score(y_true, y_pred)
     cm = confusion_matrix(y_true, y_pred)
-    cm_val = confusion_matrix(Y_true_VAL, Y_pred_VAL)
     report_dict = classification_report(y_true, y_pred, target_names=config_test['data']['classes'], output_dict=True)
     report = classification_report(y_true, y_pred, target_names=config_test['data']['classes'])
     report_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config_test['data']['classes'])
@@ -126,36 +107,6 @@ def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> di
     with open(os.path.join(eval_dir, "ClassificationReport_VAL.txt"), 'w') as f:
         f.write(report_val)
 
-    # Similarity metrics
-    cos_intra = cosine_intra_class(transformer_latent_space, latent_labels)
-    cos_inter, cos_labels = cosine_inter_class(transformer_latent_space, latent_labels)
-    
-
-    euc_intra = euclidean_intra_class(transformer_latent_space, latent_labels)
-    euc_inter, euc_labels = euclidean_inter_class(transformer_latent_space, latent_labels)
-
-    sil_score = silhouette_scores(transformer_latent_space, latent_labels)
-
-
-    # --- NEW: grouped centroid -> t-SNE (ready-to-plot) ---
-    try:
-        payload = compute_centroid_tsne_payload(
-            features_hd = transformer_latent_space,          # (N, D)
-            labels      = latent_labels,                     # (N,)
-            task_name   = config_test['data']['task'],            # 'MetabolicState_2' / 'State_Modality_6' / 'State_Modality_Valence_16'
-            class_names = config_test['data']['classes'],         # list[str] aligned to labels
-            # random_state=30  # optional override
-        )
-        centroid_names = payload['centroid_group_names']
-        centroid_Z     = payload['centroid_tsne2d']
-        logger.info(f"Centroid t-SNE: groups={centroid_names} shape={centroid_Z.shape}")
-    except Exception as e:
-        logger.error(f"Centroid t-SNE computation failed: {e}")
-        centroid_names, centroid_Z = None, None
-
-    
-
-    
     # after latent_space, latent_labels have been computed…
     tsne_2d = compute_tsne(transformer_latent_space, perplexity=30)
     logger.info(f"TSNE 2D shape: {tsne_2d.shape}")
@@ -168,30 +119,16 @@ def evaluate_model(run_id, config_path, logger, out_dir, config_test=None) -> di
         'val_loss': val_loss,
         'train_acc': train_acc,
         'val_acc': val_acc,
-        
-        'y_pred': y_pred, 
-        'y_true': y_true,
+
         'accuracy': accuracy,
         'confusion_matrix': cm,
         'classification_report_dict': report_dict,
-        
-        'cnn_latent_space': cnn_latent_space,
+
         'transformer_latent_space': transformer_latent_space,
         'latent_labels': latent_labels,
         'tsne_2d': tsne_2d,
 
-        'centroid_group_names': centroid_names,   # None if failed
-        'centroid_tsne2d': centroid_Z,            # None if failed
-
         'mean_cams': mean_cams
-
-        # 'cosine_intra': cos_intra,
-        # 'cosine_inter': cos_inter,
-        # 'cosine_inter_labels': cos_labels,
-        # 'euclidean_intra': euc_intra,
-        # 'euclidean_inter': euc_inter,
-        # 'euclidean_inter_labels': euc_labels,
-        # 'silhouette_score': sil_score
     }
 
     # logger.info(f"results {results}")

@@ -21,4 +21,3 @@ source "$BASE_DIR/.venv/bin/activate"
 # python -c "import cv2; print('cv2 OK:', cv2.__version__)"
 
 "$BASE_DIR/.venv/bin/python" -m scripts.run_evaluation
-#  "$BASE_DIR/.venv/bin/python" -m scripts.run_plotting
