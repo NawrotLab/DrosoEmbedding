@@ -129,14 +129,13 @@ def setup_derived_parameters(config):
 
     # === Expand dynamic paths ===
     root = Path(config["paths"]["root"])
-    split = config['data']['split_strategy']
     config["paths"]["checkpoints_dir"] = str(root / "results" / "_chkpt_finals")
     config["paths"]["src_imgs_dir"]    = str(root / "src" / "src_imgs")
     config["paths"]["output_dir"]      = str(root / "results" / "CombiPlots")
     config["paths"]["recodings_df"] = f"{config['paths']['data_root']}/Recordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config['paths']['data_root']}/imgs4DL"
-    config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
-    config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / split / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
+    config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
+    config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'
     config["paths"]["results_root"] = str(root / "results" / f"{config['data']['task']}_{config['run_id']}")
     config["paths"]["models"] = f"{config['paths']['results_root']}/models/"
