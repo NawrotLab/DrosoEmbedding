@@ -132,7 +132,7 @@ def setup_derived_parameters(config):
     config["paths"]["checkpoints_dir"] = str(root / "results" / "_chkpt_finals")
     config["paths"]["src_imgs_dir"]    = str(root / "src" / "src_imgs")
     config["paths"]["output_dir"]      = str(root / "results" / "CombiPlots")
-    config["paths"]["recodings_df"] = f"{config['paths']['data_root']}/PaulRecordings_df.xlsx"
+    config["paths"]["recodings_df"] = f"{config['paths']['data_root']}/Recordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config['paths']['data_root']}/imgs4DL"
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / split / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
     config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / split / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
