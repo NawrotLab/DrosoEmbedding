@@ -49,6 +49,7 @@ def apply_env_overrides(config):
         'DROSO_DATA_ROOT': ['paths', 'data_root'],
         'DROSO_ALLT_BASE': ['paths', 'allTs_base'],
         'DROSO_PEAK_IDS': ['paths', 'peakIDs_Times_All'],
+        'DROSO_PICKLE_BASE': ['paths', 'pickle_base'],
         'DROSO_LOCAL_SCRATCH': ['paths', 'local_scratch_dir'],
         'ISOLATE_NEUROPIL': ['data', 'preprocessing', 'isolate_neuropil'],
         'SHUFFLE_LABELS_CONSISTENTLY': ['training', 'shuffle_labels_consistantly'],
