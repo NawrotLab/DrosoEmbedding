@@ -60,10 +60,10 @@ def _resolve_results_root(config: dict, run_id_override: str, slurm_id_override,
     slurm_env = os.getenv("SLURM_ARRAY_TASK_ID")
     slurm_id = slurm_id_override if slurm_id_override is not None else slurm_env
     if slurm_id is not None:
-        candidates.append(root / "results" / f"{task}_{base_run_id}_{slurm_id}")
+        candidates.append(root / "results" / "model_runs" / f"{task}_{base_run_id}_{slurm_id}")
 
     pattern = f"{task}_{base_run_id}_*"
-    discovered = [p for p in (root / "results").glob(pattern) if p.is_dir()]
+    discovered = [p for p in (root / "results" / "model_runs").glob(pattern) if p.is_dir()]
     discovered.sort(key=lambda p: p.stat().st_mtime, reverse=True)
     candidates.extend(discovered)
 

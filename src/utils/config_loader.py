@@ -143,7 +143,7 @@ def setup_derived_parameters(config):
     config["paths"]["pickle_path"] = str(root / config["paths"]["pickle_base"] / f"meanZ_logTs_{config['data']['pickle_id']}.pickle")
     config["paths"]["pickle_path_shuffled"] = str(root / config["paths"]["pickle_base"] / f"SHUFFLED_meanZ_{logT_name}_{config['data']['pickle_id']}.pickle")
     config["paths"]["allTs_path"] = f'{config["paths"]["allTs_base"]}/meanZ_{allT_name}'
-    config["paths"]["results_root"] = str(root / "results" / f"{config['data']['task']}_{config['run_id']}")
+    config["paths"]["results_root"] = str(root / "results" / "model_runs" / f"{config['data']['task']}_{config['run_id']}")
     config["paths"]["models"] = f"{config['paths']['results_root']}/models/"
     config["paths"]["visualizations"] = f"{config['paths']['results_root']}/visualizations/"
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"

@@ -282,9 +282,13 @@ if __name__ == "__main__":
     config["slurm_id"] = slurm_id
     config["run_id"] = f"{config['run_id']}_{slurm_id}"
     logger = setup_logger(task_name=config["run_id"], log_dir="logs/training")
-    # Save config dictionary to pickle file
-    # config_file = f"{config["paths"]["results_root"]}/{config['run_id']}/config_{config['run_id']}_{slurm_id}.pkl"
-    config_file = f"{config['paths']['root']}/results/{config['data']['task']}_{config['run_id']}/config.pkl"
+    # Save config dictionary to pickle file. Mirrors main()'s own out_root
+    # formula (results_root + "_{slurm_id}") exactly, instead of
+    # reconstructing the path independently -- the two must never diverge,
+    # since everything downstream (run_viz_cam.py, the config.pkl-reading
+    # figure scripts) expects config.pkl to sit inside the same directory
+    # main() writes its local models/evaluation output to.
+    config_file = f"{config['paths']['results_root']}_{slurm_id}/config.pkl"
     os.makedirs(os.path.dirname(config_file), exist_ok=True)
     with open(config_file, 'wb') as f:
         pickle.dump(config, f)
