@@ -149,14 +149,21 @@ def setup_derived_parameters(config):
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"
 
     # Published, flat, task-level layout -- where checkpoints/evaluation
-    # results/mlflow history actually live (models/<task>/, evaluation/<task>/,
-    # mlflow/), as opposed to the per-run results/{task}_{run_id}/ tree above.
-    # Independently overridable so e.g. checkpoints can be read from/written
-    # to a published data clone while mlflow history stays on a stable path.
+    # results actually live (models/<task>/, evaluation/<task>/), as opposed
+    # to the per-run results/{task}_{run_id}/ scratch tree above. Their base
+    # defaults to DROSO_PUBLISH_ROOT (falling back to DROSO_ROOT if unset)
+    # rather than always following DROSO_ROOT -- so DROSO_ROOT can point at
+    # a normal code checkout (results/, logs, local pickle cache all stay
+    # there, as scratch working state) while DROSO_PUBLISH_ROOT points at a
+    # published data clone (e.g. the G-Node clone), and only the curated
+    # checkpoints/evaluation results land there directly. Each is also
+    # independently overridable on top of that via DROSO_MODELS_DIR/
+    # DROSO_EVAL_DIR, for layouts that don't fit either pattern.
+    publish_root = os.environ.get("DROSO_PUBLISH_ROOT", str(root))
     config["paths"]["models_dir"] = os.environ.get(
-        "DROSO_MODELS_DIR", f"{root}/models/{config['data']['task']}/")
+        "DROSO_MODELS_DIR", f"{publish_root}/models/{config['data']['task']}/")
     config["paths"]["eval_dir"] = os.environ.get(
-        "DROSO_EVAL_DIR", f"{root}/evaluation/{config['data']['task']}/")
+        "DROSO_EVAL_DIR", f"{publish_root}/evaluation/{config['data']['task']}/")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 
