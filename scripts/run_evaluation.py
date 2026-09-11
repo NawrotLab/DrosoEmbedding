@@ -16,7 +16,7 @@ from pytorch_grad_cam import GradCAM
 from src.utils.helpers import paths2neuropilpaths
 
 
-def evaluate_model(run_id, config, logger, out_dir) -> dict:
+def evaluate_model(run_id, config, logger) -> dict:
     # Everything -- data paths, model architecture defaults, task/classes --
     # comes from the live config (load_config(), env-var driven), not a
     # frozen training-time snapshot. The one thing that must exactly match
@@ -64,8 +64,19 @@ def evaluate_model(run_id, config, logger, out_dir) -> dict:
     # DROSO_MODELS_DIR overrides this directly if the layout differs.
     default_models_dir = f"{paths['root']}/models/{config['data']['task']}/"
     paths['models'] = os.environ.get('DROSO_MODELS_DIR', default_models_dir)
-    eval_dir = paths["evaluation"]
+
+    # Cached evaluation results live flat under evaluation/<task>/, mirroring
+    # models/<task>/ -- not the old per-run results/{task}_{run_id}/evaluation/
+    # cluster layout. This is what figures read (evaluation pkl -> figures),
+    # separate from and much smaller than re-running inference every time.
+    default_eval_dir = f"{paths['root']}/evaluation/{config['data']['task']}/"
+    eval_dir = os.environ.get('DROSO_EVAL_DIR', default_eval_dir)
     os.makedirs(eval_dir, exist_ok=True)
+    eval_file = os.path.join(eval_dir, f"{run_id}_evalResults.pkl")
+    if os.path.exists(eval_file):
+        logger.info(f"Evaluation results already exist at {eval_file}")
+        with open(eval_file, 'rb') as f:
+            return pickle.load(f)
 
     logger.info(f"Locating Model at {paths['models']}")
     logger.info(f"Loading Model with parameters: {model_params} in {config['device']}.")
@@ -130,8 +141,9 @@ def evaluate_model(run_id, config, logger, out_dir) -> dict:
         'mean_cams': mean_cams
     }
 
-    with open(out_dir, 'wb') as f:
+    with open(eval_file, 'wb') as f:
         pickle.dump(results, f)
+    logger.info(f"Saved evaluation results to {eval_file}")
 
     return results
 
@@ -140,13 +152,7 @@ def main():
     config = load_config()
     run_id = config['run_id']
     logger = setup_logger(task_name=config['run_id'], log_dir=os.path.join('logs/evaluation'))
-
-    eval_dir = f"{config['paths']['root']}/results/{config['data']['task']}_{run_id}/evaluation/{run_id}_evalResults.pkl"
-    if not os.path.exists(eval_dir):
-        evaluate_model(run_id, config, logger, eval_dir)
-        logger.info(f"Saved evaluation results to {eval_dir}")
-    else:
-        logger.info(f"Evaluation results already exist at {eval_dir}")
+    evaluate_model(run_id, config, logger)
 
 if __name__ == '__main__':
     main()
