@@ -87,12 +87,12 @@ paths        = config['paths']
 OUT_DIR      = paths['output_dir']
 model_params = config['model']['parameters']
 
-with open(f"{paths['results_root']}/config.pkl", 'rb') as fh:
-    train_config = pickle.load(fh)
-
-device      = train_config['device']
-allTs_base  = train_config['paths']['allTs_path']
-class_names = train_config['data']['classes']
+# device/allTs_path/classes are task-level constants (same for every run_id
+# in the sweep), so the live config already has them -- no need to load a
+# specific run's frozen config.pkl snapshot just to read these.
+device      = config['device']
+allTs_base  = config['paths']['allTs_path']
+class_names = config['data']['classes']
 n_classes   = len(class_names)
 
 with open(paths['pickle_path'], 'rb') as fh:

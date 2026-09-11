@@ -77,9 +77,10 @@ ATLAS_PATH          = os.path.join(paths['src_imgs_dir'], 'NeuropilsAtlas.svg')
 model_params = config['model']['parameters']
 train_params = config['training']
 
-with open(f"{paths['results_root']}/config.pkl", 'rb') as fh:
-    config = pickle.load(fh)
-
+# Everything comes from the live config (env-var driven), not a frozen
+# training-time config.pkl snapshot -- checkpoints are self-describing
+# (model_io.py::save_model embeds architecture params), so no per-run
+# config.pkl is needed to reconstruct the model either.
 device     = config['device']
 allTs_path = config['paths']['allTs_path']
 
@@ -98,7 +99,7 @@ test_loader = DataLoader(
 )
 
 classifier, _, _, _, _, _ = load_model(
-    CNN_Transformer, model_params, paths['models'], device,
+    CNN_Transformer, model_params, paths['models_dir'], device,
     run_id=config['run_id'], logger=logger,
 )
 if classifier is None:
