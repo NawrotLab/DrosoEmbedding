@@ -62,7 +62,7 @@ def main(config, logger):
     logger.info(f"Device: {config['device']}")
     logger.info(f"Slurm ID: {slurm_id}")
 
-    mlflow.set_tracking_uri(f"file:{config['paths']['root']}/mlflow")
+    mlflow.set_tracking_uri(f"file:{config['paths']['mlflow_dir']}")
     mlflow.set_experiment("DrosoEmbedding Experiments")
 
 
@@ -84,7 +84,14 @@ def main(config, logger):
             logger.info(f"out root... {out_root}")
             outPath_model = f"{out_root}/models"
             out_evaluation = f"{out_root}/evaluation"
-            best_dir = os.path.join(outPath_model, "best")
+            # The checkpoint that actually matters (best val metric) is saved
+            # into the flat, published models/<task>/ layout -- the same
+            # location run_evaluation.py reads from -- not the old per-run
+            # results/{task}_{run_id}_{slurm_id}/models/best/ path. The
+            # "final" (last-epoch, not necessarily best) checkpoint below
+            # still goes to the per-run outPath_model -- it's an internal
+            # artifact, never read by evaluation/publication.
+            best_dir = config["paths"]["models_dir"]
             os.makedirs(best_dir, exist_ok=True)
             os.makedirs(outPath_model, exist_ok=True)
             os.makedirs(out_evaluation, exist_ok=True)

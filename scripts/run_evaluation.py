@@ -59,18 +59,12 @@ def evaluate_model(run_id, config, logger) -> dict:
     logger.info(f"Test loader: {len(test_loader)}, Val loader: {len(val_loader)}")
     logger.info(f"Test example path: {X_test[0]}")
 
-    # Published layout: checkpoints live flat under models/<task>/, not the
-    # old per-run results/{task}_{run_id}/models/best/ cluster layout.
-    # DROSO_MODELS_DIR overrides this directly if the layout differs.
-    default_models_dir = f"{paths['root']}/models/{config['data']['task']}/"
-    paths['models'] = os.environ.get('DROSO_MODELS_DIR', default_models_dir)
-
-    # Cached evaluation results live flat under evaluation/<task>/, mirroring
-    # models/<task>/ -- not the old per-run results/{task}_{run_id}/evaluation/
-    # cluster layout. This is what figures read (evaluation pkl -> figures),
-    # separate from and much smaller than re-running inference every time.
-    default_eval_dir = f"{paths['root']}/evaluation/{config['data']['task']}/"
-    eval_dir = os.environ.get('DROSO_EVAL_DIR', default_eval_dir)
+    # Published layout: checkpoints live flat under models/<task>/, and cached
+    # evaluation results under evaluation/<task>/ (what figures read) --
+    # not the old per-run results/{task}_{run_id}/... cluster layout.
+    # Both independently overridable via DROSO_MODELS_DIR / DROSO_EVAL_DIR.
+    paths['models'] = paths['models_dir']
+    eval_dir = paths['eval_dir']
     os.makedirs(eval_dir, exist_ok=True)
     eval_file = os.path.join(eval_dir, f"{run_id}_evalResults.pkl")
     if os.path.exists(eval_file):
