@@ -121,7 +121,7 @@ def main():
     # vizDataset_B.py's standalone preview -- see draw_meanZ_row() there,
     # shared rather than duplicated, so there's no separate manually-edited
     # image asset to keep in sync with the actual pipeline.
-    lfm_path = os.path.join(paths['data_root'], 'Paul_LFM_Data')
+    lfm_path = paths['raw_recordings']
     with open(paths['peakIDs_Times_All'], 'rb') as f:
         pkl = pickle.load(f)
     panel_b_data = load_and_process_data(pkl, lfm_path)

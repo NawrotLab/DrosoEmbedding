@@ -85,7 +85,7 @@ def main():
     neuropil_idx = int(neuropil_idx_arr[0])
 
     outputID    = f'{method_ch}_{timesID}_KO_static_{neuropil}'
-    path_data   = f'{config["paths"]["data_root"]}/Paul_LFM_Data'
+    path_data   = config['paths']['raw_recordings']
     path_output = os.path.join(config['paths']['local_scratch_dir'], 'imgs4DL', outputID)
 
     logger = setup_logger(task_name=f'staticfill_{neuropil}', log_dir='logs/slurm')

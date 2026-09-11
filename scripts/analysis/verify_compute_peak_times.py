@@ -50,7 +50,7 @@ def main():
     with open(paths['peakIDs_Times_All'], 'rb') as f:
         id_times_dict = pickle.load(f)
 
-    path_data = f"{paths['data_root']}/Paul_LFM_Data"
+    path_data = paths['raw_recordings']
     logger.info(f'Collecting NIfTI files under: {path_data}')
     niftis = collect_niftis(path_data)
     nifti_by_rec = {os.path.basename(p).split('.')[0]: p for p in niftis}

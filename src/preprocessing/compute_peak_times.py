@@ -83,7 +83,7 @@ def main():
     config = load_config()
     logger = setup_logger(task_name='compute_peak_times', log_dir='logs/slurm')
 
-    path_data = f"{config['paths']['data_root']}/Paul_LFM_Data"
+    path_data = config['paths']['raw_recordings']
     niftis = collect_niftis(path_data)
 
     recordings_file = os.environ.get('RECORDINGS_FILE')

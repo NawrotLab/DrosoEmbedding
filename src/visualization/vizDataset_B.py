@@ -142,7 +142,7 @@ def main():
     config = load_config()
     paths = config['paths']
 
-    LFM_PATH = os.path.join(paths['data_root'], 'Paul_LFM_Data')
+    LFM_PATH = paths['raw_recordings']
     PKL_FILE = paths['peakIDs_Times_All']
     OUTPUT_PATH = os.path.join(paths['src_imgs_dir'], 'RawImages.png')
     bg_path = os.path.join(paths['src_imgs_dir'], 'RawImages_blank_B.png')
