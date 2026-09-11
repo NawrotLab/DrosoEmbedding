@@ -49,7 +49,7 @@ def main():
 
     assignment_path = os.environ.get(
         'VAL_TEST_ASSIGNMENT_IN',
-        f"data/splits/val_test_assignment_{config['data']['pickle_id']}.pickle",
+        f"{paths['data_root']}/splits/val_test_assignment_{config['data']['pickle_id']}.pickle",
     )
     matches = glob.glob(assignment_path)
     if not matches:
