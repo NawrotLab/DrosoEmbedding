@@ -13,7 +13,10 @@ data/preprocessed_frames/intact/<recording>.tar convention exactly, so
 CustomDataset needs no changes to read it after extraction.
 
 Read-only on the source KO directories -- only ever opens them for
-reading; writes new .tar files to OUT_DIR, nothing else.
+reading; writes new .tar files to OUT_DIR, nothing else. Reports free disk
+space at both the source and output locations before writing anything,
+and warns (but doesn't abort) if the estimated space needed looks larger
+than what's free at the output location.
 
 Usage (from repo root, on the cluster):
     TASK=State_Modality_Valence_16 python -m scripts.analysis.package_ko_test_frames
@@ -23,6 +26,7 @@ Usage (from repo root, on the cluster):
 
 import os
 import pickle
+import shutil
 import tarfile
 from pathlib import Path
 
@@ -32,6 +36,24 @@ from src.utils.logger import setup_logger
 ALL_NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
                   'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 VARIANT = 'static'
+
+# From estimate_ko_publication_size.py's real measurement on the cluster
+# (avg 88KB/file) -- used only to sanity-check free space before writing,
+# not for anything load-bearing.
+EST_BYTES_PER_FILE = 88 * 1024
+
+
+def log_disk_space(logger, label, path):
+    """Report total/used/free for the filesystem containing `path`. Walks
+    up to the nearest existing parent if `path` doesn't exist yet."""
+    p = Path(path)
+    while not p.exists():
+        p = p.parent
+    total, used, free = shutil.disk_usage(p)
+    gb = 1024 ** 3
+    logger.info(f"{label} ({p}): {free/gb:.1f}GB free / {total/gb:.1f}GB total "
+                f"({used/gb:.1f}GB used)")
+    return free
 
 
 def required_frames_by_recording(X_test, seq_len, seq_steps):
@@ -74,6 +96,18 @@ def main():
     neuropils_env = os.environ.get('NEUROPILS')
     neuropils = neuropils_env.split(',') if neuropils_env else ALL_NEUROPILS
     out_dir = Path(os.environ.get('OUT_DIR', 'results/preprocessing/ko_test_frames'))
+
+    log_disk_space(logger, 'Source data location', allTs_base)
+    free_bytes = log_disk_space(logger, 'Output location', out_dir)
+    est_needed = n_files * EST_BYTES_PER_FILE * len(neuropils)
+    gb = 1024 ** 3
+    logger.info(f"Estimated space needed for {len(neuropils)} neuropil(s): ~{est_needed/gb:.1f}GB")
+    if est_needed > free_bytes:
+        logger.warning(
+            f"Estimated need (~{est_needed/gb:.1f}GB) exceeds free space at the output "
+            f"location (~{free_bytes/gb:.1f}GB) -- consider running fewer neuropils at once "
+            f"(NEUROPILS=...) or setting OUT_DIR to a location with more room."
+        )
 
     for neuropil in neuropils:
         ko_dir = Path(allTs_base) / f'meanZ_allTs_KO_{VARIANT}_{neuropil}'
