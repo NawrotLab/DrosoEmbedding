@@ -9,6 +9,9 @@
 #   bash scripts/cluster/evaluation/build_manifest.sh
 #   sbatch scripts/cluster/evaluation/run_array.sh
 #
+# Pinned to agmn-srv-5 -- DROSO_PUBLISH_ROOT (the G-Node clone) lives on
+# /localscratch there, which is node-local, not shared across the cluster.
+#
 # Adjust --array below to the manifest's actual line count (wc -l
 # eval_manifest.txt) if it ever changes; %20 throttles to at most 20
 # concurrent array tasks -- raise/lower based on actual GPU shard capacity.
@@ -21,6 +24,7 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --gres=shard:6
 #SBATCH --partition=interactive
+#SBATCH --nodelist=agmn-srv-5
 #SBATCH --array=1-753%20
 
 # slurmd copies this script to its own spool dir and runs it there --
