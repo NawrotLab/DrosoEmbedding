@@ -100,16 +100,16 @@ def evaluate_model(run_id, config, logger) -> dict:
     max_items_per_class=None,     # reasonable cap; set None to use all
     return_all=False)
 
-    # Metrics
+    # Metrics -- both dict and human-readable text forms are kept inside
+    # the results dict itself (not written as separate .txt files: nothing
+    # reads those, and they were pure duplicates of classification_report_dict
+    # anyway; this also gives the val-set report a dict form it never had).
     accuracy = accuracy_score(y_true, y_pred)
     cm = confusion_matrix(y_true, y_pred)
     report_dict = classification_report(y_true, y_pred, target_names=config['data']['classes'], output_dict=True)
-    report = classification_report(y_true, y_pred, target_names=config['data']['classes'])
-    report_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config['data']['classes'])
-    with open(os.path.join(eval_dir, "ClassificationReport.txt"), 'w') as f:
-        f.write(report)
-    with open(os.path.join(eval_dir, "ClassificationReport_VAL.txt"), 'w') as f:
-        f.write(report_val)
+    report_text = classification_report(y_true, y_pred, target_names=config['data']['classes'])
+    report_dict_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config['data']['classes'], output_dict=True)
+    report_text_val = classification_report(Y_true_VAL, Y_pred_VAL, target_names=config['data']['classes'])
 
     # after latent_space, latent_labels have been computed…
     tsne_2d = compute_tsne(transformer_latent_space, perplexity=30)
@@ -127,6 +127,9 @@ def evaluate_model(run_id, config, logger) -> dict:
         'accuracy': accuracy,
         'confusion_matrix': cm,
         'classification_report_dict': report_dict,
+        'classification_report_text': report_text,
+        'classification_report_dict_val': report_dict_val,
+        'classification_report_text_val': report_text_val,
 
         'transformer_latent_space': transformer_latent_space,
         'latent_labels': latent_labels,
