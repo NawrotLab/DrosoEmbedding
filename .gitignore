@@ -34,4 +34,4 @@ __pycache__/
 # Source images
 src/src_imgs/
 
-mlflow/
+mlflow/scripts/cluster/evaluation/eval_manifest.txt
