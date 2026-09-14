@@ -22,10 +22,10 @@
 #SBATCH --time=00:30:00
 #SBATCH --mem=15G
 #SBATCH --cpus-per-task=4
-#SBATCH --gres=shard:6
-#SBATCH --partition=interactive
+#SBATCH --gres=gpu:a6000:1
+#SBATCH --partition=gpu
 #SBATCH --nodelist=agmn-srv-5
-#SBATCH --array=1-753%20
+#SBATCH --array=1-753%4
 
 # slurmd copies this script to its own spool dir and runs it there --
 # neither BASH_SOURCE nor the job's CWD/$SLURM_SUBMIT_DIR reliably point
