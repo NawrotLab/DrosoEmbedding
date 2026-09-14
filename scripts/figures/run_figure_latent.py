@@ -173,7 +173,7 @@ def main():
 
     config = load_config()
     paths = config['paths']
-    BASE_RESULTS_DIR = paths['checkpoints_dir']
+    BASE_RESULTS_DIR = paths['eval_base_dir']
     logger.info(f"BASE_RESULTS_DIR: {BASE_RESULTS_DIR}")
     logger.debug(f"Checking if BASE_RESULTS_DIR exists: {os.path.exists(BASE_RESULTS_DIR)}")
 

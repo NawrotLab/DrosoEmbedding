@@ -25,12 +25,14 @@ import matplotlib.lines as mlines
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
+from src.utils.config_loader import load_config
 
 apply_style()
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-BASE_RESULTS_DIR = Path('results') / '_chkpt_finals'
-OUT_DIR          = Path('results') / 'CombiPlots'
+_config = load_config()
+BASE_RESULTS_DIR = Path(_config['paths']['eval_base_dir'])
+OUT_DIR          = Path(_config['paths']['output_dir'])
 FIGURE_STEM      = 'figS_training_curves'
 
 SHORT_RUN_THRESHOLD  = 500   # epochs — flagged to console but included
@@ -64,8 +66,8 @@ TASKS = [
 
 def _load_runs(task):
     """Load all pkl runs for a task; return dict of metric → (n_runs × max_epochs) array."""
-    runs_dir = BASE_RESULTS_DIR / task['folder'] / 'runs'
-    pkls = sorted(runs_dir.glob(f"{task['pkl_prefix']}*.pkl"))
+    runs_dir = BASE_RESULTS_DIR / task['folder']
+    pkls = sorted(runs_dir.glob(f"{task['pkl_prefix']}*_evalResults.pkl"))
     if not pkls:
         print(f"[WARN] No pkl files found in {runs_dir} with prefix '{task['pkl_prefix']}'")
         return {}

@@ -308,6 +308,41 @@ def get_style(style = "styles"):
 
 
 
+# The one "best"/chosen model per task -- used for confusion matrices,
+# GradCAMs, and interpretability figures. A curated choice (whichever run
+# actually got used to make the published figures), not something
+# derivable from the sweep data itself, so it's an explicit constant
+# rather than inferred from folder placement (there is no "best/" folder
+# in the published evaluation/<task>/ layout, unlike the old
+# _chkpt_finals convention this replaces).
+BEST_RUN_ID = {
+    'MetabolicState_2': 'C2_E16_H8_3',
+    'State_Modality_6': 'C6_E16_H16_34',
+    'State_Modality_Valence_16': 'C16_E16_H16_42',
+}
+
+_RUN_ID_RE = re.compile(
+    r'^C(?P<classes>\d+)(?:_(?P<ctrl>Ctr))?_E(?P<cnn>\d+)(?:_H(?P<trf>\d+))?_(?P<run>\d+)$',
+    re.IGNORECASE
+)
+
+
+def parse_run_id(run_id: str):
+    """(classes, cnn_dim, trf_dim, run, is_control) from a run_id string,
+    e.g. 'C16_E16_H16_10' or the control form 'C16_Ctr_E16_0' (which has
+    no H-component -- trf_dim comes back None for those). None if the
+    run_id doesn't match the expected pattern at all."""
+    m = _RUN_ID_RE.match(run_id)
+    if not m:
+        return None
+    classes = int(m['classes'])
+    is_control = m['ctrl'] is not None
+    cnn = int(m['cnn'])
+    trf = int(m['trf']) if m['trf'] is not None else None
+    run = int(m['run'])
+    return classes, cnn, trf, run, is_control
+
+
 def load_all_results(
     base_dir: str | os.PathLike,
     task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
@@ -317,14 +352,19 @@ def load_all_results(
     logger=None,
 ) -> Dict[str, Dict[str, Any]]:
     """
-    Memory-safe loader.
+    Memory-safe loader for the published evaluation/<task>/{run_id}_evalResults.pkl
+    layout (flat, one file per model -- run_evaluation.py's output). Replaces
+    the old _chkpt_finals/<task>/{control,best,runs}/ cluster-only convention
+    -- same grouping semantics, different source layout.
 
-    - For runs/dim_runs pickles: keeps ONLY 'accuracy' (plus metadata/path).
-    - For control/best: keeps ONLY selected keys.
+    - For regular runs: keeps ONLY 'accuracy' (memory-safe).
+    - For control/the one curated "best" run (see BEST_RUN_ID): keeps the
+      full result (confusion matrix, latent space, t-SNE, CAMs, etc).
     - Groups runs into:
         E{cnn_dim} if trf_dim == fixed_trf_for_E
         H{trf_dim} if cnn_dim == fixed_cnn_for_H
-    - Only strict filenames C{classes}_E{cnn}_H{trf}_{run}.pkl (or -run) are considered.
+    - Only filenames matching parse_run_id() are considered; anything else
+      is skipped with a warning.
     """
 
     RUNS_KEEP = {"accuracy"}
@@ -339,17 +379,6 @@ def load_all_results(
     }
 
     base = Path(base_dir)
-
-    strict = re.compile(
-        r'^C(?P<classes>\d+)_E(?P<cnn>\d+)_H(?P<trf>\d+)[_-](?P<run>\d+)\.pkl$',
-        re.IGNORECASE
-    )
-
-    def parse_filename(name: str):
-        m = strict.match(name)
-        if not m:
-            raise ValueError(f"Non-matching filename '{name}'")
-        return (int(m["classes"]), int(m["cnn"]), int(m["trf"]), int(m["run"]))
 
     def load_pickle_filtered(path: Path, keep: set[str]) -> Optional[dict]:
         """Load pickle and keep only selected keys (dict expected)."""
@@ -373,22 +402,6 @@ def load_all_results(
                 print(f"[WARN] Failed to load {path}: {e}")
             return None
 
-    def load_latest_pkl_filtered(dir_path: Path, keep: set[str], return_path: bool = False) -> Optional[dict]:
-        """Load newest .pkl in dir_path, filtered to keys.
-        
-        If return_path=True, returns (data_dict, filename) tuple instead of just dict.
-        """
-        if not dir_path.is_dir():
-            return (None, None) if return_path else None
-        pkls = [p for p in dir_path.iterdir() if p.is_file() and p.suffix == ".pkl"]
-        if not pkls:
-            return (None, None) if return_path else None
-        pkls.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-        data = load_pickle_filtered(pkls[0], keep=keep)
-        if return_path:
-            return (data, pkls[0].name)
-        return data
-
     # Normalize task_names into whitelist and optional class-name mapping
     whitelist: Optional[set[str]] = None
     classmap: Optional[Mapping[str, Any]] = None
@@ -410,72 +423,63 @@ def load_all_results(
     for task_dir in tasks:
         task = task_dir.name
         entry: Dict[str, Any] = {"control": None, "best": None, "runs": {}}
+        best_run_id = BEST_RUN_ID.get(task)
 
-        # control (support 'control' OR 'control_run') - filtered
-        for c in ("control", "control_run"):
-            cand = task_dir / c
-            v = load_latest_pkl_filtered(cand, keep=CONTROL_BEST_KEEP)
-            if v is not None:
-                entry["control"] = v
-                break
+        pkl_files = sorted(task_dir.glob('*_evalResults.pkl'))
+        for p in pkl_files:
+            run_id = p.name[:-len('_evalResults.pkl')]
+            parsed = parse_run_id(run_id)
+            if parsed is None:
+                if logger:
+                    logger.warning(f"Unrecognized filename, skipping: {p.name}")
+                continue
+            classes, cnn_dim, trf_dim, run, is_control = parsed
 
-        # best - filtered (also capture filename to extract dimension info)
-        best_data, best_filename = load_latest_pkl_filtered(task_dir / "best", keep=CONTROL_BEST_KEEP, return_path=True)
-        entry["best"] = best_data
-        entry["best_filename"] = best_filename
-        # Parse best filename to extract dimensions (e.g., C6E16_H8_3.pkl -> cnn=16, trf=8)
-        entry["best_cnn_dim"] = None
-        entry["best_trf_dim"] = None
-        if best_filename:
-            try:
-                _, cnn_dim, trf_dim, _ = parse_filename(best_filename)
-                entry["best_cnn_dim"] = cnn_dim
-                entry["best_trf_dim"] = trf_dim
-            except Exception:
-                pass  # filename didn't match expected pattern
-
-        # runs (support 'runs' OR 'dim_runs')
-        for runs_folder in ("runs", "dim_runs"):
-            rdir = task_dir / runs_folder
-            if not rdir.is_dir():
+            if only_cnn_dim is not None and cnn_dim != only_cnn_dim:
                 continue
 
-            pkl_files = [p for p in rdir.iterdir() if p.is_file() and p.suffix == ".pkl"]
-            for p in sorted(pkl_files, key=lambda x: x.name):
-                try:
-                    classes, cnn_dim, trf_dim, run = parse_filename(p.name)
-                except Exception:
-                    continue
+            if is_control:
+                entry["control"] = load_pickle_filtered(p, keep=CONTROL_BEST_KEEP)
+                continue
 
-                # Skip files not matching required CNN dimension
-                if only_cnn_dim is not None and cnn_dim != only_cnn_dim:
-                    continue
+            if run_id == best_run_id:
+                entry["best"] = load_pickle_filtered(p, keep=CONTROL_BEST_KEEP)
+                entry["best_filename"] = p.name
+                entry["best_cnn_dim"] = cnn_dim
+                entry["best_trf_dim"] = trf_dim
+                # the "best" model is also a regular sweep member -- falls
+                # through to the accuracy-only grouping below too.
 
-                # load only accuracy for run pickles
-                small = load_pickle_filtered(p, keep=RUNS_KEEP)
-                if small is None:
-                    continue
+            if trf_dim is None:
+                continue  # not part of the E*/H* sweep grouping (e.g. malformed)
 
-                rec = {
-                    "run": run,
-                    "classes": classes,
-                    "cnn_dim": cnn_dim,
-                    "trf_dim": trf_dim,
-                    "path": str(p),
-                    "accuracy": small.get("accuracy", None),
-                }
-                del small
-                gc.collect()
+            small = load_pickle_filtered(p, keep=RUNS_KEEP)
+            if small is None:
+                continue
 
-                # group
-                if trf_dim == fixed_trf_for_E:
-                    entry["runs"].setdefault(f"E{cnn_dim}", []).append(rec)
-                if cnn_dim == fixed_cnn_for_H:
-                    entry["runs"].setdefault(f"H{trf_dim}", []).append(rec)
+            rec = {
+                "run": run,
+                "classes": classes,
+                "cnn_dim": cnn_dim,
+                "trf_dim": trf_dim,
+                "path": str(p),
+                "accuracy": small.get("accuracy", None),
+            }
+            del small
+            gc.collect()
+
+            if trf_dim == fixed_trf_for_E:
+                entry["runs"].setdefault(f"E{cnn_dim}", []).append(rec)
+            if cnn_dim == fixed_cnn_for_H:
+                entry["runs"].setdefault(f"H{trf_dim}", []).append(rec)
 
         # sort each group's list by run index
         for k in list(entry["runs"].keys()):
             entry["runs"][k].sort(key=lambda d: d["run"])
+
+        entry.setdefault("best_filename", None)
+        entry.setdefault("best_cnn_dim", None)
+        entry.setdefault("best_trf_dim", None)
 
         # attach class names if provided as mapping
         if classmap is not None and task in classmap:

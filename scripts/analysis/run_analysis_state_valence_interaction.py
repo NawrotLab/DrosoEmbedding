@@ -26,11 +26,12 @@ import matplotlib.pyplot as plt
 from matplotlib.lines import Line2D
 
 from src.utils.helpers import load_all_results, get_style
+from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES
 
 apply_style()
 
-BASE_RESULTS_DIR = os.path.join('results', '_chkpt_finals')
+BASE_RESULTS_DIR = load_config()['paths']['eval_base_dir']
 TASK     = 'State_Modality_Valence_16'
 OUT_PDF  = 'results/CombiPlots/state_valence_interaction_test.pdf'
 OUT_JSON = 'results/CombiPlots/state_valence_interaction_stats.json'

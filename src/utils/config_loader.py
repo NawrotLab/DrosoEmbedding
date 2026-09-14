@@ -170,6 +170,11 @@ def setup_derived_parameters(config):
         "DROSO_MODELS_DIR", f"{publish_root}/models/{config['data']['task']}/")
     config["paths"]["eval_dir"] = os.environ.get(
         "DROSO_EVAL_DIR", f"{publish_root}/evaluation/{config['data']['task']}/")
+    # Parent of every task's eval_dir -- what load_all_results() walks to
+    # find all 3 tasks at once (evaluation/<task>/ per task), replacing the
+    # old paths['checkpoints_dir'] (_chkpt_finals) as that function's input.
+    config["paths"]["eval_base_dir"] = os.environ.get(
+        "DROSO_EVAL_BASE_DIR", f"{publish_root}/evaluation/")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 

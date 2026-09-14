@@ -517,7 +517,7 @@ def main():
 
     config = load_config()
     paths = config['paths']
-    base_results_dir = paths['checkpoints_dir']
+    base_results_dir = paths['eval_base_dir']
     out_dir = paths['output_dir']
 
     logger.info('Loading styles …')
