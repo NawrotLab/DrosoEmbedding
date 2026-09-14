@@ -1,6 +1,7 @@
 # run_evaluation.py
 import os
 import pickle
+import time
 from torch.utils.data import DataLoader
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 import numpy as np
@@ -149,7 +150,11 @@ def main():
     config = load_config()
     run_id = config['run_id']
     logger = setup_logger(task_name=config['run_id'], log_dir=os.path.join('logs/evaluation'))
+    start = time.time()
     evaluate_model(run_id, config, logger)
+    elapsed = time.time() - start
+    logger.info(f"Total wall time for {run_id}: {elapsed:.1f}s "
+                f"(near-zero here means this was a cache hit, not a fresh computation)")
 
 if __name__ == '__main__':
     main()
