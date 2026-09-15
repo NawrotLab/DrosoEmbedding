@@ -490,6 +490,54 @@ def load_all_results(
     return out
 
 
+def load_or_build_all_results(
+    cache_path: str,
+    base_dir: str | os.PathLike,
+    task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
+    fixed_trf_for_E: int = 16,
+    fixed_cnn_for_H: int = 16,
+    only_cnn_dim: Optional[int] = None,
+    recompute: bool = False,
+    logger=None,
+) -> Dict[str, Dict[str, Any]]:
+    """load_all_results(), cached to disk -- same pattern as
+    load_or_run_ko_permutation(): every figure/analysis script that reads
+    the full sweep would otherwise re-open and re-aggregate all ~750
+    per-model pkls from scratch on every run, which is slow and entirely
+    redundant once the sweep is stable. The cache is the *combined*
+    across-all-tasks dict load_all_results() returns, at one location, so
+    every caller shares the same cache regardless of which task(s) it asks
+    for -- cheap either way, since the underlying data is already tiny
+    (control/best keep the full rich result, ~1.9MB each; every other run
+    keeps only 'accuracy').
+
+    Pass recompute=True (or delete cache_path) to force a fresh build --
+    there's no mtime/staleness check against the per-model pkls, so if any
+    of them changed (e.g. a resubmitted sweep straggler), rebuild
+    explicitly rather than relying on this to notice.
+    """
+    def _log(msg):
+        if logger: logger.info(msg)
+        else: print(msg)
+
+    if not recompute and os.path.exists(cache_path):
+        _log(f'Loading cached aggregated results ({cache_path})')
+        with open(cache_path, 'rb') as f:
+            return pickle.load(f)
+
+    _log('Cache not found or recompute=True -- aggregating all results from disk…')
+    results = load_all_results(
+        base_dir, task_names,
+        fixed_trf_for_E=fixed_trf_for_E, fixed_cnn_for_H=fixed_cnn_for_H,
+        only_cnn_dim=only_cnn_dim, logger=logger,
+    )
+    os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
+    with open(cache_path, 'wb') as f:
+        pickle.dump(results, f)
+    _log(f'Saved aggregated results -> {cache_path}')
+    return results
+
+
 def load_h16_classification_reports(entry):
     """
     For all runs at d_model=16 (H16 group), load the full 

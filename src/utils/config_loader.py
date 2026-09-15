@@ -175,6 +175,11 @@ def setup_derived_parameters(config):
     # old paths['checkpoints_dir'] (_chkpt_finals) as that function's input.
     config["paths"]["eval_base_dir"] = os.environ.get(
         "DROSO_EVAL_BASE_DIR", f"{publish_root}/evaluation/")
+    # Cached, pre-aggregated load_all_results() output (see
+    # load_or_build_all_results() in helpers.py) -- one small file so
+    # figure scripts don't re-read/re-aggregate ~750 pkls on every run.
+    config["paths"]["eval_cache_path"] = os.environ.get(
+        "DROSO_EVAL_CACHE_PATH", f"{config['paths']['eval_base_dir']}/aggregated_results.pkl")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 

@@ -49,7 +49,7 @@ from src.visualization.visualize_performance import (
     build_class_styles,
 )
 from src.utils.helpers import (
-    load_all_results,
+    load_or_build_all_results,
     get_style,
     load_h16_classification_reports,
     load_h16_reports_and_cms,
@@ -236,12 +236,14 @@ def _draw_extra_legend(fig, ax_rect):
 
 # ── Data loading ─────────────────────────────────────────────────────────────
 
-def load_task_results(base_results_dir, task_class_names, task_colors,
+def load_task_results(base_results_dir, cache_path, task_class_names, task_colors,
                        task_edgecolors, task_shapes, task_bicolor_info, logger):
     """Load per-task results, classification reports, confusion matrices, and class styles."""
-    results = load_all_results(
-        base_results_dir, task_class_names,
+    recompute = os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't')
+    results = load_or_build_all_results(
+        cache_path, base_results_dir, task_class_names,
         fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
+        recompute=recompute, logger=logger,
     )
 
     all_reports_dict  = {}
@@ -526,8 +528,8 @@ def main():
 
     logger.info(f'Loading results from {base_results_dir} …')
     results, all_reports_dict, class_styles_dict, h16_cms_dict = load_task_results(
-        base_results_dir, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS,
-        TASK_SHAPES, TASK_BICOLOR_INFO, logger,
+        base_results_dir, paths['eval_cache_path'], TASK_CLASS_NAMES, TASK_COLORS,
+        TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO, logger,
     )
 
     stats = compute_error_statistics(results, h16_cms_dict, logger)
