@@ -125,7 +125,7 @@ def find_common_valid_entries(X_test, Y_test, model_params,
 # ── core computation ──────────────────────────────────────────────────────────
 
 def run_ko_permutation(
-    run_dirs, X_test, Y_test, model_params, allTs_base,
+    run_ids, models_dir, X_test, Y_test, model_params, allTs_base,
     neuropils, variant, device, n_classes,
     batch_size: int = 256, num_workers: int = 4,
     logger=None,
@@ -134,7 +134,15 @@ def run_ko_permutation(
 
     Parameters
     ----------
-    run_dirs   : list[Path]  — one per trained model (e.g. 50 runs)
+    run_ids    : list[str]   — one per trained model (e.g. 50 runs), e.g.
+                 'C16_E16_H16_10'. Checkpoints are read from models_dir
+                 (the flat, published models/<task>/ layout) via
+                 model_io.py's run_id-based naming, not a per-run
+                 directory tree -- a run_id with no matching checkpoint is
+                 skipped gracefully (load_model() returns None for it),
+                 so this can safely include run_ids that were never
+                 trained/published.
+    models_dir : str         — e.g. config['paths']['models_dir']
     variant    : str         — KO fill variant ('static', 'shuffled', …)
 
     Returns
@@ -164,17 +172,12 @@ def run_ko_permutation(
 
     all_deltas = []
 
-    for run_dir in run_dirs:
-        models_dir = str(run_dir / 'models' / 'best') + '/'
-        if not Path(models_dir).exists():
-            _log(f'models/best not found in {run_dir.name}, skipping.')
-            continue
-
-        _log(f'── Run {run_dir.name} ──')
+    for run_id in run_ids:
+        _log(f'── Run {run_id} ──')
         classifier, *_ = load_model(CNN_Transformer, model_params,
-                                     models_dir, device, logger=logger)
+                                     models_dir, device, run_id=run_id, logger=logger)
         if classifier is None:
-            _log(f'Checkpoint missing in {run_dir.name}, skipping.')
+            _log(f'Checkpoint missing for {run_id}, skipping.')
             continue
         classifier.eval()
 
@@ -205,7 +208,7 @@ def run_ko_permutation(
     if not all_deltas:
         raise RuntimeError('No runs completed successfully.')
 
-    _log(f'Completed {len(all_deltas)}/{len(run_dirs)} runs.')
+    _log(f'Completed {len(all_deltas)}/{len(run_ids)} runs.')
     return np.stack(all_deltas, axis=0)   # (n_runs, n_classes, n_neuropils)
 
 

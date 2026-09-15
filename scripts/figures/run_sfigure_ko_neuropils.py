@@ -27,7 +27,6 @@ import argparse
 import os
 import pickle
 import random
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
@@ -56,8 +55,7 @@ apply_style()
 
 VARIANT    = 'static'
 TASK       = 'State_Modality_Valence_16'
-BASE_RUNS  = os.path.join('results', 'chkpt_runs')
-RUN_PREFIX = f'{TASK}_C16_E16_H16_'
+RUN_PREFIX = 'C16_E16_H16_'
 N_RUNS     = 50
 
 CACHE_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
@@ -99,12 +97,16 @@ with open(paths['pickle_path'], 'rb') as fh:
     _, _, X_test, _, _, Y_test = pickle.load(fh)
 
 # ════════════════════════════════════════════════
-# ENUMERATE RUN DIRECTORIES
+# ENUMERATE RUN IDS
 # ════════════════════════════════════════════════
+# Reads checkpoints from the flat, published models/<task>/ layout (same
+# as run_evaluation.py) via paths['models_dir'] -- not the old, unpublished
+# results/chkpt_runs/<task>_<run_id>/models/best/ per-run cluster tree.
+# Missing checkpoints are skipped gracefully inside run_ko_permutation()
+# (load_model() returns None for a run_id it can't find), so no need to
+# pre-filter to only existing ones here.
 
-all_expected = [Path(BASE_RUNS) / f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
-run_dirs     = [d for d in all_expected if d.exists()]
-logger.info(f'Found {len(run_dirs)}/{N_RUNS} run directories')
+run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
 
 # ════════════════════════════════════════════════
 # LOAD OR COMPUTE KO STACK  (cached)
@@ -115,7 +117,8 @@ stack = load_or_run_ko_permutation(
     recompute=args.recompute,
     logger=logger,
     # kwargs forwarded to run_ko_permutation:
-    run_dirs=run_dirs,
+    run_ids=run_ids,
+    models_dir=paths['models_dir'],
     X_test=X_test,
     Y_test=Y_test,
     model_params=model_params,
