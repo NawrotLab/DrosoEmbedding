@@ -43,6 +43,18 @@ fi
 
 export TASK=$(echo "$LINE" | awk '{print $1}')
 export RUN_ID=$(echo "$LINE" | awk '{print $2}')
+export CNN_DIM=16
 
-echo "Array task ${SLURM_ARRAY_TASK_ID}: TASK=${TASK} RUN_ID=${RUN_ID}"
+# Transformer dim from RUN_ID itself (e.g. C16_E16_H32_1 -> 32) -- without
+# this, config.yaml's default (transformer_embed_dim: 16) silently applies
+# to every run, which only happens to be correct for the H16 bucket and
+# the controls (both really are dim 16), and produces the WRONG checkpoint
+# filename -- and a "Trained model not found" crash -- for every other
+# dimension (H4/H8/H32/H64). Control run_ids (e.g. C16_Ctr_E16_0) have no
+# H-component and are genuinely dim 16, so no override needed for them.
+if [[ "$RUN_ID" =~ _H([0-9]+)_ ]]; then
+  export TRF_DIM="${BASH_REMATCH[1]}"
+fi
+
+echo "Array task ${SLURM_ARRAY_TASK_ID}: TASK=${TASK} RUN_ID=${RUN_ID} CNN_DIM=${CNN_DIM} TRF_DIM=${TRF_DIM:-16 (default)}"
 python -m scripts.run_evaluation
