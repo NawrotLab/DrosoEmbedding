@@ -89,6 +89,14 @@ Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and clas
 
 ## Figures
 
+`run_figure_latent.py` and `run_figure_accuracy_error.py` read from an aggregated cache of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) it once with:
+
+```bash
+python -m scripts.analysis.build_eval_cache
+```
+
+This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to warm the cache. Pass `EVAL_CACHE_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
+
 Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results:
 
 | Script | Figure |
