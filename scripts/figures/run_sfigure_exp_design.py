@@ -37,8 +37,7 @@ paths  = config['paths']
 SEED        = 1111
 PANEL_A_SVG = os.path.join(paths['src_imgs_dir'], 'LFM_Sketch.svg')
 
-DATA_ROOT  = paths['imgs4DL']
-ALL_TS_DIR = os.path.join(DATA_ROOT, "meanZ_allTs")
+ALL_TS_DIR = paths['allTs_path']
 
 with open(paths['peakIDs_Times_All'], 'rb') as _f:
     ID_TIMES_DICT = pickle.load(_f)
