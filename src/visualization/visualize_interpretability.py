@@ -19,13 +19,14 @@ import torch
 import torch.nn.functional as F
 import os
 import json
+import pickle
 import cairosvg
 from PIL import Image
 import io
 import matplotlib.transforms as mtransforms
-import tifffile
 from torchvision import transforms
 from src.visualization.figure_base import apply_style, FONT_SIZES
+from src.utils.neuropil_masks import NEUROPIL_NAMES
 
 apply_style()
 
@@ -583,9 +584,17 @@ def compute_gradcam_per_sample(model, test_loader, target_layer, device, logger=
     return correct_cams, correct_labels, correct_paths
 
 
-def load_neuropil_masks(correct_paths, allTs_path, neuropil_names,
-                        mask_size=128, logger=None):
-    """Load per-sample binary neuropil masks from isolated-neuropil TIFFs.
+ISOLATION_MASKS_CACHE = 'results/preprocessing/isolation_masks_2d.pickle'
+
+
+def load_neuropil_masks(correct_paths, neuropil_names, mask_size=128, logger=None,
+                        cache_path=ISOLATION_MASKS_CACHE):
+    """Load per-sample binary neuropil masks, derived from anatomical
+    Neuropils12_Masks data (see scripts/analysis/build_isolation_masks_cache.py).
+
+    The mask is anatomical, not per-frame, so every sample from the same
+    recording gets the same (resized) mask -- computed once per recording,
+    not once per sample.
 
     Returns
     -------
@@ -594,6 +603,11 @@ def load_neuropil_masks(correct_paths, allTs_path, neuropil_names,
     def _log(msg):
         if logger: logger.info(msg)
         else: print(msg)
+
+    with open(cache_path, 'rb') as f:
+        cache = pickle.load(f)  # {rec_nr: (12, H, W) bool}, neuropil order == NEUROPIL_NAMES
+
+    name_to_idx = {name: i for i, name in enumerate(NEUROPIL_NAMES)}
 
     N = len(correct_paths)
     n_np = len(neuropil_names)
@@ -605,23 +619,31 @@ def load_neuropil_masks(correct_paths, allTs_path, neuropil_names,
                           interpolation=transforms.InterpolationMode.NEAREST),
     ])
 
-    for j, neuropil in enumerate(neuropil_names):
-        neuropil_base = f'{allTs_path}_{neuropil}'
-        n_missing = 0
-        for i, p in enumerate(correct_paths):
-            np_path = os.path.join(
-                neuropil_base,
-                os.path.basename(os.path.dirname(p)),
-                os.path.basename(p),
-            )
-            if not os.path.exists(np_path):
-                n_missing += 1
-                continue
-            raw        = tifffile.imread(np_path)
-            img_t      = _mask_tf(raw)
-            masks[i, j] = img_t.numpy()[0] > 0
-        if n_missing:
-            _log(f'{neuropil}: {n_missing}/{N} mask files missing')
+    resized_by_rec = {}
+    n_missing = 0
+
+    for i, p in enumerate(correct_paths):
+        rec_nr = os.path.basename(os.path.dirname(str(p))).split('_')[-1]
+
+        if rec_nr not in resized_by_rec:
+            rec_masks = cache.get(rec_nr)
+            if rec_masks is None:
+                resized_by_rec[rec_nr] = None
+            else:
+                resized = np.zeros((n_np, mask_size, mask_size), dtype=bool)
+                for j, neuropil in enumerate(neuropil_names):
+                    raw = rec_masks[name_to_idx[neuropil]].astype(np.uint8) * 255
+                    resized[j] = _mask_tf(raw).numpy()[0] > 0
+                resized_by_rec[rec_nr] = resized
+
+        entry = resized_by_rec[rec_nr]
+        if entry is None:
+            n_missing += 1
+            continue
+        masks[i] = entry
+
+    if n_missing:
+        _log(f'{n_missing}/{N} samples had no matching recording in the isolation-masks cache')
 
     return masks
 

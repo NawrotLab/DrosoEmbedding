@@ -140,7 +140,6 @@ logger.info(f'BRAIN_SHAPE set to {BRAIN_SHAPE}')
 logger.info('Loading neuropil masks…')
 masks = load_neuropil_masks(
     correct_paths=correct_paths,
-    allTs_path=allTs_path,
     neuropil_names=NEUROPILS,
     mask_size=128,
     logger=logger,
