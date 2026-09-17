@@ -3,7 +3,8 @@ Figure: Neuropil Importance (GradCAM-based)
 ============================================
 2 × 3 layout — all panels derived from GradCAM attribution maps.
 
-Top row (width_ratios = [0.6, 1.1, 0.8]):
+Top row (width_ratios = [0.6, 2.1, 0.8] -- panel b's share sized to match
+the measured BRAIN_SHAPE aspect ratio, see comment at gs_top below):
 ┌──────────────┬──────────────────┬──────────────┐
 │ a) GradCAM   │ b) GradCAM       │ c) Neuropil  │
 │    pipeline  │    attribution   │    atlas     │
@@ -172,12 +173,20 @@ logger.info('Assembling figure…')
 
 fig = plt.figure(figsize=(FIGURE_WIDTH, 13))
 
+# Panel b's width_ratio (2.1) is sized so its 3x3 GradCAM tiles come out
+# close to BRAIN_SHAPE's real measured aspect ratio (currently (128, 206),
+# i.e. W/H ~1.61) at this row's fixed height, instead of the previous
+# guessed 1.1 -- which was consistently too narrow and had to be patched
+# around with the hand-tuned negative hspace/y_shift/cbar_y below. Those
+# three are left as-is for now; they were tuned against the old (wrong)
+# ratio and will likely want a small re-check now that the tiles render
+# closer to their natural size.
 gs_top = GridSpec(
     1, 3, figure=fig,
     left=0.01, right=0.97,
     bottom=0.52, top=0.93,
     wspace=0.25,
-    width_ratios=[0.6, 1.1, 0.8],
+    width_ratios=[0.6, 2.1, 0.8],
 )
 
 gs_bot = GridSpec(
@@ -213,7 +222,10 @@ plot_gradcam_pooled(
     normalize_per_row=False,
     brain_shape=BRAIN_SHAPE,
     y_shift=-0.025,             # shift panel b down so group headers align with 'b' label
-    hspace=-0.085,              # negative = rows overlap slightly, tightens vertical extent
+    # hspace left at plot_gradcam_pooled's default (0.05): the previous
+    # -0.085 forced rows to overlap to hide empty space left by tiles that
+    # were too small for their (too-narrow) slot -- shouldn't be needed now
+    # that width_ratios above gives tiles closer to their real aspect ratio.
     cbar_y=(0.516, 0.882),      # colorbar y extent in figure coordinates
 )
 
