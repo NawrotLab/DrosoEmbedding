@@ -36,7 +36,9 @@ source "$(poetry env info --path)/bin/activate"
 # 2. Data (clone next to the code, then download the file contents; no GIN account needed)
 #    NOTE: no ".git" at the end of the URL -- GIN only serves file contents on the plain URL
 git clone https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI ../DrosoEmbedding_WBCI
-git -C ../DrosoEmbedding_WBCI annex get .
+git -C ../DrosoEmbedding_WBCI annex get --jobs=16 .
+#    macOS: if that fails with "Too many open files", raise the limit and re-run:
+#    ulimit -n 8192 && git -C ../DrosoEmbedding_WBCI annex get --jobs=16 .
 
 # 3. Extract the frame archives and write .env (one-time, safe to re-run)
 bash scripts/setup_data.sh ../DrosoEmbedding_WBCI
@@ -48,7 +50,7 @@ TASK=State_Modality_Valence_16 python -m scripts.analysis.regenerate_split_pickl
 for f in scripts/figures/run_*.py; do python -m scripts.figures.$(basename "$f" .py); done
 ```
 
-Short on disk or time? The 12 `ko_static_*.tars` knockout archives (29 GB of the 47 GB download) are only used by Fig. S4. Replace the `annex get .` in step 2 with `annex get --exclude='*/ko_static_*' .` to skip them; every other figure still works, and `setup_data.sh` skips whatever wasn't fetched.
+Short on disk or time? The 12 `ko_static_*.tars` knockout archives (29 GB of the 47 GB download) are only used by Fig. S4. Replace the `annex get --jobs=16 .` in step 2 with `annex get --jobs=16 --exclude='*/ko_static_*' .` to skip them; every other figure still works, and `setup_data.sh` skips whatever wasn't fetched.
 
 To run a single figure, see the table under [Figures](#figures). To go further than the figures — retrain the models, or rebuild everything from the raw recordings (GPU required) — see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md).
 
