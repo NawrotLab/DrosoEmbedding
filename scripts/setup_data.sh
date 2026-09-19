@@ -9,16 +9,18 @@
 # skipped, and an existing .env is never overwritten.
 set -euo pipefail
 
-if [ $# -ne 1 ] || [ ! -d "$1/data" ]; then
+if [ $# -ne 1 ] || [ ! -d "$1/data/preprocessed_frames" ]; then
     echo "Usage: bash scripts/setup_data.sh /path/to/DrosoEmbedding_WBCI" >&2
     exit 1
 fi
 DATA_REPO="$(cd "$1" && pwd)"
 CODE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FRAMES="$DATA_REPO/frames"
+FRAMES="$DATA_REPO/data/preprocessed_frames"
 
-# data/intact.tars/<rec>.tar            -> frames/meanZ_allTs/<rec>/
-# data/ko_static_<neuropil>.tars/<rec>.tar -> frames/meanZ_allTs_KO_static_<neuropil>/<rec>/
+# All under data/preprocessed_frames/ (the extracted directories are
+# already git-ignored by the Data repository):
+#   intact.tars/<rec>.tar               -> meanZ_allTs/<rec>/
+#   ko_static_<neuropil>.tars/<rec>.tar -> meanZ_allTs_KO_static_<neuropil>/<rec>/
 extract_all() {  # <dir of .tar files> <target dir>
     mkdir -p "$2"
     local n=0
@@ -29,9 +31,9 @@ extract_all() {  # <dir of .tar files> <target dir>
     echo "  $(basename "$1") -> $2 ($n newly extracted)"
 }
 
-echo "Extracting frame archives into $FRAMES"
-extract_all "$DATA_REPO/data/intact.tars" "$FRAMES/meanZ_allTs"
-for d in "$DATA_REPO"/data/ko_static_*.tars; do
+echo "Extracting frame archives in $FRAMES"
+extract_all "$FRAMES/intact.tars" "$FRAMES/meanZ_allTs"
+for d in "$FRAMES"/ko_static_*.tars; do
     # KO archives are optional (only Fig S4 needs them) -- skip if not fetched
     first="$(ls "$d" 2>/dev/null | head -n 1)"
     [ -n "$first" ] && [ -s "$d/$first" ] || { echo "  $(basename "$d"): not fetched, skipping"; continue; }

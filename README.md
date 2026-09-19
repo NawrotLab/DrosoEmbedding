@@ -2,11 +2,11 @@
 
 Code accompanying the paper:
 
-> **"Deep Representation Learning Reveals Factorized Neural Codes in Whole-Brain Population Dynamics"** — [Authors — TBD] — *[Journal/venue, year — TBD]*
+> **"Deep Representation Learning Reveals Factorized Neural Codes in Whole-Brain Population Dynamics"** — Abdelbaki et al. — *[Journal/venue, year — TBD]*
 
-A CNN-Transformer model that classifies *Drosophila* whole-brain calcium imaging sequences by metabolic state, stimulus modality, and valence. The model learns a latent embedding of brain-wide activity, and this repository contains everything needed to train it, evaluate it, and reproduce every figure in the paper.
+A wiring-agnostic deep-learning framework — a convolutional encoder followed by a temporal transformer — that learns compact representations directly from whole-brain calcium imaging of *Drosophila melanogaster*, without neuronal identification or anatomical annotation. Trained only to classify 16 factorially combined sensory and internal-state conditions from flat class labels, the model organizes brain-wide activity along three near-orthogonal latent axes: metabolic state, sensory modality, and stimulus valence. GradCAM attribution and neuropil-knockout analyses then link these representations to brain regions.
 
-This is the **code** repository. It has two companions:
+This is the **code** repository: everything needed to train and evaluate the model and to reproduce every figure in the paper. It has two companions:
 
 - **Data** — [gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI](https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI), preprocessed imaging data, trained model checkpoints, and cached evaluation results
 - **Raw data** — [link — TBD], the original whole-brain calcium imaging recordings and neuropil masks
@@ -17,7 +17,7 @@ You'll need the Data repository alongside this one to actually run anything belo
 
 ## Quick start: reproduce all figures
 
-No raw data or model training needed — the Data repository ships the trained checkpoints and cached evaluation results the figures are built from. A GPU is optional (Fig. 4 and Fig. S4 run model inference on the test set and are slow on CPU). You need about [N — TBD] GB of free disk space.
+No raw data or model training needed — the Data repository ships the trained checkpoints and cached evaluation results the figures are built from. A GPU is optional (Fig. 4 and Fig. S4 run model inference on the test set and are slow on CPU). You need about 100 GB of free disk space (a 47 GB download, plus the same again once the frame archives are extracted) — or about 40 GB if you skip the knockout data, see below.
 
 Prerequisites:
 
@@ -33,8 +33,9 @@ poetry env use python3.12        # or python3.10 / python3.11 -- whichever you h
 poetry install --no-root
 source "$(poetry env info --path)/bin/activate"
 
-# 2. Data (clone next to the code, then download the file contents)
-git clone https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI.git ../DrosoEmbedding_WBCI
+# 2. Data (clone next to the code, then download the file contents; no GIN account needed)
+#    NOTE: no ".git" at the end of the URL -- GIN only serves file contents on the plain URL
+git clone https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI ../DrosoEmbedding_WBCI
 git -C ../DrosoEmbedding_WBCI annex get .
 
 # 3. Extract the frame archives and write .env (one-time, safe to re-run)
@@ -47,7 +48,7 @@ TASK=State_Modality_Valence_16 python -m scripts.analysis.regenerate_split_pickl
 for f in scripts/figures/run_*.py; do python -m scripts.figures.$(basename "$f" .py); done
 ```
 
-Short on disk or time? The 12 `data/ko_static_*.tars` archives (the bulk of the download) are only used by Fig. S4. Replace the `annex get .` in step 2 with `annex get data/intact.tars data/splits models evaluation` to skip them; every other figure still works, and `setup_data.sh` skips whatever wasn't fetched.
+Short on disk or time? The 12 `ko_static_*.tars` knockout archives (29 GB of the 47 GB download) are only used by Fig. S4. Replace the `annex get .` in step 2 with `annex get --exclude='*/ko_static_*' .` to skip them; every other figure still works, and `setup_data.sh` skips whatever wasn't fetched.
 
 To run a single figure, see the table under [Figures](#figures). To go further than the figures — retrain the models, or rebuild everything from the raw recordings (GPU required) — see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md).
 
@@ -84,35 +85,11 @@ All machine-specific paths live in `.env` (git-ignored), which `scripts/setup_da
 
 ---
 
-## Training
+## Retraining and full reproduction
 
-```bash
-# single run
-python -m scripts.training
-
-# many runs (a hyperparameter/seed sweep)
-bash scripts/cluster/training/run_sweep.sh
-```
-
-Set `RUN_ID`, `TASK`, `CNN_DIM`, `TRF_DIM`, etc. as environment variables to override `config.yaml` without editing it. Each run's best checkpoint is saved to `models/<task>/`.
-
-## Evaluation
-
-```bash
-python -m scripts.run_evaluation
-```
-
-Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and class-mean GradCAMs for one model, saved to `evaluation/<task>/`. To evaluate an entire sweep at once, see `scripts/cluster/evaluation/` (`build_manifest.sh` + `run_array.sh` for a parallel SLURM array job, `summarize_sweep.sh` to check progress).
+Reproducing the figures needs none of this. To retrain and re-evaluate the models yourself, or to rebuild everything from the raw recordings (GPU required), see **[docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md)**.
 
 ## Figures
-
-`run_figure_latent.py` and `run_figure_accuracy_error.py` read from an aggregated cache of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) it once with:
-
-```bash
-python -m scripts.analysis.build_eval_cache
-```
-
-This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to warm the cache. Pass `EVAL_CACHE_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
 
 Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results:
 
@@ -129,11 +106,13 @@ Each script in `scripts/figures/` reproduces one figure or supplementary figure,
 
 Run any one with `python -m scripts.figures.<script name without .py>`; output goes to `results/CombiPlots/`. Figs. 2, 3, S2 and S3 need only the small `evaluation/` folder, so they run without downloading or extracting any frames.
 
-The figures can equally be built from your own training and evaluation runs above instead of the published results.
+The figures can equally be built from your own training and evaluation runs instead of the published results — see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md).
 
 ---
 
 ## Classification tasks
+
+The models are trained on three classification tasks of increasing granularity. Their config keys are the values the `TASK` environment variable accepts, and the names of the per-task folders in the Data repository (`models/<task>/`, `evaluation/<task>/`):
 
 | Config key | Classes | Description |
 |---|---|---|
@@ -147,7 +126,7 @@ The figures can equally be built from your own training and evaluation runs abov
 
 If you use this code, please cite:
 
-> [Authors — TBD]. "Deep Representation Learning Reveals Factorized Neural Codes in Whole-Brain Population Dynamics." [Journal/venue, year — TBD]
+> Abdelbaki et al. "Deep Representation Learning Reveals Factorized Neural Codes in Whole-Brain Population Dynamics." [Journal/venue, year — TBD]
 
 ## License
 
