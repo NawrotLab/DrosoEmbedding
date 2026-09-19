@@ -27,7 +27,7 @@ Prerequisites:
 
 ```bash
 # 1. Code + dependencies
-git clone https://github.com/aminaabdelbaki/DrosoEmbedding.git
+git clone https://github.com/NawrotLab/DrosoEmbedding.git
 cd DrosoEmbedding
 poetry env use python3.12        # or python3.10 / python3.11 -- whichever you have
 poetry install --no-root
