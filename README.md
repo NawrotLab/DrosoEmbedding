@@ -8,10 +8,41 @@ A CNN-Transformer model that classifies *Drosophila* whole-brain calcium imaging
 
 This is the **code** repository. It has two companions:
 
-- **Data** — [G-Node link — TBD], preprocessed imaging data, trained model checkpoints, and cached evaluation results
+- **Data** — [gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI](https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI), preprocessed imaging data, trained model checkpoints, and cached evaluation results
 - **Raw data** — [link — TBD], the original whole-brain calcium imaging recordings and neuropil masks
 
 You'll need the Data repository alongside this one to actually run anything below — this repository holds no imaging data itself.
+
+---
+
+## Quick start: reproduce all figures
+
+No raw data or model training needed — the Data repository ships the trained checkpoints and cached evaluation results the figures are built from. A GPU is optional (Fig. 4 and Fig. S4 run model inference on the test set and are slow on CPU). Requires Python ≥ 3.10, [Poetry](https://python-poetry.org/), and [git-annex](https://git-annex.branchable.com/install/); about [N — TBD] GB of free disk space.
+
+```bash
+# 1. Code + dependencies
+git clone https://github.com/aminaabdelbaki/DrosoEmbedding.git
+cd DrosoEmbedding
+poetry install
+source "$(poetry env info --path)/bin/activate"
+
+# 2. Data (clone next to the code, then download the file contents)
+git clone https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI.git ../DrosoEmbedding_WBCI
+git -C ../DrosoEmbedding_WBCI annex get .
+
+# 3. Extract the frame archives and write .env (one-time, safe to re-run)
+bash scripts/setup_data.sh ../DrosoEmbedding_WBCI
+
+# 4. Rebuild the train/val/test split file from the published assignments (one-time)
+TASK=State_Modality_Valence_16 python -m scripts.analysis.regenerate_split_pickle
+
+# 5. Generate every figure -> results/CombiPlots/
+for f in scripts/figures/run_*.py; do python -m scripts.figures.$(basename "$f" .py); done
+```
+
+Short on disk or time? The 12 `data/ko_static_*.tars` archives (the bulk of the download) are only used by Fig. S4. Replace the `annex get .` in step 2 with `annex get data/intact.tars data/splits models evaluation` to skip them; every other figure still works, and `setup_data.sh` skips whatever wasn't fetched.
+
+To run a single figure, see the table under [Figures](#figures). To go further than the figures — retrain the models, or rebuild everything from the raw recordings (GPU required) — see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md).
 
 ---
 
@@ -19,6 +50,7 @@ You'll need the Data repository alongside this one to actually run anything belo
 
 ```
 scripts/
+  setup_data.sh             # one-time data setup: extract frame archives, write .env
   training.py               # training entry point
   run_evaluation.py         # evaluation: accuracy, latent space, GradCAMs
   figures/run_figure_*.py   # reproduce paper figures (one script per figure)
@@ -39,31 +71,9 @@ src/
 
 ---
 
-## Environment setup
+## Configuration
 
-Requires Python ≥ 3.10. Dependencies are managed with [Poetry](https://python-poetry.org/).
-
-```bash
-git clone https://github.com/aminaabdelbaki/DrosoEmbedding.git
-cd DrosoEmbedding
-poetry install
-```
-
-Or with pip:
-
-```bash
-pip install -r requirements.txt
-```
-
-## Data setup
-
-Clone the [Data repository — TBD] and fetch its content, then point this repository at it:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` to set `DROSO_DATA_ROOT`/`DROSO_ALLT_BASE`/etc. to your Data repo clone — see `.env.example` for the full list of path variables and what each one is for.
+All machine-specific paths live in `.env` (git-ignored), which `scripts/setup_data.sh` writes for you from `.env.example`. It needs only two entries — `DROSO_ROOT` (this repository) and `DROSO_DATA_REPO` (your Data repository clone); every other path is derived from those. Edit `.env` if you move either clone. Hyperparameters and all other settings are in `src/utils/config.yaml`.
 
 ---
 
@@ -99,18 +109,20 @@ This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically
 
 Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results:
 
-| Script | Figure |
-|---|---|
-| `run_figure_overview.py` | Study overview |
-| `run_figure_latent.py` | Latent-space geometry |
-| `run_figure_accuracy_error.py` | Classification performance and error structure |
-| `run_figure_gradcam_neuropils.py` | GradCAM-based neuropil importance |
-| `run_sfigure_exp_design.py` | Experimental design |
-| `run_sfigure_training_curves.py` | Training/validation curves across the sweep |
-| `run_sfigure_latent_interactions.py` | Latent-space interaction effects |
-| `run_sfigure_ko_neuropils.py` | Neuropil-knockout importance |
+| Figure | Script | Reads from the Data repository |
+|---|---|---|
+| Fig. 1 — Study overview | `run_figure_overview.py` | example raw recordings |
+| Fig. 2 — Latent-space geometry | `run_figure_latent.py` | `evaluation/` |
+| Fig. 3 — Classification performance and error structure | `run_figure_accuracy_error.py` | `evaluation/` |
+| Fig. 4 — GradCAM-based neuropil importance | `run_figure_gradcam_neuropils.py` | `models/`, intact frames, split file |
+| Fig. S1 — Experimental design | `run_sfigure_exp_design.py` | intact frames |
+| Fig. S2 — Latent-space interaction effects | `run_sfigure_latent_interactions.py` | `evaluation/` |
+| Fig. S3 — Training/validation curves across the sweep | `run_sfigure_training_curves.py` | `evaluation/` |
+| Fig. S4 — Neuropil-knockout importance | `run_sfigure_ko_neuropils.py` | `models/`, intact + KO frames, split file |
 
-Run them after the evaluation results they depend on exist (either from the Data repository directly, or from your own evaluation runs above).
+Run any one with `python -m scripts.figures.<script name without .py>`; output goes to `results/CombiPlots/`. Figs. 2, 3, S2 and S3 need only the small `evaluation/` folder, so they run without downloading or extracting any frames.
+
+The figures can equally be built from your own training and evaluation runs above instead of the published results.
 
 ---
 
@@ -132,4 +144,4 @@ If you use this code, please cite:
 
 ## License
 
-[License — TBD]
+MIT — see [LICENSE](LICENSE).
