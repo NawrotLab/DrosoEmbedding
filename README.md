@@ -17,13 +17,20 @@ You'll need the Data repository alongside this one to actually run anything belo
 
 ## Quick start: reproduce all figures
 
-No raw data or model training needed — the Data repository ships the trained checkpoints and cached evaluation results the figures are built from. A GPU is optional (Fig. 4 and Fig. S4 run model inference on the test set and are slow on CPU). Requires Python ≥ 3.10, [Poetry](https://python-poetry.org/), and [git-annex](https://git-annex.branchable.com/install/); about [N — TBD] GB of free disk space.
+No raw data or model training needed — the Data repository ships the trained checkpoints and cached evaluation results the figures are built from. A GPU is optional (Fig. 4 and Fig. S4 run model inference on the test set and are slow on CPU). You need about [N — TBD] GB of free disk space.
+
+Prerequisites:
+
+- **Python 3.10, 3.11 or 3.12** — not 3.13+, for which the pinned PyTorch version has no builds
+- **[Poetry](https://python-poetry.org/docs/#installation) ≥ 2.0** — `curl -sSL https://install.python-poetry.org | python3 -`
+- **[git-annex](https://git-annex.branchable.com/install/)** — `brew install git-annex` (macOS) or `sudo apt install git-annex` (Debian/Ubuntu)
 
 ```bash
 # 1. Code + dependencies
 git clone https://github.com/aminaabdelbaki/DrosoEmbedding.git
 cd DrosoEmbedding
-poetry install
+poetry env use python3.12        # or python3.10 / python3.11 -- whichever you have
+poetry install --no-root
 source "$(poetry env info --path)/bin/activate"
 
 # 2. Data (clone next to the code, then download the file contents)
