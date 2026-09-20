@@ -14,11 +14,9 @@ _add_axis_indicator, draw_legend_panel from visualize_performance.
 """
 
 import os
-import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from pathlib import Path
 
 from src.visualization.visualize_performance import (
     plot_1d_marginal,
@@ -27,7 +25,7 @@ from src.visualization.visualize_performance import (
     _add_axis_indicator,
     draw_legend_panel,
 )
-from src.utils.helpers import get_style, BEST_RUN_ID
+from src.utils.helpers import get_style, load_or_build_all_results
 from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 
@@ -48,27 +46,6 @@ _AXIS_ENDPOINTS = {
     'Modality': ('Odor',    'Taste'),
     'Valence':  ('Avers.',  'App.'),
 }
-
-_BEST_KEYS = {'transformer_latent_space', 'latent_labels'}
-
-
-def _load_best_pkl(task: str, eval_base_dir: str) -> dict:
-    """Load only the keys we need from the one curated "best" pkl for a task.
-
-    Bypasses load_all_results (which walks all run pkls) since this figure
-    only needs the best checkpoint for two tasks. Reads
-    evaluation/<task>/{BEST_RUN_ID[task]}_evalResults.pkl directly -- the
-    published, flat layout -- rather than the old _chkpt_finals/<task>/best/
-    convention.
-    """
-    run_id = BEST_RUN_ID[task]
-    pkl_path = Path(eval_base_dir) / task / f'{run_id}_evalResults.pkl'
-    if not pkl_path.exists():
-        raise FileNotFoundError(f"Best pkl not found: {pkl_path}")
-    with pkl_path.open('rb') as f:
-        data = pickle.load(f)
-    return {k: data[k] for k in _BEST_KEYS if k in data}
-
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str,
                             xlim_scale: float = 1.5) -> None:
@@ -206,8 +183,16 @@ def main():
     styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, _, TASK_BICOLOR_INFO = \
         get_style(style="styles")
 
-    best_ii  = _load_best_pkl(TASK_II, paths['eval_base_dir'])
-    best_iii = _load_best_pkl(TASK_III, paths['eval_base_dir'])
+    # "best" per task is auto-selected by load_all_results() (highest val
+    # accuracy among E16_H16 runs); shares the aggregate cache with Figs 2/3.
+    recompute = os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't')
+    results = load_or_build_all_results(
+        paths['eval_cache_path'], paths['eval_base_dir'], TASK_CLASS_NAMES,
+        fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
+        recompute=recompute,
+    )
+    best_ii  = results[TASK_II]['best']
+    best_iii = results[TASK_III]['best']
 
     plot_sfigure_latent_interactions(
         best_ii=best_ii,

@@ -308,19 +308,13 @@ def get_style(style = "styles"):
 
 
 
-# The one "best"/chosen model per task -- used for confusion matrices,
-# GradCAMs, and interpretability figures. A curated choice (whichever run
-# actually got used to make the published figures), not something
-# derivable from the sweep data itself, so it's an explicit constant
-# rather than inferred from folder placement (there is no "best/" folder
-# in the published evaluation/<task>/ layout, unlike the old
-# _chkpt_finals convention this replaces).
-BEST_RUN_ID = {
-    'MetabolicState_2': 'C2_E16_H8_3',
-    'State_Modality_6': 'C6_E16_H16_34',
-    'State_Modality_Valence_16': 'C16_E16_H16_42',
-}
-
+# The one "best" model per task -- used for confusion matrices, t-SNE and
+# interpretability figures -- is chosen by load_all_results(): the
+# non-control run at the canonical architecture (cnn_dim=fixed_cnn_for_H,
+# trf_dim=fixed_trf_for_E, i.e. E16_H16) with the highest best-epoch
+# validation accuracy (max of the saved val_acc history; ties -> lowest
+# run index). Validation, not test accuracy, so the test set doesn't
+# leak into model selection.
 _RUN_ID_RE = re.compile(
     r'^C(?P<classes>\d+)(?:_(?P<ctrl>Ctr))?_E(?P<cnn>\d+)(?:_H(?P<trf>\d+))?_(?P<run>\d+)$',
     re.IGNORECASE
@@ -357,9 +351,15 @@ def load_all_results(
     the old _chkpt_finals/<task>/{control,best,runs}/ cluster-only convention
     -- same grouping semantics, different source layout.
 
-    - For regular runs: keeps ONLY 'accuracy' (memory-safe).
-    - For control/the one curated "best" run (see BEST_RUN_ID): keeps the
-      full result (confusion matrix, latent space, t-SNE, CAMs, etc).
+    - For regular runs: keeps ONLY 'accuracy' and the best-epoch validation
+      accuracy 'val_acc_best' (memory-safe).
+    - For control/the "best" run: keeps the full result (confusion matrix,
+      latent space, t-SNE, CAMs, etc). "Best" = the non-control run with
+      cnn_dim == fixed_cnn_for_H and trf_dim == fixed_trf_for_E (E16_H16
+      by default) with the highest val_acc_best; ties go to the lowest run
+      index. entry["best_run_id"] names it, and entry["best_ranking"]
+      lists the top 5 candidates (run_id, val_acc_best, test accuracy) so
+      the selection can be sanity-checked.
     - Groups runs into:
         E{cnn_dim} if trf_dim == fixed_trf_for_E
         H{trf_dim} if cnn_dim == fixed_cnn_for_H
@@ -367,7 +367,7 @@ def load_all_results(
       is skipped with a warning.
     """
 
-    RUNS_KEEP = {"accuracy"}
+    RUNS_KEEP = {"accuracy", "val_acc"}
     CONTROL_BEST_KEEP = {
         "accuracy",
         "confusion_matrix",
@@ -423,7 +423,7 @@ def load_all_results(
     for task_dir in tasks:
         task = task_dir.name
         entry: Dict[str, Any] = {"control": None, "best": None, "runs": {}}
-        best_run_id = BEST_RUN_ID.get(task)
+        best_candidates = []  # (run_id, path, rec) for the canonical-architecture runs
 
         pkl_files = sorted(task_dir.glob('*_evalResults.pkl'))
         for p in pkl_files:
@@ -442,14 +442,6 @@ def load_all_results(
                 entry["control"] = load_pickle_filtered(p, keep=CONTROL_BEST_KEEP)
                 continue
 
-            if run_id == best_run_id:
-                entry["best"] = load_pickle_filtered(p, keep=CONTROL_BEST_KEEP)
-                entry["best_filename"] = p.name
-                entry["best_cnn_dim"] = cnn_dim
-                entry["best_trf_dim"] = trf_dim
-                # the "best" model is also a regular sweep member -- falls
-                # through to the accuracy-only grouping below too.
-
             if trf_dim is None:
                 continue  # not part of the E*/H* sweep grouping (e.g. malformed)
 
@@ -457,6 +449,7 @@ def load_all_results(
             if small is None:
                 continue
 
+            val_hist = small.get("val_acc")
             rec = {
                 "run": run,
                 "classes": classes,
@@ -464,9 +457,19 @@ def load_all_results(
                 "trf_dim": trf_dim,
                 "path": str(p),
                 "accuracy": small.get("accuracy", None),
+                "val_acc_best": float(np.max(val_hist)) if val_hist is not None and len(val_hist) else None,
             }
-            del small
+            del small, val_hist
             gc.collect()
+
+            # the "best" model is also a regular sweep member -- it stays in
+            # the accuracy-only grouping below as well.
+            if cnn_dim == fixed_cnn_for_H and trf_dim == fixed_trf_for_E:
+                if rec["val_acc_best"] is None:
+                    if logger:
+                        logger.warning(f"No val_acc history, not eligible as best: {p.name}")
+                else:
+                    best_candidates.append((run_id, p, rec))
 
             if trf_dim == fixed_trf_for_E:
                 entry["runs"].setdefault(f"E{cnn_dim}", []).append(rec)
@@ -477,9 +480,29 @@ def load_all_results(
         for k in list(entry["runs"].keys()):
             entry["runs"][k].sort(key=lambda d: d["run"])
 
-        entry.setdefault("best_filename", None)
-        entry.setdefault("best_cnn_dim", None)
-        entry.setdefault("best_trf_dim", None)
+        # pick the best: highest val_acc_best, ties -> lowest run index
+        entry["best_run_id"] = None
+        entry["best_filename"] = None
+        entry["best_cnn_dim"] = None
+        entry["best_trf_dim"] = None
+        entry["best_ranking"] = []
+        if best_candidates:
+            best_candidates.sort(key=lambda c: (-c[2]["val_acc_best"], c[2]["run"]))
+            entry["best_ranking"] = [
+                {"run_id": rid, "val_acc_best": r["val_acc_best"], "accuracy": r["accuracy"]}
+                for rid, _, r in best_candidates[:5]
+            ]
+            best_id, best_path, best_rec = best_candidates[0]
+            entry["best"] = load_pickle_filtered(best_path, keep=CONTROL_BEST_KEEP)
+            entry["best_run_id"] = best_id
+            entry["best_filename"] = best_path.name
+            entry["best_cnn_dim"] = best_rec["cnn_dim"]
+            entry["best_trf_dim"] = best_rec["trf_dim"]
+            if logger:
+                top = ", ".join(f"{d['run_id']} ({d['val_acc_best']:.4f})" for d in entry["best_ranking"])
+                logger.info(f"[{task}] best = {best_id} by val_acc_best; top 5: {top}")
+        elif logger:
+            logger.warning(f"[{task}] no E{fixed_cnn_for_H}_H{fixed_trf_for_E} candidates -- no best model selected")
 
         # attach class names if provided as mapping
         if classmap is not None and task in classmap:
