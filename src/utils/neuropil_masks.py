@@ -12,8 +12,8 @@ import nibabel as nib
 import numpy as np
 
 MASK_DIR       = '/projects/lab-data/Collaboration/Gruenwald_Kadow/Neuropils12_Masks'
-SIZES_CACHE    = 'results/preprocessing/neuropil_sizes.json'
-SIZES_2D_CACHE = 'results/preprocessing/neuropil_sizes_2d.json'
+SIZES_PATH    = 'results/preprocessing/neuropil_sizes.json'
+SIZES_2D_PATH = 'results/preprocessing/neuropil_sizes_2d.json'
 
 NEUROPIL_NAMES = np.array(['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
                             'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP'])
@@ -42,19 +42,19 @@ def compute_neuropil_sizes(config: dict, n_samples: int = N_SIZE_SAMPLES,
                             rng: random.Random = None, logger=None) -> np.ndarray:
     """
     Return (12,) array of mean 3D voxel counts per neuropil averaged over
-    n_samples training-set recordings. Results cached in SIZES_CACHE.
+    n_samples training-set recordings. Results are stored in SIZES_PATH.
     """
     if rng is None:
         rng = random.Random(42)
 
-    os.makedirs(os.path.dirname(SIZES_CACHE), exist_ok=True)
+    os.makedirs(os.path.dirname(SIZES_PATH), exist_ok=True)
 
-    if os.path.exists(SIZES_CACHE):
-        with open(SIZES_CACHE) as f:
-            cached = json.load(f)
-        sizes = np.array([cached[n] for n in NEUROPIL_NAMES], dtype=np.float64)
+    if os.path.exists(SIZES_PATH):
+        with open(SIZES_PATH) as f:
+            stored = json.load(f)
+        sizes = np.array([stored[n] for n in NEUROPIL_NAMES], dtype=np.float64)
         if logger:
-            logger.info('Loaded cached neuropil 3D voxel sizes:')
+            logger.info('Loaded stored neuropil 3D voxel sizes:')
             for name, size in zip(NEUROPIL_NAMES, sizes):
                 logger.info(f'  {name:<6}: {int(size):,} voxels')
         return sizes
@@ -91,9 +91,9 @@ def compute_neuropil_sizes(config: dict, n_samples: int = N_SIZE_SAMPLES,
         for name, size in zip(NEUROPIL_NAMES, sizes):
             logger.info(f'  {name:<6}: {int(size):,} voxels')
 
-    cache = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
-    with open(SIZES_CACHE, 'w') as f:
-        json.dump(cache, f, indent=2)
+    sizes_out = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
+    with open(SIZES_PATH, 'w') as f:
+        json.dump(sizes_out, f, indent=2)
 
     return sizes
 
@@ -102,7 +102,7 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
                                rng: random.Random = None, logger=None) -> np.ndarray:
     """
     Return (12,) array of mean 2D pixel counts per neuropil (Z-projection footprint)
-    averaged over n_samples training-set recordings. Results cached in SIZES_2D_CACHE.
+    averaged over n_samples training-set recordings. Results are stored in SIZES_2D_PATH.
 
     The 2D footprint counts pixels where any Z-slice is masked — matching the meanZ
     projection used as model input.
@@ -110,14 +110,14 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
     if rng is None:
         rng = random.Random(42)
 
-    os.makedirs(os.path.dirname(SIZES_2D_CACHE), exist_ok=True)
+    os.makedirs(os.path.dirname(SIZES_2D_PATH), exist_ok=True)
 
-    if os.path.exists(SIZES_2D_CACHE):
-        with open(SIZES_2D_CACHE) as f:
-            cached = json.load(f)
-        sizes = np.array([cached[n] for n in NEUROPIL_NAMES], dtype=np.float64)
+    if os.path.exists(SIZES_2D_PATH):
+        with open(SIZES_2D_PATH) as f:
+            stored = json.load(f)
+        sizes = np.array([stored[n] for n in NEUROPIL_NAMES], dtype=np.float64)
         if logger:
-            logger.info('Loaded cached neuropil 2D footprint sizes:')
+            logger.info('Loaded stored neuropil 2D footprint sizes:')
             for name, size in zip(NEUROPIL_NAMES, sizes):
                 logger.info(f'  {name:<6}: {int(size):,} pixels')
         return sizes
@@ -156,8 +156,8 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
         for name, size in zip(NEUROPIL_NAMES, sizes):
             logger.info(f'  {name:<6}: {int(size):,} pixels')
 
-    cache = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
-    with open(SIZES_2D_CACHE, 'w') as f:
-        json.dump(cache, f, indent=2)
+    sizes_out = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
+    with open(SIZES_2D_PATH, 'w') as f:
+        json.dump(sizes_out, f, indent=2)
 
     return sizes

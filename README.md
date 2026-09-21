@@ -8,7 +8,7 @@ A CNN-Transformer model that classifies *Drosophila* whole-brain calcium imaging
 
 This is the **code** repository. It has two companions:
 
-- **Data** — [G-Node link — TBD], preprocessed imaging data, trained model checkpoints, and cached evaluation results
+- **Data** — [G-Node link — TBD], preprocessed imaging data, trained model checkpoints, and evaluation results
 - **Raw data** — [link — TBD], the original whole-brain calcium imaging recordings and neuropil masks
 
 You'll need the Data repository alongside this one to actually run anything below — this repository holds no imaging data itself.
@@ -89,13 +89,13 @@ Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and clas
 
 ## Figures
 
-`run_figure_latent.py` and `run_figure_accuracy_error.py` read from an aggregated cache of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) it once with:
+`run_figure_latent.py` and `run_figure_accuracy_error.py` read from the aggregated results of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) them once with:
 
 ```bash
-python -m scripts.analysis.build_eval_cache
+python -m scripts.analysis.build_results
 ```
 
-This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to warm the cache. Pass `EVAL_CACHE_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
+This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to build the results. Pass `RESULTS_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
 
 Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results:
 

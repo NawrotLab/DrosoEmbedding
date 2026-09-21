@@ -2,7 +2,7 @@
 One-time, local regeneration of the full train/val/test pickle
 (paths['pickle_path']) that run_evaluation.py / training.py expect, built
 entirely from what's published on G-Node:
-  - IDs_logTs.pickle       (peak-times cache)
+  - IDs_logTs.pickle       (peak times)
   - Recordings_df.xlsx     (unused directly here, but required by
                              collect_image_paths()'s callers historically --
                              kept for parity)

@@ -537,7 +537,7 @@ def load_all_results(
 
 
 def load_or_build_all_results(
-    cache_path: str,
+    results_path: str,
     base_dir: str | os.PathLike,
     task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
     fixed_trf_for_E: int = 16,
@@ -546,49 +546,48 @@ def load_or_build_all_results(
     recompute: bool = False,
     logger=None,
 ) -> Dict[str, Dict[str, Any]]:
-    """load_all_results(), cached to disk -- same pattern as
-    load_or_run_ko_permutation(): every figure/analysis script that reads
-    the full sweep would otherwise re-open and re-aggregate all ~750
-    per-model pkls from scratch on every run, which is slow and entirely
-    redundant once the sweep is stable. The cache is the *combined*
-    across-all-tasks dict load_all_results() returns, at one location, so
-    every caller shares the same cache regardless of which task(s) it asks
-    for -- cheap either way, since the underlying data is already tiny
-    (control/best keep the full rich result, ~1.9MB each; every other run
-    keeps only 'accuracy').
+    """The aggregated results of the evaluation sweep, from one small file.
 
-    Pass recompute=True (or delete cache_path) to force a fresh build --
-    there's no mtime/staleness check against the per-model pkls, so if any
-    of them changed (e.g. a resubmitted sweep straggler), rebuild
-    explicitly rather than relying on this to notice.
+    Reads results_path if it exists; otherwise builds it from the per-model
+    pkls with load_all_results() and saves it there. Every figure/analysis
+    script that reads the full sweep goes through this, so they all share the
+    same file, and none needs to open ~750 per-model pkls. The file is the
+    *combined* across-all-tasks dict load_all_results() returns, and it is
+    small (the control and best runs keep their full result, ~1.9MB each; the
+    canonical runs keep confusion matrix, report and curves; every other run
+    keeps only its accuracy).
+
+    Pass recompute=True (or delete results_path) to force a fresh build --
+    the file is not checked against the per-model pkls, so if any of them
+    changed (e.g. a re-evaluated run), rebuild explicitly.
     """
     def _log(msg):
         if logger: logger.info(msg)
         else: print(msg)
 
-    if not recompute and os.path.exists(cache_path):
-        _log(f'Loading cached aggregated results ({cache_path})')
-        with open(cache_path, 'rb') as f:
-            cached = pickle.load(f)
-        if all(isinstance(e, dict) and e.get('__version__', 0) >= RESULTS_VERSION for e in cached.values()):
-            return cached
-        _log(f'Cached results are outdated (need layout version {RESULTS_VERSION}) -- rebuilding')
+    if not recompute and os.path.exists(results_path):
+        _log(f'Loading aggregated results ({results_path})')
+        with open(results_path, 'rb') as f:
+            stored = pickle.load(f)
+        if all(isinstance(e, dict) and e.get('__version__', 0) >= RESULTS_VERSION for e in stored.values()):
+            return stored
+        _log(f'Aggregated results are outdated (need layout version {RESULTS_VERSION}) -- rebuilding')
         if not any(Path(base_dir).glob('*/*_evalResults.pkl')):
             raise RuntimeError(
-                f'{cache_path} is an outdated results file (layout version < {RESULTS_VERSION}) and '
+                f'{results_path} is an outdated results file (layout version < {RESULTS_VERSION}) and '
                 f'there are no per-model evaluation pkls under {base_dir} to rebuild it from. '
                 f'Get an up-to-date results file.')
 
-    _log('Cache not found or recompute=True -- aggregating all results from disk…')
+    _log('Building aggregated results from the per-model pkls…')
     results = load_all_results(
         base_dir, task_names,
         fixed_trf_for_E=fixed_trf_for_E, fixed_cnn_for_H=fixed_cnn_for_H,
         only_cnn_dim=only_cnn_dim, logger=logger,
     )
-    os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
-    with open(cache_path, 'wb') as f:
+    os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
+    with open(results_path, 'wb') as f:
         pickle.dump(results, f)
-    _log(f'Saved aggregated results -> {cache_path}')
+    _log(f'Saved aggregated results -> {results_path}')
     return results
 
 

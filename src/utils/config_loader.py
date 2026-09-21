@@ -159,7 +159,7 @@ def setup_derived_parameters(config):
     # to the per-run results/{task}_{run_id}/ scratch tree above. Their base
     # defaults to DROSO_PUBLISH_ROOT (falling back to DROSO_ROOT if unset)
     # rather than always following DROSO_ROOT -- so DROSO_ROOT can point at
-    # a normal code checkout (results/, logs, local pickle cache all stay
+    # a normal code checkout (results/, logs, local pickle files all stay
     # there, as scratch working state) while DROSO_PUBLISH_ROOT points at a
     # published data clone (e.g. the G-Node clone), and only the curated
     # checkpoints/evaluation results land there directly. Each is also
@@ -175,11 +175,11 @@ def setup_derived_parameters(config):
     # old paths['checkpoints_dir'] (_chkpt_finals) as that function's input.
     config["paths"]["eval_base_dir"] = os.environ.get(
         "DROSO_EVAL_BASE_DIR", f"{publish_root}/evaluation/")
-    # Cached, pre-aggregated load_all_results() output (see
-    # load_or_build_all_results() in helpers.py) -- one small file so
-    # figure scripts don't re-read/re-aggregate ~750 pkls on every run.
-    config["paths"]["eval_cache_path"] = os.environ.get(
-        "DROSO_EVAL_CACHE_PATH", f"{config['paths']['eval_base_dir']}/aggregated_results.pkl")
+    # Aggregated results of the evaluation sweep (see load_or_build_all_results()
+    # in helpers.py) -- one small file, so figure scripts don't re-read/re-aggregate
+    # ~750 pkls on every run.
+    config["paths"]["eval_results_path"] = os.environ.get(
+        "DROSO_EVAL_RESULTS_PATH", f"{config['paths']['eval_base_dir']}/aggregated_results.pkl")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 

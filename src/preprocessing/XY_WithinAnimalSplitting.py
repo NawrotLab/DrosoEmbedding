@@ -14,7 +14,7 @@ def collect_image_paths(root_path, id_times_dict, timesID, exclude_controls, log
     `root_path` always points at the full-frame ('allTs') directory --
     clean_dataset.py no longer ever materializes a separate 'logTs'
     directory. When `timesID == 'logTs'`, anchor frame indices are looked
-    up directly from `id_times_dict` (the peak-times cache) instead of
+    up directly from `id_times_dict` (the peak-times file) instead of
     walking a physical subset directory; when `timesID == 'allTs'`, every
     frame present on disk for that recording is used, as before.
     """

@@ -33,7 +33,7 @@ apply_style()
 
 _config = load_config()
 BASE_RESULTS_DIR = _config['paths']['eval_base_dir']
-EVAL_CACHE_PATH = _config['paths']['eval_cache_path']
+EVAL_RESULTS_PATH = _config['paths']['eval_results_path']
 TASK     = 'State_Modality_Valence_16'
 OUT_PDF  = 'results/CombiPlots/state_valence_interaction_test.pdf'
 OUT_JSON = 'results/CombiPlots/state_valence_interaction_stats.json'
@@ -269,9 +269,9 @@ def main():
     styles, TASK_CLASS_NAMES, *_ = get_style(style='styles')
     class_names = TASK_CLASS_NAMES[TASK]
 
-    recompute = os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't')
+    recompute = os.environ.get('RESULTS_RECOMPUTE', '').lower() in ('true', '1', 't')
     results_dict = load_or_build_all_results(
-        EVAL_CACHE_PATH, BASE_RESULTS_DIR, TASK_CLASS_NAMES,
+        EVAL_RESULTS_PATH, BASE_RESULTS_DIR, TASK_CLASS_NAMES,
         fixed_trf_for_E=16, fixed_cnn_for_H=16,
         only_cnn_dim=16, recompute=recompute)
 

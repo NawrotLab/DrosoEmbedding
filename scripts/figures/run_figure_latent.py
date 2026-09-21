@@ -181,10 +181,10 @@ def main():
     styles, TASK_CLASS_NAMES, TASK_COLORS, TASK_EDGECOLORS, TASK_SHAPES, TASK_BICOLOR_INFO = get_style(style="styles")
     logger.debug(f"Loaded styles. TASK_CLASS_NAMES keys: {list(TASK_CLASS_NAMES.keys()) if isinstance(TASK_CLASS_NAMES, dict) else 'N/A'}")
 
-    recompute = os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't')
+    recompute = os.environ.get('RESULTS_RECOMPUTE', '').lower() in ('true', '1', 't')
     logger.debug(f"Loading results from {BASE_RESULTS_DIR}...")
     results_dict = load_or_build_all_results(
-        paths['eval_cache_path'], BASE_RESULTS_DIR, TASK_CLASS_NAMES,
+        paths['eval_results_path'], BASE_RESULTS_DIR, TASK_CLASS_NAMES,
         fixed_trf_for_E=16, fixed_cnn_for_H=16,
         only_cnn_dim=16, recompute=recompute, logger=logger)
     logger.debug(f"Loaded results. Tasks found: {list(results_dict.keys())}")

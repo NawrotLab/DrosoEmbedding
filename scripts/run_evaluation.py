@@ -60,7 +60,7 @@ def evaluate_model(run_id, config, logger) -> dict:
     logger.info(f"Test loader: {len(test_loader)}, Val loader: {len(val_loader)}")
     logger.info(f"Test example path: {X_test[0]}")
 
-    # Published layout: checkpoints live flat under models/<task>/, and cached
+    # Published layout: checkpoints live flat under models/<task>/, and
     # evaluation results under evaluation/<task>/ (what figures read) --
     # not the old per-run results/{task}_{run_id}/... cluster layout.
     # Both independently overridable via DROSO_MODELS_DIR / DROSO_EVAL_DIR.
@@ -154,7 +154,7 @@ def main():
     evaluate_model(run_id, config, logger)
     elapsed = time.time() - start
     logger.info(f"Total wall time for {run_id}: {elapsed:.1f}s "
-                f"(near-zero here means this was a cache hit, not a fresh computation)")
+                f"(near-zero here means the existing result was reused, not recomputed)")
 
 if __name__ == '__main__':
     main()

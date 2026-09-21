@@ -584,13 +584,13 @@ def compute_gradcam_per_sample(model, test_loader, target_layer, device, logger=
     return correct_cams, correct_labels, correct_paths
 
 
-ISOLATION_MASKS_CACHE = 'results/preprocessing/isolation_masks_2d.pickle'
+ISOLATION_MASKS_PATH = 'results/preprocessing/isolation_masks_2d.pickle'
 
 
 def load_neuropil_masks(correct_paths, neuropil_names, mask_size=128, logger=None,
-                        cache_path=ISOLATION_MASKS_CACHE):
+                        results_path=ISOLATION_MASKS_PATH):
     """Load per-sample binary neuropil masks, derived from anatomical
-    Neuropils12_Masks data (see scripts/analysis/build_isolation_masks_cache.py).
+    Neuropils12_Masks data (see scripts/analysis/build_isolation_masks.py).
 
     The mask is anatomical, not per-frame, so every sample from the same
     recording gets the same (resized) mask -- computed once per recording,
@@ -604,8 +604,8 @@ def load_neuropil_masks(correct_paths, neuropil_names, mask_size=128, logger=Non
         if logger: logger.info(msg)
         else: print(msg)
 
-    with open(cache_path, 'rb') as f:
-        cache = pickle.load(f)  # {rec_nr: (12, H, W) bool}, neuropil order == NEUROPIL_NAMES
+    with open(results_path, 'rb') as f:
+        masks_by_rec = pickle.load(f)  # {rec_nr: (12, H, W) bool}, neuropil order == NEUROPIL_NAMES
 
     name_to_idx = {name: i for i, name in enumerate(NEUROPIL_NAMES)}
 
@@ -626,7 +626,7 @@ def load_neuropil_masks(correct_paths, neuropil_names, mask_size=128, logger=Non
         rec_nr = os.path.basename(os.path.dirname(str(p))).split('_')[-1]
 
         if rec_nr not in resized_by_rec:
-            rec_masks = cache.get(rec_nr)
+            rec_masks = masks_by_rec.get(rec_nr)
             if rec_masks is None:
                 resized_by_rec[rec_nr] = None
             else:
@@ -643,7 +643,7 @@ def load_neuropil_masks(correct_paths, neuropil_names, mask_size=128, logger=Non
         masks[i] = entry
 
     if n_missing:
-        _log(f'{n_missing}/{N} samples had no matching recording in the isolation-masks cache')
+        _log(f'{n_missing}/{N} samples had no matching recording in the isolation masks file')
 
     return masks
 

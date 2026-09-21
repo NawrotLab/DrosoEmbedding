@@ -1,5 +1,5 @@
 """
-Build a small cache of 2D neuropil-isolation masks, to replace the
+Build a small results file of 2D neuropil-isolation masks, to replace the
 per-sample "isolated" TIFFs that used to back Fig 4's
 load_neuropil_masks() (src/visualization/visualize_interpretability.py).
 
@@ -15,7 +15,7 @@ src/utils/imgTools.py::load_and_normNIFTI()'s own (pre-existing,
 non-template) isolate_neuropil branch shows it applies the exact same
 transpose(1, 0, 2) to the mask -- no extra rotation -- against data that
 already went through rot90(k=3). That is the identical transform
-load_mask_3d() applies. So this cache uses the same transform the original
+load_mask_3d() applies. So these masks use the same transform the original
 (deleted) isolation pipeline already used to produce Fig 4 before.
 
 Scope: only the test-set recordings for the currently-configured TASK
@@ -33,7 +33,7 @@ Output:
     its own resize transform.
   - results/analysis/isolation_masks_examples/*.png
     Overlay sanity-check images (mask in red on top of a real frame) for
-    a handful of recordings -- inspect these before trusting the cache.
+    a handful of recordings -- inspect these before trusting the masks.
 
 Read-only w.r.t. all source data (frames, masks, split pickle). Only
 writes to results/preprocessing/ and results/analysis/, never to any
@@ -41,7 +41,7 @@ published/production path.
 
 Usage (on the cluster, needs real data + deps; TASK et al. same env vars
 as other scripts reading the split pickle):
-    python -m scripts.analysis.build_isolation_masks_cache [--n_examples 3]
+    python -m scripts.analysis.build_isolation_masks [--n_examples 3]
 """
 
 import argparse
@@ -58,7 +58,7 @@ from src.utils.config_loader import load_config
 from src.utils.logger import setup_logger
 from src.utils.neuropil_masks import NEUROPIL_NAMES, footprint_2d, load_mask_3d, mask_path
 
-CACHE_PATH = 'results/preprocessing/isolation_masks_2d.pickle'
+RESULTS_PATH = 'results/preprocessing/isolation_masks_2d.pickle'
 EXAMPLES_DIR = 'results/analysis/isolation_masks_examples'
 
 
@@ -103,16 +103,16 @@ def main():
                         help='Number of recordings to also save overlay PNGs for.')
     args = parser.parse_args()
 
-    logger = setup_logger('build_isolation_masks_cache')
+    logger = setup_logger('build_isolation_masks')
     config = load_config()
 
-    os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
+    os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
     os.makedirs(EXAMPLES_DIR, exist_ok=True)
 
     recs = recordings_from_test_set(config['paths']['pickle_path'])
     logger.info(f'{len(recs)} unique test-set recordings found.')
 
-    cache = {}
+    masks_by_rec = {}
     n_missing_mask = 0
     example_count = 0
 
@@ -126,18 +126,18 @@ def main():
             mask_3d = load_mask_3d(rec_nr, idx)
             footprints.append(footprint_2d(mask_3d))
         masks = np.stack(footprints, axis=0)  # (12, H, W) bool
-        cache[rec_nr] = masks
+        masks_by_rec[rec_nr] = masks
 
         if example_count < args.n_examples:
             save_overlay_example(rec_name, example_frame_path, masks, EXAMPLES_DIR, logger)
             example_count += 1
 
-    logger.info(f'Built masks for {len(cache)}/{len(recs)} recordings '
+    logger.info(f'Built masks for {len(masks_by_rec)}/{len(recs)} recordings '
                 f'({n_missing_mask} missing a Neuropils12_Masks file).')
 
-    with open(CACHE_PATH, 'wb') as f:
-        pickle.dump(cache, f)
-    logger.info(f'Saved cache: {CACHE_PATH}')
+    with open(RESULTS_PATH, 'wb') as f:
+        pickle.dump(masks_by_rec, f)
+    logger.info(f'Saved masks: {RESULTS_PATH}')
 
 
 if __name__ == '__main__':

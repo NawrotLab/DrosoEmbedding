@@ -14,8 +14,8 @@ neuropil's removal degrades accuracy, normalised by neuropil size.
 Caching
 -------
 The first run iterates over all 50 model checkpoints (slow — ~half a day on
-the server).  Results are cached to CACHE_PATH as a .npy file.  On
-subsequent runs the cache is loaded and only aggregation + plotting run.
+the server).  Results are saved to RESULTS_PATH as a .npy file.  On
+subsequent runs they are loaded and only aggregation + plotting run.
 Use --recompute to force a fresh pass.
 
 Usage (from repo root):
@@ -58,7 +58,7 @@ TASK       = 'State_Modality_Valence_16'
 RUN_PREFIX = 'C16_E16_H16_'
 N_RUNS     = 50
 
-CACHE_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
+RESULTS_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
 OUT_STEM   = f'figS_ko_neuropils_{VARIANT}'
 
 BATCH_SIZE  = 256
@@ -70,7 +70,7 @@ NUM_WORKERS = 4
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--recompute', action='store_true',
-                    help='Ignore cache and rerun the full 50-run permutation')
+                    help='Ignore saved results and rerun the full 50-run permutation')
 args = parser.parse_args()
 
 # ════════════════════════════════════════════════
@@ -109,11 +109,11 @@ with open(paths['pickle_path'], 'rb') as fh:
 run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
 
 # ════════════════════════════════════════════════
-# LOAD OR COMPUTE KO STACK  (cached)
+# LOAD OR COMPUTE KO STACK
 # ════════════════════════════════════════════════
 
 stack = load_or_run_ko_permutation(
-    cache_path=CACHE_PATH,
+    results_path=RESULTS_PATH,
     recompute=args.recompute,
     logger=logger,
     # kwargs forwarded to run_ko_permutation:
@@ -147,10 +147,10 @@ df_group, df_contrast = aggregate_ko_by_group(
     logger=logger,
 )
 
-# save CSVs alongside the cache
-os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
-df_group.to_csv(CACHE_PATH.replace('raw_delta_stack.npy', 'group_profiles.csv'))
-df_contrast.to_csv(CACHE_PATH.replace('raw_delta_stack.npy', 'contrasts.csv'))
+# save CSVs alongside the results
+os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
+df_group.to_csv(RESULTS_PATH.replace('raw_delta_stack.npy', 'group_profiles.csv'))
+df_contrast.to_csv(RESULTS_PATH.replace('raw_delta_stack.npy', 'contrasts.csv'))
 
 # ════════════════════════════════════════════════
 # ASSEMBLE FIGURE

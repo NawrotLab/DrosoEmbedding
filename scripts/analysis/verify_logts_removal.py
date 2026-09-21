@@ -1,5 +1,5 @@
 """
-Verification: does id_times_dict (the peak-times cache, paths['peakIDs_Times_All'])
+Verification: does id_times_dict (the peak-times file, paths['peakIDs_Times_All'])
 fully reproduce the (recording, frame, label) universe of the existing
 train/val/test pickle (paths['pickle_path'])?
 

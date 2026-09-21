@@ -184,10 +184,10 @@ def main():
         get_style(style="styles")
 
     # "best" per task is auto-selected by load_all_results() (highest val
-    # accuracy among E16_H16 runs); shares the aggregate cache with Figs 2/3.
-    recompute = os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't')
+    # accuracy among E16_H16 runs); shares the aggregated results with Figs 2/3.
+    recompute = os.environ.get('RESULTS_RECOMPUTE', '').lower() in ('true', '1', 't')
     results = load_or_build_all_results(
-        paths['eval_cache_path'], paths['eval_base_dir'], TASK_CLASS_NAMES,
+        paths['eval_results_path'], paths['eval_base_dir'], TASK_CLASS_NAMES,
         fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
         recompute=recompute,
     )

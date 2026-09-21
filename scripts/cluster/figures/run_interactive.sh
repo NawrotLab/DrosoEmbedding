@@ -66,9 +66,9 @@ for T in 16 4 8 32 64; do
     python3 -m scripts.analysis.compare_old_vs_new_eval --old-dir "$OLD" --new-dir "$EVAL" --trf $T --top 5
 done
 
-# ── 3. Rebuild the aggregate cache and re-plot ───────────────────────────────
-# Cache has no staleness check, so it must be rebuilt after run 10 changed.
-echo "=== 3. re-plot Fig 3 (rebuilds the cache) and Fig 2"
-EVAL_CACHE_RECOMPUTE=true python3 -m scripts.figures.run_figure_accuracy_error
+# ── 3. Rebuild the aggregated results and re-plot ───────────────────────────────
+# The results file is not checked against the per-model pkls, so it must be rebuilt after run 10 changed.
+echo "=== 3. re-plot Fig 3 (rebuilds the aggregated results) and Fig 2"
+RESULTS_RECOMPUTE=true python3 -m scripts.figures.run_figure_accuracy_error
 python3 -m scripts.figures.run_figure_latent
 echo "=== done"

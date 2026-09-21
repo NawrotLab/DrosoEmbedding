@@ -215,31 +215,31 @@ def run_ko_permutation(
 # ── caching wrapper ───────────────────────────────────────────────────────────
 
 def load_or_run_ko_permutation(
-    cache_path: str,
+    results_path: str,
     recompute: bool = False,
     logger=None,
     **kwargs,
 ) -> np.ndarray:
-    """Load cached KO stack, or run the full permutation and save the result.
+    """Load the stored KO stack, or run the full permutation and save the result.
 
-    The cache is a single .npy file containing the raw
+    The results file is a single .npy file containing the raw
     (n_runs, n_classes, n_neuropils) delta-accuracy stack.
-    Pass recompute=True to ignore the cache and rerun everything.
+    Pass recompute=True to ignore the stored results and rerun everything.
     All extra kwargs are forwarded to run_ko_permutation.
     """
     def _log(msg):
         if logger: logger.info(msg)
         else: print(msg)
 
-    if not recompute and os.path.exists(cache_path):
-        _log(f'Loading cached KO stack ({cache_path})')
-        return np.load(cache_path)
+    if not recompute and os.path.exists(results_path):
+        _log(f'Loading stored KO stack ({results_path})')
+        return np.load(results_path)
 
-    _log('Cache not found or recompute=True — running KO permutation (slow)…')
+    _log('No stored KO stack, or recompute=True — running KO permutation (slow)…')
     stack = run_ko_permutation(logger=logger, **kwargs)
-    os.makedirs(os.path.dirname(os.path.abspath(cache_path)), exist_ok=True)
-    np.save(cache_path, stack)
-    _log(f'Saved KO stack → {cache_path}')
+    os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
+    np.save(results_path, stack)
+    _log(f'Saved KO stack → {results_path}')
     return stack
 
 

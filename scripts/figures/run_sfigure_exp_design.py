@@ -99,18 +99,18 @@ def get_all_recordings(all_ts_dir):
     return parsed
 
 
-# ─── INCLUDED / EXCLUDED FRAME INDICES (cached) ─────────────────────────────
-_ie_cache = {}
+# ─── INCLUDED / EXCLUDED FRAME INDICES (memoized) ─────────────────────────────
+_ie_memo = {}
 
 def get_included_excluded(rec_name):
     """Return (sorted included indices, sorted excluded indices).
 
     "Included" = the peak timepoints selected during preprocessing, looked
-    up directly from the peak-times cache (id_times_dict) -- there is no
+    up directly from the peak-times file (id_times_dict) -- there is no
     physical "logTs" directory to walk any more.
     """
-    if rec_name in _ie_cache:
-        return _ie_cache[rec_name]
+    if rec_name in _ie_memo:
+        return _ie_memo[rec_name]
 
     all_dir = os.path.join(ALL_TS_DIR, rec_name)
     all_f = {int(f.replace('.tiff', '').split('_')[-1])
@@ -118,7 +118,7 @@ def get_included_excluded(rec_name):
     log_f = set(ID_TIMES_DICT.get(rec_name, []))
 
     result = (sorted(log_f), sorted(all_f - log_f))
-    _ie_cache[rec_name] = result
+    _ie_memo[rec_name] = result
     return result
 
 

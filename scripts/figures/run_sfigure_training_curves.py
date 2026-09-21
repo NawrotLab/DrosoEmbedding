@@ -67,9 +67,9 @@ TASKS = [
 # carry them), so no per-model evaluation pkls are opened.
 _, _TASK_CLASS_NAMES, *_ = get_style(style="styles")
 _RESULTS = load_or_build_all_results(
-    _config['paths']['eval_cache_path'], BASE_RESULTS_DIR, _TASK_CLASS_NAMES,
+    _config['paths']['eval_results_path'], BASE_RESULTS_DIR, _TASK_CLASS_NAMES,
     fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
-    recompute=os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't'),
+    recompute=os.environ.get('RESULTS_RECOMPUTE', '').lower() in ('true', '1', 't'),
 )
 
 
