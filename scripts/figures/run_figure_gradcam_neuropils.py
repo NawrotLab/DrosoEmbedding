@@ -20,6 +20,7 @@ Bottom row (2 equal columns, independent GridSpec):
 └──────────────────────┴──────────────────────────┘
 """
 
+import argparse
 import os
 import pickle
 
@@ -45,6 +46,7 @@ from src.visualization.visualize_interpretability import (
     load_image,
 )
 from src.data.dataset import compute_mean_frame_shape
+from src.analysis.gradcam_results import save_gradcam_results, load_gradcam_results
 from src.visualization.figure_base import (
     apply_style, FIGURE_WIDTH, save_figure, add_panel_label,
 )
@@ -62,7 +64,17 @@ NEUROPILS = ['AL', 'MB', 'PENP', 'VLNP', 'CX', 'GNG',
              'LX', 'SNP', 'INP', 'LH', 'OL', 'VMNP']
 
 # ════════════════════════════════════════════════
-# LOAD CONFIG + MODEL + DATA
+# ARGS
+# ════════════════════════════════════════════════
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--recompute', action='store_true',
+                    help='Ignore the stored results and recompute them '
+                         '(needs the model, the test frames and the neuropil masks)')
+args = parser.parse_args()
+
+# ════════════════════════════════════════════════
+# LOAD CONFIG
 # ════════════════════════════════════════════════
 
 config = load_config()
@@ -74,84 +86,115 @@ OUT_DIR             = paths['output_dir']
 OUT_STEM            = f'fig_neuropils_{GRADCAM_LAYER}'
 GRADCAM_SKETCH_PATH = os.path.join(paths['src_imgs_dir'], 'CAM_Sketch.svg')
 ATLAS_PATH          = os.path.join(paths['src_imgs_dir'], 'NeuropilsAtlas.svg')
-model_params = config['model']['parameters']
-train_params = config['training']
-
-# Everything comes from the live config (env-var driven), not a frozen
-# training-time config.pkl snapshot -- checkpoints are self-describing
-# (model_io.py::save_model embeds architecture params), so no per-run
-# config.pkl is needed to reconstruct the model either.
-device     = config['device']
-allTs_path = config['paths']['allTs_path']
-
-with open(paths['pickle_path'], 'rb') as fh:
-    _, _, X_test, _, _, Y_test = pickle.load(fh)
-
-test_dataset = CustomDataset(
-    X_test, Y_test, transform=True,
-    seq_length=model_params['seq_len'],
-    seq_steps=model_params['seq_steps'],
-    allTs_path=allTs_path,
-)
-test_loader = DataLoader(
-    test_dataset, batch_size=train_params['batch_size'],
-    shuffle=False, num_workers=4, pin_memory=True,
-)
-
-classifier, _, _, _, _, _ = load_model(
-    CNN_Transformer, model_params, paths['models_dir'], device,
-    run_id=config['run_id'], logger=logger,
-)
-if classifier is None:
-    raise FileNotFoundError('Trained model not found.')
-
-class_names = config['data']['classes']
-n_classes   = len(class_names)
 
 # ════════════════════════════════════════════════
-# COMPUTE GRADCAM (pooled, for panel b)
+# COMPUTE: model + test frames + masks -> the results this figure plots
 # ════════════════════════════════════════════════
 
-logger.info(f'Computing pooled GradCAM [{GRADCAM_LAYER}] for panel b…')
-target_layer = classifier.cnn[LAYER_MAP[GRADCAM_LAYER]]
+def compute_results():
+    """The heavy part: Grad-CAM on the test set with one model.
 
-mean_cams, _ = compute_gradcam(
-    model=classifier, test_loader=test_loader,
-    target_layer=target_layer, n_classes=n_classes,
-    device=device, logger=logger,
-)
-pooled_cams = pool_gradcams(mean_cams)
+    Returns (pooled_cams, brain_shape, df_group, df_contrast) -- exactly what the
+    figure below plots, and what is saved to / loaded from RESULTS_PATH.
+    """
+    model_params = config['model']['parameters']
+    train_params = config['training']
+
+    # Everything comes from the live config (env-var driven), not a frozen
+    # training-time config.pkl snapshot -- checkpoints are self-describing
+    # (model_io.py::save_model embeds architecture params), so no per-run
+    # config.pkl is needed to reconstruct the model either.
+    device     = config['device']
+    allTs_path = config['paths']['allTs_path']
+
+    with open(paths['pickle_path'], 'rb') as fh:
+        _, _, X_test, _, _, Y_test = pickle.load(fh)
+
+    test_dataset = CustomDataset(
+        X_test, Y_test, transform=True,
+        seq_length=model_params['seq_len'],
+        seq_steps=model_params['seq_steps'],
+        allTs_path=allTs_path,
+    )
+    test_loader = DataLoader(
+        test_dataset, batch_size=train_params['batch_size'],
+        shuffle=False, num_workers=4, pin_memory=True,
+    )
+
+    classifier, _, _, _, _, _ = load_model(
+        CNN_Transformer, model_params, paths['models_dir'], device,
+        run_id=config['run_id'], logger=logger,
+    )
+    if classifier is None:
+        raise FileNotFoundError('Trained model not found.')
+
+    class_names = config['data']['classes']
+    n_classes   = len(class_names)
+
+    # ════════════════════════════════════════════════
+    # COMPUTE GRADCAM (pooled, for panel b)
+    # ════════════════════════════════════════════════
+
+    logger.info(f'Computing pooled GradCAM [{GRADCAM_LAYER}] for panel b…')
+    target_layer = classifier.cnn[LAYER_MAP[GRADCAM_LAYER]]
+
+    mean_cams, _ = compute_gradcam(
+        model=classifier, test_loader=test_loader,
+        target_layer=target_layer, n_classes=n_classes,
+        device=device, logger=logger,
+    )
+    pooled_cams = pool_gradcams(mean_cams)
+
+    # ════════════════════════════════════════════════
+    # COMPUTE GRADCAM NEUROPIL IMPORTANCE (panels d, e)
+    # ════════════════════════════════════════════════
+
+    logger.info('Computing per-sample GradCAM for neuropil importance…')
+    correct_cams, correct_labels, correct_paths = compute_gradcam_per_sample(
+        model=classifier, test_loader=test_loader,
+        target_layer=target_layer, device=device, logger=logger,
+    )
+
+    logger.info('Computing mean raw frame shape for GradCAM upscaling…')
+    mean_H, mean_W = compute_mean_frame_shape(correct_paths, allTs_path, n_sample=200, logger=logger)
+    BRAIN_SHAPE = (128, round(128 * mean_W / mean_H))
+    logger.info(f'BRAIN_SHAPE set to {BRAIN_SHAPE}')
+
+    logger.info('Loading neuropil masks…')
+    masks = load_neuropil_masks(
+        correct_paths=correct_paths,
+        neuropil_names=NEUROPILS,
+        mask_size=128,
+        logger=logger,
+    )
+
+    logger.info('Aggregating GradCAM importance by group…')
+    df_group, df_contrast = compute_gradcam_neuropil_importance_by_group(
+        correct_cams=correct_cams,
+        correct_labels=correct_labels,
+        masks=masks,
+        neuropil_names=NEUROPILS,
+    )
+
+    return pooled_cams, BRAIN_SHAPE, df_group, df_contrast
+
 
 # ════════════════════════════════════════════════
-# COMPUTE GRADCAM NEUROPIL IMPORTANCE (panels d, e)
+# LOAD OR COMPUTE THE RESULTS
 # ════════════════════════════════════════════════
+# The results (a few MB) live in the published results folder. With the file
+# present the figure needs no model, frames or GPU; without it (or with
+# --recompute) they are computed and saved there.
 
-logger.info('Computing per-sample GradCAM for neuropil importance…')
-correct_cams, correct_labels, correct_paths = compute_gradcam_per_sample(
-    model=classifier, test_loader=test_loader,
-    target_layer=target_layer, device=device, logger=logger,
-)
+RESULTS_PATH = os.path.join(paths['results_dir'], f'gradcam_neuropils_{GRADCAM_LAYER}.npz')
 
-logger.info('Computing mean raw frame shape for GradCAM upscaling…')
-mean_H, mean_W = compute_mean_frame_shape(correct_paths, allTs_path, n_sample=200, logger=logger)
-BRAIN_SHAPE = (128, round(128 * mean_W / mean_H))
-logger.info(f'BRAIN_SHAPE set to {BRAIN_SHAPE}')
-
-logger.info('Loading neuropil masks…')
-masks = load_neuropil_masks(
-    correct_paths=correct_paths,
-    neuropil_names=NEUROPILS,
-    mask_size=128,
-    logger=logger,
-)
-
-logger.info('Aggregating GradCAM importance by group…')
-df_group, df_contrast = compute_gradcam_neuropil_importance_by_group(
-    correct_cams=correct_cams,
-    correct_labels=correct_labels,
-    masks=masks,
-    neuropil_names=NEUROPILS,
-)
+if os.path.exists(RESULTS_PATH) and not args.recompute:
+    logger.info(f'Loading stored Grad-CAM results ({RESULTS_PATH})')
+    pooled_cams, BRAIN_SHAPE, df_group, df_contrast = load_gradcam_results(RESULTS_PATH)
+else:
+    pooled_cams, BRAIN_SHAPE, df_group, df_contrast = compute_results()
+    save_gradcam_results(RESULTS_PATH, pooled_cams, BRAIN_SHAPE, df_group, df_contrast)
+    logger.info(f'Saved Grad-CAM results -> {RESULTS_PATH}')
 
 # ════════════════════════════════════════════════
 # ASSEMBLE FIGURE — 2 × 3

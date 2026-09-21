@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=results_check
-#SBATCH --time=01:00:00
+#SBATCH --time=03:00:00
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:h200:1        # TEMPORARY: land on srv-5 (where /localscratch data lives); this job itself needs no GPU
 #SBATCH --nodelist=agmn-srv-5    # TEMPORARY
@@ -11,14 +11,15 @@
 #SBATCH --error=logs/slurm/%x-%j.err
 
 # Level-1 "results" check: re-plot the figures that now read from the results
-# (Fig 2, 3, S2, S3, S4) and compare each PNG with the one made before these
+# (Fig 2, 3, 4, S2, S3, S4) and compare each PNG with the one made before these
 # changes. Nothing here is destructive: the results file is rebuilt in place
 # (its old layout is detected as outdated), and copies of the earlier PNGs are
 # kept in ~/before (never overwritten once saved).
 #
 # Submit from the repo root (the SBATCH log paths above are relative):
 #     cd ~/DrosoEmbedding && sbatch scripts/cluster/figures/run_interactive.sh
-# CPU work only, a few minutes.
+# Fig 4 is computed once here (GPU: Grad-CAM over the test set, ~10-30 min) and saved to the
+# results folder; everything else is CPU work of a few minutes.
 
 # no `set -e`: one failing figure must not stop the others being checked
 BASE_DIR="$HOME/DrosoEmbedding"
@@ -31,7 +32,7 @@ cfg() { python3 -c "from src.utils.config_loader import load_config; print(load_
 RESULTS_DIR=$(cfg results_dir)      # published small results (S4 stack, neuropil sizes)
 PNGS=results/CombiPlots/pngs
 BEFORE="$HOME/before"
-FIGS="fig_accuracy_error figS_training_curves figS_ko_neuropils_static fig_latent figS_latent_interactions"
+FIGS="fig_accuracy_error figS_training_curves figS_ko_neuropils_static fig_latent figS_latent_interactions fig_neuropils_conv1"
 echo "results dir: $RESULTS_DIR"
 
 # ── 0. keep the PNGs from before these changes ────────────────────────────────
@@ -61,6 +62,15 @@ run python3 -m scripts.figures.run_sfigure_ko_neuropils
 run python3 -m scripts.figures.run_figure_latent
 run python3 -m scripts.figures.run_sfigure_latent_interactions
 
+# ── 2b. Fig 4: compute + save its results once, then re-plot from the saved file ─
+# First call: no results file yet -> computes Grad-CAM (model, test frames, neuropil masks)
+# and saves gradcam_neuropils_conv1.npz. Second call: loads it. The two figures must match.
+echo "=== 2b. Fig 4 (computes and saves its results, then re-plots from them)"
+run python3 -m scripts.figures.run_figure_gradcam_neuropils
+[ -f "$PNGS/fig_neuropils_conv1.png" ] && cp "$PNGS/fig_neuropils_conv1.png" "$BEFORE/fig4_computed_run.png"
+run python3 -m scripts.figures.run_figure_gradcam_neuropils
+ls -l "$RESULTS_DIR"
+
 # ── 3. Compare with the PNGs from before ─────────────────────────────────────
 echo "=== 3. comparison with the PNGs from before"
 for f in $FIGS; do
@@ -68,4 +78,9 @@ for f in $FIGS; do
     elif cmp -s "$BEFORE/$f.png" "$PNGS/$f.png"; then echo "  $f: IDENTICAL to before"
     else echo "  $f: DIFFERENT from before"; fi
 done
+if [ -f "$BEFORE/fig4_computed_run.png" ]; then
+    if cmp -s "$BEFORE/fig4_computed_run.png" "$PNGS/fig_neuropils_conv1.png"; then
+        echo "  fig 4: figure from the saved results == figure from the computation (IDENTICAL)"
+    else echo "  fig 4: figure from the saved results DIFFERS from the computation run"; fi
+fi
 echo "=== done"
