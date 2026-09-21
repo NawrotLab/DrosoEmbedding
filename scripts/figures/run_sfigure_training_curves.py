@@ -13,9 +13,7 @@ Output:
     results/CombiPlots/{pdfs,pngs}/figS_training_curves.{pdf,png}
 """
 
-import gc
 import os
-import pickle
 import sys
 from pathlib import Path
 
@@ -26,6 +24,7 @@ import matplotlib.lines as mlines
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 from src.utils.config_loader import load_config
+from src.utils.helpers import get_style, load_or_build_all_results
 
 apply_style()
 
@@ -64,30 +63,32 @@ TASKS = [
 
 # ── Data loading ──────────────────────────────────────────────────────────────
 
+# Per-run curves come from the aggregated results (the canonical E16_H16 runs
+# carry them), so no per-model evaluation pkls are opened.
+_, _TASK_CLASS_NAMES, *_ = get_style(style="styles")
+_RESULTS = load_or_build_all_results(
+    _config['paths']['eval_cache_path'], BASE_RESULTS_DIR, _TASK_CLASS_NAMES,
+    fixed_trf_for_E=16, fixed_cnn_for_H=16, only_cnn_dim=16,
+    recompute=os.environ.get('EVAL_CACHE_RECOMPUTE', '').lower() in ('true', '1', 't'),
+)
+
+
 def _load_runs(task):
-    """Load all pkl runs for a task; return dict of metric → (n_runs × max_epochs) array."""
-    runs_dir = BASE_RESULTS_DIR / task['folder']
-    pkls = sorted(runs_dir.glob(f"{task['pkl_prefix']}*_evalResults.pkl"))
-    if not pkls:
-        print(f"[WARN] No pkl files found in {runs_dir} with prefix '{task['pkl_prefix']}'")
+    """Return dict of metric → (n_runs × max_epochs) array for a task's H16 runs."""
+    runs = _RESULTS[task['folder']]['runs'].get('H16', [])
+    if not runs:
+        print(f"[WARN] No H16 runs found for {task['folder']}")
         return {}
 
-    raw = {k: [] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
-    for pkl_path in pkls:
-        try:
-            with open(pkl_path, 'rb') as f:
-                data = pickle.load(f)
-            n_epochs = len(data.get('train_loss') or [])
-            if n_epochs < SHORT_RUN_THRESHOLD:
-                print(f"  [FLAG] Short run ({n_epochs} epochs): {pkl_path.name}")
-            for k in raw:
-                arr = data.get(k)
-                if arr is not None:
-                    raw[k].append(np.asarray(arr, dtype=float))
-            del data
-            gc.collect()
-        except Exception as e:
-            print(f"  [WARN] {pkl_path.name}: {e}")
+    raw = {k: [] for k in ('train_loss', 'val_loss', 'val_acc')}
+    for rec in runs:
+        curves = rec.get('curves') or {}
+        n_epochs = len(curves.get('train_loss', []))
+        if n_epochs < SHORT_RUN_THRESHOLD:
+            print(f"  [FLAG] Short run ({n_epochs} epochs): {task['pkl_prefix']}{rec['run']}")
+        for k in raw:
+            if k in curves:
+                raw[k].append(curves[k])
 
     # Pad shorter runs with NaN up to the longest run; use nanmean/nanstd at plot time
     result = {}

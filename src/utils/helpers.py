@@ -337,6 +337,13 @@ def parse_run_id(run_id: str):
     return classes, cnn, trf, run, is_control
 
 
+# Layout version of the aggregated results (what load_all_results() returns and
+# load_or_build_all_results() stores). Bump when entries gain/lose fields, so an
+# older file on disk is recognised as outdated instead of silently misused.
+#   2: canonical runs carry confusion_matrix, classification_report_dict, curves
+RESULTS_VERSION = 2
+
+
 def load_all_results(
     base_dir: str | os.PathLike,
     task_names: Optional[Iterable[str] | Mapping[str, Any]] = None,
@@ -368,6 +375,11 @@ def load_all_results(
     """
 
     RUNS_KEEP = {"accuracy", "val_acc"}
+    # Canonical-architecture runs (E16_H16 by default) also carry everything the
+    # sweep figures read per run -- confusion matrix + report (Fig 3) and the
+    # loss/accuracy curves (Fig S3) -- so those figures need no per-model pkls.
+    CANON_KEEP = RUNS_KEEP | {"confusion_matrix", "classification_report_dict", "train_loss", "val_loss"}
+    CURVE_KEYS = ("train_loss", "val_loss", "val_acc")
     CONTROL_BEST_KEEP = {
         "accuracy",
         "confusion_matrix",
@@ -445,7 +457,8 @@ def load_all_results(
             if trf_dim is None:
                 continue  # not part of the E*/H* sweep grouping (e.g. malformed)
 
-            small = load_pickle_filtered(p, keep=RUNS_KEEP)
+            is_canon = cnn_dim == fixed_cnn_for_H and trf_dim == fixed_trf_for_E
+            small = load_pickle_filtered(p, keep=CANON_KEEP if is_canon else RUNS_KEEP)
             if small is None:
                 continue
 
@@ -459,12 +472,20 @@ def load_all_results(
                 "accuracy": small.get("accuracy", None),
                 "val_acc_best": float(np.max(val_hist)) if val_hist is not None and len(val_hist) else None,
             }
+            if is_canon:
+                cm = small.get("confusion_matrix")
+                rec["confusion_matrix"] = np.asarray(cm) if cm is not None else None
+                rec["classification_report_dict"] = small.get("classification_report_dict")
+                # float64 on purpose: the curves are plotted as-is (mean/std over runs),
+                # and the figure must come out identical to one built from the pkls.
+                rec["curves"] = {k: np.asarray(small[k], dtype=float)
+                                 for k in CURVE_KEYS if small.get(k) is not None}
             del small, val_hist
             gc.collect()
 
             # the "best" model is also a regular sweep member -- it stays in
             # the accuracy-only grouping below as well.
-            if cnn_dim == fixed_cnn_for_H and trf_dim == fixed_trf_for_E:
+            if is_canon:
                 if rec["val_acc_best"] is None:
                     if logger:
                         logger.warning(f"No val_acc history, not eligible as best: {p.name}")
@@ -479,6 +500,8 @@ def load_all_results(
         # sort each group's list by run index
         for k in list(entry["runs"].keys()):
             entry["runs"][k].sort(key=lambda d: d["run"])
+
+        entry["__version__"] = RESULTS_VERSION
 
         # pick the best: highest val_acc_best, ties -> lowest run index
         entry["best_run_id"] = None
@@ -546,7 +569,15 @@ def load_or_build_all_results(
     if not recompute and os.path.exists(cache_path):
         _log(f'Loading cached aggregated results ({cache_path})')
         with open(cache_path, 'rb') as f:
-            return pickle.load(f)
+            cached = pickle.load(f)
+        if all(isinstance(e, dict) and e.get('__version__', 0) >= RESULTS_VERSION for e in cached.values()):
+            return cached
+        _log(f'Cached results are outdated (need layout version {RESULTS_VERSION}) -- rebuilding')
+        if not any(Path(base_dir).glob('*/*_evalResults.pkl')):
+            raise RuntimeError(
+                f'{cache_path} is an outdated results file (layout version < {RESULTS_VERSION}) and '
+                f'there are no per-model evaluation pkls under {base_dir} to rebuild it from. '
+                f'Get an up-to-date results file.')
 
     _log('Cache not found or recompute=True -- aggregating all results from disk…')
     results = load_all_results(
@@ -563,59 +594,33 @@ def load_or_build_all_results(
 
 def load_h16_classification_reports(entry):
     """
-    For all runs at d_model=16 (H16 group), load the full 
-    classification_report_dict from disk.
+    For all runs at d_model=16 (H16 group), return the per-run
+    classification_report_dict stored in the aggregated results
+    (see load_all_results()) -- no per-model pkls are opened.
     Returns a list of report dicts.
     """
     reports = []
-    h16_runs = entry.get("runs", {}).get("H16", [])
-    for run in h16_runs:
-        path = run.get("path")
-        if path is None:
-            continue
-        try:
-            with open(path, "rb") as f:
-                data = pickle.load(f)
-            report = data.get("classification_report_dict")
-            if report is not None:
-                reports.append(report)
-            del data
-            gc.collect()
-        except Exception as e:
-            print(f"[WARN] Failed to load {path}: {e}")
+    for run in entry.get("runs", {}).get("H16", []):
+        report = run.get("classification_report_dict")
+        if report is not None:
+            reports.append(report)
     return reports
 
 
 def load_h16_reports_and_cms(entry, n_classes, logger=None):
-    """Single-pass loader: open each H16 pkl once and extract both
-    classification_report_dict and confusion_matrix.
+    """Per-run classification reports and confusion matrices of the H16 group,
+    read from the aggregated results (no per-model pkls are opened).
 
-    Returns (reports, cms) — avoids two separate passes over the same files.
-    Only call for tasks that actually need confusion matrices; for tasks
-    that only need reports, use load_h16_classification_reports instead.
+    Returns (reports, cms). Only call for tasks that actually need confusion
+    matrices; for tasks that only need reports, use
+    load_h16_classification_reports instead.
     """
-    all_runs = entry.get('runs', {}).get('H16', [])
     reports, cms = [], []
-    for i, run in enumerate(all_runs):
-        path = run.get('path')
-        if path is None:
-            continue
-        if logger is not None and i % 10 == 0:
-            logger.info(f'  loading pkl {i+1}/{len(all_runs)} …')
-        try:
-            with open(path, 'rb') as f:
-                data = pickle.load(f)
-            rpt = data.get('classification_report_dict')
-            cm  = data.get('confusion_matrix')
-            if rpt is not None:
-                reports.append(rpt)
-            if cm is not None and np.array(cm).shape == (n_classes, n_classes):
-                cms.append(np.array(cm))
-            del data
-            gc.collect()
-        except Exception as e:
-            if logger is not None:
-                logger.warning(f'  {path}: {e}')
-            else:
-                print(f'[WARN] {path}: {e}')
+    for run in entry.get('runs', {}).get('H16', []):
+        rpt = run.get('classification_report_dict')
+        cm = run.get('confusion_matrix')
+        if rpt is not None:
+            reports.append(rpt)
+        if cm is not None and np.array(cm).shape == (n_classes, n_classes):
+            cms.append(np.array(cm))
     return reports, cms
