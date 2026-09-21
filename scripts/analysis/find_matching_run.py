@@ -30,6 +30,7 @@ import argparse
 import datetime
 import os
 import pickle
+import re
 from pathlib import Path
 
 import numpy as np
@@ -219,6 +220,14 @@ def main():
             continue
         for folder, op in olds:
             newp = new_base / task / f"{op.stem}_evalResults.pkl"
+            if not newp.exists():
+                # Old control pkls are named C{n}_E{cnn}_{run}; the sweep names them C{n}_Ctr_E{cnn}_{run}.
+                m = re.match(r'^(C\d+)_(E\d+)_(\d+)$', op.stem)
+                if m and folder.startswith('control'):
+                    alt = new_base / task / f"{m[1]}_Ctr_{m[2]}_{m[3]}_evalResults.pkl"
+                    if alt.exists():
+                        print(f"\n  (old control name {op.stem} -> current {alt.name[:-len('_evalResults.pkl')]})")
+                        newp = alt
             compare_pair(folder, op, newp if newp.exists() else None, task, args)
             if args.scan:
                 scan_all(op, task, new_base, args.top)
