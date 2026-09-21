@@ -180,6 +180,12 @@ def setup_derived_parameters(config):
     # ~750 pkls on every run.
     config["paths"]["eval_results_path"] = os.environ.get(
         "DROSO_EVAL_RESULTS_PATH", f"{config['paths']['eval_base_dir']}/aggregated_results.pkl")
+    # Published results that figures are built from and that are too small to
+    # be worth recomputing (e.g. the knockout stack and neuropil sizes of Fig S4).
+    # Lives in the data repository next to models/ and evaluation/. Not to be
+    # confused with results_root above, which is one training run's scratch dir.
+    config["paths"]["results_dir"] = os.environ.get(
+        "DROSO_RESULTS_DIR", f"{publish_root}/results/")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 

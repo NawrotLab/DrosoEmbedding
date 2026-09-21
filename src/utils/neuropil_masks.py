@@ -80,9 +80,9 @@ def compute_neuropil_sizes(config: dict, n_samples: int = N_SIZE_SAMPLES,
         counts.append(voxel_counts)
 
     if not counts:
-        if logger:
-            logger.warning('No mask files found — returning uniform sizes of 1.')
-        return np.ones(len(NEUROPIL_NAMES), dtype=np.float64)
+        raise FileNotFoundError(
+            f'{sizes_path} not found, and no neuropil mask files under {MASK_DIR} to compute it from. '
+            f'Without the neuropil sizes the knockout results cannot be normalised.')
 
     sizes = np.mean(counts, axis=0)
 
@@ -102,7 +102,10 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
                                rng: random.Random = None, logger=None) -> np.ndarray:
     """
     Return (12,) array of mean 2D pixel counts per neuropil (Z-projection footprint)
-    averaged over n_samples training-set recordings. Results are stored in SIZES_2D_PATH.
+    averaged over n_samples training-set recordings. Results are stored in
+    neuropil_sizes_2d.json in config['paths']['results_dir'] (falling back to
+    SIZES_2D_PATH when the config has no results_dir), and read from there on
+    later calls -- so figures need no masks once the file exists.
 
     The 2D footprint counts pixels where any Z-slice is masked — matching the meanZ
     projection used as model input.
@@ -110,10 +113,11 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
     if rng is None:
         rng = random.Random(42)
 
-    os.makedirs(os.path.dirname(SIZES_2D_PATH), exist_ok=True)
+    results_dir = (config or {}).get('paths', {}).get('results_dir')
+    sizes_path = os.path.join(results_dir, 'neuropil_sizes_2d.json') if results_dir else SIZES_2D_PATH
 
-    if os.path.exists(SIZES_2D_PATH):
-        with open(SIZES_2D_PATH) as f:
+    if os.path.exists(sizes_path):
+        with open(sizes_path) as f:
             stored = json.load(f)
         sizes = np.array([stored[n] for n in NEUROPIL_NAMES], dtype=np.float64)
         if logger:
@@ -121,6 +125,12 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
             for name, size in zip(NEUROPIL_NAMES, sizes):
                 logger.info(f'  {name:<6}: {int(size):,} pixels')
         return sizes
+
+    if not os.path.exists(config['paths']['pickle_path']) or not os.path.isdir(MASK_DIR):
+        raise FileNotFoundError(
+            f'{sizes_path} not found, and it cannot be computed here (that needs the train/val/test '
+            f'pickle and the neuropil masks under {MASK_DIR}). Without the neuropil sizes the '
+            f'knockout results cannot be normalised -- get neuropil_sizes_2d.json from the results.')
 
     if logger:
         logger.info(f'Computing neuropil 2D footprint sizes from {n_samples} recordings...')
@@ -157,7 +167,8 @@ def compute_neuropil_sizes_2d(config: dict, n_samples: int = N_SIZE_SAMPLES,
             logger.info(f'  {name:<6}: {int(size):,} pixels')
 
     sizes_out = {n: float(sizes[i]) for i, n in enumerate(NEUROPIL_NAMES)}
-    with open(SIZES_2D_PATH, 'w') as f:
+    os.makedirs(os.path.dirname(os.path.abspath(sizes_path)), exist_ok=True)
+    with open(sizes_path, 'w') as f:
         json.dump(sizes_out, f, indent=2)
 
     return sizes

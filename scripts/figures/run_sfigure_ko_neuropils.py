@@ -11,12 +11,14 @@ The KO variant used is 'static': neuropil voxels are replaced with a fixed
 baseline-period mean, then mean-Z projected.  The figure shows how much each
 neuropil's removal degrades accuracy, normalised by neuropil size.
 
-Caching
+Results
 -------
-The first run iterates over all 50 model checkpoints (slow — ~half a day on
-the server).  Results are saved to RESULTS_PATH as a .npy file.  On
-subsequent runs they are loaded and only aggregation + plotting run.
-Use --recompute to force a fresh pass.
+The figure is built from a small results file, the knockout stack
+(paths['results_dir']/ko_static/raw_delta_stack.npy, runs x classes x neuropils),
+plus the neuropil-size file in the same folder; with both present it runs in
+seconds and needs no frames, models or GPU.  If the stack is missing (or with
+--recompute) it iterates over all 50 model checkpoints on the knockout frames
+(slow — ~half a day on the server) and saves the stack there.
 
 Usage (from repo root):
     python scripts/figures/run_sfigure_ko_neuropils.py
@@ -28,6 +30,7 @@ import os
 import pickle
 import random
 
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 
@@ -58,7 +61,6 @@ TASK       = 'State_Modality_Valence_16'
 RUN_PREFIX = 'C16_E16_H16_'
 N_RUNS     = 50
 
-RESULTS_PATH = f'results/diagnostics/KO_permutation_{VARIANT}/raw_delta_stack.npy'
 OUT_STEM   = f'figS_ko_neuropils_{VARIANT}'
 
 BATCH_SIZE  = 256
@@ -74,62 +76,67 @@ parser.add_argument('--recompute', action='store_true',
 args = parser.parse_args()
 
 # ════════════════════════════════════════════════
-# LOAD CONFIG + TEST DATA
+# LOAD CONFIG
 # ════════════════════════════════════════════════
 
 config = load_config()
 logger = setup_logger(task_name=f'sfig_ko_neuropils_{VARIANT}',
                       log_dir='logs/run_sfigure_ko_neuropils')
 
-paths        = config['paths']
-OUT_DIR      = paths['output_dir']
-model_params = config['model']['parameters']
+paths   = config['paths']
+OUT_DIR = paths['output_dir']
 
-# device/allTs_path/classes are task-level constants (same for every run_id
-# in the sweep), so the live config already has them -- no need to load a
-# specific run's frozen config.pkl snapshot just to read these.
-device      = config['device']
-allTs_base  = config['paths']['allTs_path']
-class_names = config['data']['classes']
-n_classes   = len(class_names)
-
-with open(paths['pickle_path'], 'rb') as fh:
-    _, _, X_test, _, _, Y_test = pickle.load(fh)
-
-# ════════════════════════════════════════════════
-# ENUMERATE RUN IDS
-# ════════════════════════════════════════════════
-# Reads checkpoints from the flat, published models/<task>/ layout (same
-# as run_evaluation.py) via paths['models_dir'] -- not the old, unpublished
-# results/chkpt_runs/<task>_<run_id>/models/best/ per-run cluster tree.
-# Missing checkpoints are skipped gracefully inside run_ko_permutation()
-# (load_model() returns None for a run_id it can't find), so no need to
-# pre-filter to only existing ones here.
-
-run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
+# The KO stack (runs x classes x neuropils, ~40 KB) is what this figure is built
+# from. It lives in the published results folder, next to the neuropil-size file
+# the aggregation below normalises by.
+RESULTS_PATH = os.path.join(paths['results_dir'], f'ko_{VARIANT}', 'raw_delta_stack.npy')
 
 # ════════════════════════════════════════════════
 # LOAD OR COMPUTE KO STACK
 # ════════════════════════════════════════════════
 
-stack = load_or_run_ko_permutation(
-    results_path=RESULTS_PATH,
-    recompute=args.recompute,
-    logger=logger,
-    # kwargs forwarded to run_ko_permutation:
-    run_ids=run_ids,
-    models_dir=paths['models_dir'],
-    X_test=X_test,
-    Y_test=Y_test,
-    model_params=model_params,
-    allTs_base=allTs_base,
-    neuropils=NEUROPILS,
-    variant=VARIANT,
-    device=device,
-    n_classes=n_classes,
-    batch_size=BATCH_SIZE,
-    num_workers=NUM_WORKERS,
-)
+if os.path.exists(RESULTS_PATH) and not args.recompute:
+    logger.info(f'Loading stored KO stack ({RESULTS_PATH})')
+    stack = np.load(RESULTS_PATH)
+else:
+    # Recomputing needs the test frames, the 50 checkpoints and a GPU (slow).
+    model_params = config['model']['parameters']
+
+    # device/allTs_path/classes are task-level constants (same for every run_id
+    # in the sweep), so the live config already has them -- no need to load a
+    # specific run's frozen config.pkl snapshot just to read these.
+    device      = config['device']
+    allTs_base  = config['paths']['allTs_path']
+    class_names = config['data']['classes']
+    n_classes   = len(class_names)
+
+    with open(paths['pickle_path'], 'rb') as fh:
+        _, _, X_test, _, _, Y_test = pickle.load(fh)
+
+    # Reads checkpoints from the flat, published models/<task>/ layout (same
+    # as run_evaluation.py) via paths['models_dir']. Missing checkpoints are
+    # skipped gracefully inside run_ko_permutation() (load_model() returns None
+    # for a run_id it can't find), so no need to pre-filter to existing ones.
+    run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
+
+    stack = load_or_run_ko_permutation(
+        results_path=RESULTS_PATH,
+        recompute=args.recompute,
+        logger=logger,
+        # kwargs forwarded to run_ko_permutation:
+        run_ids=run_ids,
+        models_dir=paths['models_dir'],
+        X_test=X_test,
+        Y_test=Y_test,
+        model_params=model_params,
+        allTs_base=allTs_base,
+        neuropils=NEUROPILS,
+        variant=VARIANT,
+        device=device,
+        n_classes=n_classes,
+        batch_size=BATCH_SIZE,
+        num_workers=NUM_WORKERS,
+    )
 logger.info(f'KO stack shape: {stack.shape}  '
             f'(runs × classes × neuropils)')
 
@@ -147,10 +154,10 @@ df_group, df_contrast = aggregate_ko_by_group(
     logger=logger,
 )
 
-# save CSVs alongside the results
-os.makedirs(os.path.dirname(RESULTS_PATH), exist_ok=True)
-df_group.to_csv(RESULTS_PATH.replace('raw_delta_stack.npy', 'group_profiles.csv'))
-df_contrast.to_csv(RESULTS_PATH.replace('raw_delta_stack.npy', 'contrasts.csv'))
+# figure source data, saved next to the figure
+os.makedirs(OUT_DIR, exist_ok=True)
+df_group.to_csv(os.path.join(OUT_DIR, f'{OUT_STEM}_group_profiles.csv'))
+df_contrast.to_csv(os.path.join(OUT_DIR, f'{OUT_STEM}_contrasts.csv'))
 
 # ════════════════════════════════════════════════
 # ASSEMBLE FIGURE
