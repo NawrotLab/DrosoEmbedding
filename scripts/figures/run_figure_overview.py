@@ -127,10 +127,16 @@ def compute_panel_b_results():
 
     cond_names = list(panel_b_data.keys())
     rec_names = [panel_b_data[c]['recording'] for c in cond_names]
-    frames = np.stack([
+    # One (6, H, W) array per condition, NOT stacked into one tensor: each
+    # condition is a different raw recording, and real recordings' raw pixel
+    # dimensions vary (confirmed against Fig S1's own frames, which span
+    # several distinct (H, W) shapes across recordings) -- stacking would
+    # silently assume they match and crash (or worse, mis-align) when they don't.
+    frames = [
         np.stack([panel_b_data[c]['meanZ'][:, :, t] for t in panel_b_time_points[c]], axis=0)
+        .astype(np.float32)
         for c in cond_names
-    ], axis=0).astype(np.float32)
+    ]
     return cond_names, rec_names, frames
 
 
@@ -243,7 +249,7 @@ def main():
         ax_row = fig.add_subplot(gs_b[i, 0])
         # (H, W, 6): matches draw_meanZ_row()'s meanZ_data[:, :, t] indexing convention.
         meanZ_stack = np.moveaxis(panel_b_frames[i], 0, -1)
-        draw_meanZ_row(ax_row, meanZ_stack, list(range(panel_b_frames.shape[1])), panel_b_bg)
+        draw_meanZ_row(ax_row, meanZ_stack, list(range(panel_b_frames[i].shape[0])), panel_b_bg)
 
     # Panel labels, placed after layout is finalised, all from the shared
     # GridSpec's nominal row/column boundaries rather than each axes' own

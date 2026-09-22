@@ -22,22 +22,32 @@ RESULTS_VERSION = 1
 # ── Fig 1 panel b ────────────────────────────────────────────────────────────
 
 def save_fig1_panel_b(path, cond_names, rec_names, frames):
-    """cond_names: list[str] (3, e.g. ['Odor','Taste','Combi_M']);
-    rec_names: list[str] (3, the recording each condition's frames came from);
-    frames: (3, 6, H, W) float array, the 6 selected meanZ timepoints per condition."""
+    """cond_names: list[str] (n_cond, e.g. ['Odor','Taste','Combi_M']);
+    rec_names: list[str] (n_cond, the recording each condition's frames came from);
+    frames: list of (6, H, W) float arrays, one per condition -- the 6 selected
+    meanZ timepoints. Each condition is a *different* raw recording, so its H, W
+    need not match the others' (stored as separate arrays, not one stacked
+    tensor, for exactly that reason -- same pattern as gradcam_results.py's
+    per-map storage)."""
+    assert len(cond_names) == len(rec_names) == len(frames)
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-    np.savez_compressed(
-        path, version=np.array(RESULTS_VERSION),
-        cond_names=np.array(cond_names), rec_names=np.array(rec_names),
-        frames=np.asarray(frames),
-    )
+    arrays = {
+        'version': np.array(RESULTS_VERSION),
+        'cond_names': np.array(cond_names), 'rec_names': np.array(rec_names),
+    }
+    for i, f in enumerate(frames):
+        arrays[f'frames_{i}'] = np.asarray(f)
+    np.savez_compressed(path, **arrays)
 
 
 def load_fig1_panel_b(path):
-    """Inverse of save_fig1_panel_b: (cond_names, rec_names, frames)."""
+    """Inverse of save_fig1_panel_b: (cond_names, rec_names, frames) --
+    frames: list of (6, H, W) arrays, one per condition, in cond_names order."""
     with np.load(path, allow_pickle=False) as z:
         _check_version(path, z)
-        return z['cond_names'].tolist(), z['rec_names'].tolist(), z['frames']
+        cond_names = z['cond_names'].tolist()
+        frames = [z[f'frames_{i}'] for i in range(len(cond_names))]
+        return cond_names, z['rec_names'].tolist(), frames
 
 
 # ── Fig S1 ────────────────────────────────────────────────────────────────
