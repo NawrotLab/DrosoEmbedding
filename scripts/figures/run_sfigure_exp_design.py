@@ -10,7 +10,7 @@ All frames are resized to a uniform shape (min H × min W) and normalised
 globally (1st / 99th percentile across the entire panel).
 """
 
-import os, re, io, random, pickle
+import argparse, os, re, io, random, pickle
 
 import numpy as np
 import matplotlib as mpl
@@ -22,6 +22,7 @@ import cairosvg
 
 from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
+from src.analysis.example_frames import save_s1_frames, load_s1_frames
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
 apply_style()
@@ -271,7 +272,13 @@ def draw_timeline(ax):
 
 
 # ─── MAIN ───────────────────────────────────────────────────────────────────
-def build_figure():
+def compute_results():
+    """Panel C's data-derived content: N_INC included + N_EXC excluded example
+    frames per GROUPINGS row, picked via random.Random(SEED) from every
+    non-control recording under paths['allTs_path'] (~27GB). Needs the full
+    preprocessed-frames set to choose from; what it returns is a few dozen
+    small frames -- see save_s1_frames()/load_s1_frames() for the exact shape.
+    """
     print(f"\n{'=' * 60}")
     print(f"  SEED = {SEED}")
     print(f"{'=' * 60}")
@@ -289,6 +296,10 @@ def build_figure():
         exc_info = [f"{r.split('_')[-1]}" for r, _ in exc_entries]
         print(f"  {label:<18s}  inc recs: [{', '.join(inc_info):>30s}]"
               f"  exc recs: [{', '.join(exc_info)}]")
+        assert len(inc_entries) == N_INC and len(exc_entries) == N_EXC, (
+            f"'{label}' couldn't fill all slots even with fallback reuse "
+            f"(inc={len(inc_entries)}/{N_INC}, exc={len(exc_entries)}/{N_EXC}) -- "
+            f"save_s1_frames()'s fixed-shape arrays assume every row is full.")
 
     # ── Collect all (rec_dir, frame_idx) specs and load frames ────────────
     all_specs = []
@@ -340,6 +351,48 @@ def build_figure():
         rec_norm[rec_name] = (lo, hi)
         print(f"  {rec_name:<20s}  [{lo:.1f}, {hi:.1f}]")
 
+    # ── Bundle into the fixed-shape arrays save_s1_frames() stores ────────
+    row_labels = [label for label, _, _ in row_data]
+    n_rows = len(row_data)
+    H, W = target_hw
+    inc_frames    = np.zeros((n_rows, N_INC, H, W), dtype=np.float32)
+    inc_norm      = np.zeros((n_rows, N_INC, 2))
+    inc_rec_names = [[None] * N_INC for _ in range(n_rows)]  # plain str, not dtype=object
+    inc_frame_idx = np.zeros((n_rows, N_INC), dtype=np.int64)
+    exc_frames    = np.zeros((n_rows, N_EXC, H, W), dtype=np.float32)
+    exc_norm      = np.zeros((n_rows, N_EXC, 2))
+    exc_rec_names = [[None] * N_EXC for _ in range(n_rows)]
+    exc_frame_idx = np.zeros((n_rows, N_EXC), dtype=np.int64)
+    for ri, (_, inc_entries, exc_entries) in enumerate(row_data):
+        for ci, (rec_name, fr_idx) in enumerate(inc_entries):
+            inc_frames[ri, ci]    = raw_frames[(os.path.join(ALL_TS_DIR, rec_name), fr_idx)]
+            inc_norm[ri, ci]      = rec_norm[rec_name]
+            inc_rec_names[ri][ci] = rec_name
+            inc_frame_idx[ri, ci] = fr_idx
+        for ci, (rec_name, fr_idx) in enumerate(exc_entries):
+            exc_frames[ri, ci]    = raw_frames[(os.path.join(ALL_TS_DIR, rec_name), fr_idx)]
+            exc_norm[ri, ci]      = rec_norm[rec_name]
+            exc_rec_names[ri][ci] = rec_name
+            exc_frame_idx[ri, ci] = fr_idx
+    # np.array() on a nested list of str infers a fixed-width unicode dtype
+    # ('<U..'), not dtype=object -- loadable with allow_pickle=False.
+    inc_rec_names = np.array(inc_rec_names)
+    exc_rec_names = np.array(exc_rec_names)
+
+    return dict(
+        row_labels=row_labels, target_hw=target_hw,
+        inc_frames=inc_frames, inc_norm=inc_norm,
+        inc_rec_names=inc_rec_names, inc_frame_idx=inc_frame_idx,
+        exc_frames=exc_frames, exc_norm=exc_norm,
+        exc_rec_names=exc_rec_names, exc_frame_idx=exc_frame_idx,
+    )
+
+
+def build_figure(results):
+    row_labels = results['row_labels']
+    inc_frames, inc_norm = results['inc_frames'], results['inc_norm']
+    exc_frames, exc_norm = results['exc_frames'], results['exc_norm']
+
     # ── Layout ────────────────────────────────────────────────────────────
     n_rows = len(GROUPINGS)
     fig = plt.figure(figsize=(FIGURE_WIDTH, 9))
@@ -385,13 +438,12 @@ def build_figure():
     draw_timeline(ax_b)
 
     # ── Panel C ───────────────────────────────────────────────────────────
-    for ri, (label, inc_entries, exc_entries) in enumerate(row_data):
+    for ri, label in enumerate(row_labels):
 
         # --- Included columns 0 … N_INC-1 ---
-        for ci, (rec_name, fr_idx) in enumerate(inc_entries):
-            rec_dir = os.path.join(ALL_TS_DIR, rec_name)
-            frame = raw_frames[(rec_dir, fr_idx)]
-            r_lo, r_hi = rec_norm[rec_name]
+        for ci in range(inc_frames.shape[1]):
+            frame = inc_frames[ri, ci]
+            r_lo, r_hi = inc_norm[ri, ci]
 
             ax = fig.add_subplot(c_gs[ri, ci])
             ax.imshow(norm_frame(frame, r_lo, r_hi),
@@ -408,10 +460,9 @@ def build_figure():
         # --- Gap column N_INC: no subplot ---
 
         # --- Excluded column(s) ---
-        for ci, (rec_name, fr_idx) in enumerate(exc_entries):
-            rec_dir = os.path.join(ALL_TS_DIR, rec_name)
-            frame = raw_frames[(rec_dir, fr_idx)]
-            r_lo, r_hi = rec_norm[rec_name]
+        for ci in range(exc_frames.shape[1]):
+            frame = exc_frames[ri, ci]
+            r_lo, r_hi = exc_norm[ri, ci]
 
             ax = fig.add_subplot(c_gs[ri, N_INC + 1 + ci])
             ax.imshow(norm_frame(frame, r_lo, r_hi),
@@ -445,5 +496,27 @@ def build_figure():
     save_figure(fig, f'{OUTPUT_BASE}.pdf', formats=('svg', 'pdf', 'png'))
 
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--recompute', action='store_true',
+                        help="Ignore the stored panel-C results and recompute them "
+                             "(needs paths['allTs_path'], ~27GB)")
+    args = parser.parse_args()
+
+    # Panel C's example frames (a few dozen small images) live in the published
+    # results folder. With the file present, none of the preprocessed frames
+    # are needed to reproduce the figure.
+    results_path = os.path.join(paths['results_dir'], 'figS1_frames.npz')
+    if os.path.exists(results_path) and not args.recompute:
+        print(f'Loading stored panel-C results ({results_path})')
+        results = load_s1_frames(results_path)
+    else:
+        results = compute_results()
+        save_s1_frames(results_path, **results)
+        print(f'Saved panel-C results -> {results_path}')
+
+    build_figure(results)
+
+
 if __name__ == '__main__':
-    build_figure()
+    main()

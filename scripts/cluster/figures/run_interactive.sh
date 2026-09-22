@@ -32,7 +32,7 @@ cfg() { python3 -c "from src.utils.config_loader import load_config; print(load_
 RESULTS_DIR=$(cfg results_dir)      # published small results (S4 stack, neuropil sizes)
 PNGS=results/CombiPlots/pngs
 BEFORE="$HOME/before"
-FIGS="fig_accuracy_error figS_training_curves figS_ko_neuropils_static fig_latent figS_latent_interactions fig_neuropils_conv1"
+FIGS="fig_accuracy_error figS_training_curves figS_ko_neuropils_static fig_latent figS_latent_interactions fig_neuropils_conv1 fig_overview figS_exp_design"
 echo "results dir: $RESULTS_DIR"
 
 # ── 0. keep the PNGs from before these changes ────────────────────────────────
@@ -71,12 +71,30 @@ run python3 -m scripts.figures.run_figure_gradcam_neuropils
 run python3 -m scripts.figures.run_figure_gradcam_neuropils
 ls -l "$RESULTS_DIR"
 
+# ── 2c. Fig 1 panel b + Fig S1: compute + save their results once, re-plot from them ─
+echo "=== 2c. Fig 1 + S1 (compute and save their results, then re-plot from them)"
+run python3 -m scripts.figures.run_figure_overview
+[ -f "$PNGS/fig_overview.png" ] && cp "$PNGS/fig_overview.png" "$BEFORE/fig1_computed_run.png"
+run python3 -m scripts.figures.run_figure_overview
+run python3 -m scripts.figures.run_sfigure_exp_design
+[ -f "$PNGS/figS_exp_design.png" ] && cp "$PNGS/figS_exp_design.png" "$BEFORE/figS1_computed_run.png"
+run python3 -m scripts.figures.run_sfigure_exp_design
+ls -l "$RESULTS_DIR"
+
 # ── 3. Compare with the PNGs from before ─────────────────────────────────────
 echo "=== 3. comparison with the PNGs from before"
 for f in $FIGS; do
     if [ ! -f "$BEFORE/$f.png" ]; then echo "  $f: no earlier PNG to compare with"
     elif cmp -s "$BEFORE/$f.png" "$PNGS/$f.png"; then echo "  $f: IDENTICAL to before"
     else echo "  $f: DIFFERENT from before"; fi
+done
+for pair in "fig1_computed_run.png fig_overview.png" "figS1_computed_run.png figS_exp_design.png"; do
+    before_f=${pair%% *}; new_f=${pair##* }
+    if [ -f "$BEFORE/$before_f" ]; then
+        if cmp -s "$BEFORE/$before_f" "$PNGS/$new_f"; then
+            echo "  $new_f: figure from the saved results == figure from the computation (IDENTICAL)"
+        else echo "  $new_f: figure from the saved results DIFFERS from the computation run"; fi
+    fi
 done
 if [ -f "$BEFORE/fig4_computed_run.png" ]; then
     if cmp -s "$BEFORE/fig4_computed_run.png" "$PNGS/fig_neuropils_conv1.png"; then

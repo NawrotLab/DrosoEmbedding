@@ -1,5 +1,7 @@
+import argparse
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+import numpy as np
 from matplotlib.gridspec import GridSpecFromSubplotSpec
 from PIL import Image
 import cairosvg
@@ -17,6 +19,7 @@ from src.visualization.figure_base import apply_style, FIGURE_WIDTH, save_figure
 from src.visualization.vizDataset_B import (
     load_and_process_data, get_time_points, draw_meanZ_row,
 )
+from src.analysis.example_frames import save_fig1_panel_b, load_fig1_panel_b
 
 apply_style()
 
@@ -103,8 +106,42 @@ def load_svg(path, dpi=1000):
         png_data = cairosvg.svg2png(bytestring=svg_data, dpi=dpi)
         return Image.open(io.BytesIO(png_data))
 
+def compute_panel_b_results():
+    """Panel b's data-derived content: the 6 raw-LFM meanZ timepoints (per
+    condition: Odor, Taste, Combi_M) that draw_meanZ_row() overlays on the
+    static background. Needs paths['raw_recordings'] (one .nii per selected
+    recording) and paths['peakIDs_Times_All']; same selection (random.seed(777)
+    inside load_and_process_data) vizDataset_B.py's own standalone preview uses,
+    so there is no separate manually-edited image asset to keep in sync with
+    the actual pipeline.
+
+    Returns (cond_names, rec_names, frames) -- frames: (n_cond, 6, H, W) float32,
+    exactly what save_fig1_panel_b()/load_fig1_panel_b() store and load.
+    """
+    paths = load_config()['paths']
+    lfm_path = paths['raw_recordings']
+    with open(paths['peakIDs_Times_All'], 'rb') as f:
+        pkl = pickle.load(f)
+    panel_b_data = load_and_process_data(pkl, lfm_path)
+    panel_b_time_points = get_time_points(pkl, panel_b_data)
+
+    cond_names = list(panel_b_data.keys())
+    rec_names = [panel_b_data[c]['recording'] for c in cond_names]
+    frames = np.stack([
+        np.stack([panel_b_data[c]['meanZ'][:, :, t] for t in panel_b_time_points[c]], axis=0)
+        for c in cond_names
+    ], axis=0).astype(np.float32)
+    return cond_names, rec_names, frames
+
+
 def main():
     print(f"Using SVG renderer: {_SVG_RENDERER}")
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--recompute', action='store_true',
+                        help='Ignore the stored panel-b results and recompute them '
+                             '(needs paths[\'raw_recordings\'])')
+    args = parser.parse_args()
 
     config = load_config()
     paths = config['paths']
@@ -117,15 +154,16 @@ def main():
     pix = DrosoDoc.get_pixmap(dpi=300)
     DrosoImage = Image.open(io.BytesIO(pix.tobytes("png")))
 
-    # Panel b: built live from raw LFM data (Odor/Taste/Combi_M), same as
-    # vizDataset_B.py's standalone preview -- see draw_meanZ_row() there,
-    # shared rather than duplicated, so there's no separate manually-edited
-    # image asset to keep in sync with the actual pipeline.
-    lfm_path = paths['raw_recordings']
-    with open(paths['peakIDs_Times_All'], 'rb') as f:
-        pkl = pickle.load(f)
-    panel_b_data = load_and_process_data(pkl, lfm_path)
-    panel_b_time_points = get_time_points(pkl, panel_b_data)
+    # Panel b results (a few small frames) live in the published results folder.
+    # With the file present, no raw recordings are needed at all.
+    panel_b_results_path = os.path.join(paths['results_dir'], 'fig1_panel_b.npz')
+    if os.path.exists(panel_b_results_path) and not args.recompute:
+        print(f'Loading stored panel-b results ({panel_b_results_path})')
+        cond_names, rec_names, panel_b_frames = load_fig1_panel_b(panel_b_results_path)
+    else:
+        cond_names, rec_names, panel_b_frames = compute_panel_b_results()
+        save_fig1_panel_b(panel_b_results_path, cond_names, rec_names, panel_b_frames)
+        print(f'Saved panel-b results -> {panel_b_results_path}')
     panel_b_bg = mpimg.imread(os.path.join(src_imgs_dir, 'RawImages_blank_B.png'))
 
     ExpHierarchy = load_svg(os.path.join(src_imgs_dir, 'expHierarchy.svg'))
@@ -201,9 +239,11 @@ def main():
     b_subplotspec = axes['2'].get_subplotspec()
     axes['2'].remove()
     gs_b = GridSpecFromSubplotSpec(3, 1, subplot_spec=b_subplotspec, hspace=0.3)
-    for i, cond in enumerate(panel_b_data.keys()):
+    for i, cond in enumerate(cond_names):
         ax_row = fig.add_subplot(gs_b[i, 0])
-        draw_meanZ_row(ax_row, panel_b_data[cond]['meanZ'], panel_b_time_points[cond], panel_b_bg)
+        # (H, W, 6): matches draw_meanZ_row()'s meanZ_data[:, :, t] indexing convention.
+        meanZ_stack = np.moveaxis(panel_b_frames[i], 0, -1)
+        draw_meanZ_row(ax_row, meanZ_stack, list(range(panel_b_frames.shape[1])), panel_b_bg)
 
     # Panel labels, placed after layout is finalised, all from the shared
     # GridSpec's nominal row/column boundaries rather than each axes' own
