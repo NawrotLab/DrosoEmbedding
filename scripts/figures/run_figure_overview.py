@@ -19,7 +19,7 @@ from src.visualization.figure_base import apply_style, FIGURE_WIDTH, save_figure
 from src.visualization.vizDataset_B import (
     load_and_process_data, get_time_points, draw_meanZ_row,
 )
-from src.analysis.example_frames import save_fig1_panel_b, load_fig1_panel_b
+from src.analysis.example_frames import save_fig1_panel_b, load_fig1_panel_b, has_fig1_panel_b
 
 apply_style()
 
@@ -162,8 +162,8 @@ def main():
 
     # Panel b results (a few small frames) live in the published results folder.
     # With the file present, no raw recordings are needed at all.
-    panel_b_results_path = os.path.join(paths['results_dir'], 'fig1_panel_b.npz')
-    if os.path.exists(panel_b_results_path) and not args.recompute:
+    panel_b_results_path = os.path.join(paths['results_dir'], 'example_frames.npz')
+    if has_fig1_panel_b(panel_b_results_path) and not args.recompute:
         print(f'Loading stored panel-b results ({panel_b_results_path})')
         cond_names, rec_names, panel_b_frames = load_fig1_panel_b(panel_b_results_path)
     else:

@@ -22,7 +22,7 @@ import cairosvg
 
 from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
-from src.analysis.example_frames import save_s1_frames, load_s1_frames
+from src.analysis.example_frames import save_s1_frames, load_s1_frames, has_s1_frames
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
 apply_style()
@@ -506,8 +506,8 @@ def main():
     # Panel C's example frames (a few dozen small images) live in the published
     # results folder. With the file present, none of the preprocessed frames
     # are needed to reproduce the figure.
-    results_path = os.path.join(paths['results_dir'], 'figS1_frames.npz')
-    if os.path.exists(results_path) and not args.recompute:
+    results_path = os.path.join(paths['results_dir'], 'example_frames.npz')
+    if has_s1_frames(results_path) and not args.recompute:
         print(f'Loading stored panel-C results ({results_path})')
         results = load_s1_frames(results_path)
     else:
