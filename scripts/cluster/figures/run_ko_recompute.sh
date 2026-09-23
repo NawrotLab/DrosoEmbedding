@@ -31,25 +31,25 @@ source "$BASE_DIR/.venv/bin/activate"
 echo "branch: $(git branch --show-current)   commit: $(git log -1 --oneline)"
 
 cfg() { python3 -c "from src.utils.config_loader import load_config; print(load_config()['paths']['$1'])" | tail -n1; }
-STACK_PATH="$(cfg results_dir)/ko_static/raw_delta_stack.npy"
-echo "stack path: $STACK_PATH"
+RESULTS_PATH="$(cfg results_dir)/ko_static.npz"
+echo "results path: $RESULTS_PATH"
 
 # Keep the current (submission-matching, 49-run) stack -- don't lose it if
 # this recompute fails partway, or if the result turns out to differ from
 # what was submitted and we need to compare the two.
-if [ -f "$STACK_PATH" ]; then
-    BACKUP="${STACK_PATH%.npy}_49run_$(date +%Y%m%d%H%M%S).npy"
-    cp "$STACK_PATH" "$BACKUP"
-    echo "backed up existing stack -> $BACKUP"
+if [ -f "$RESULTS_PATH" ]; then
+    BACKUP="${RESULTS_PATH%.npz}_49run_$(date +%Y%m%d%H%M%S).npz"
+    cp "$RESULTS_PATH" "$BACKUP"
+    echo "backed up existing results -> $BACKUP"
 fi
 
-python3 -m scripts.figures.run_sfigure_ko_neuropils --recompute
+python3 -m scripts.figures.run_figS4_ko_neuropils --recompute
 
 echo "=== resulting stack shape"
 python3 -c "
-import numpy as np
-s = np.load('$STACK_PATH')
-print(f'{s.shape} (runs x classes x neuropils)')
-print('50 runs -> all checkpoints now available' if s.shape[0] == 50 else f'still {s.shape[0]} runs -- see the [WARN]/Checkpoint-missing lines in the .err log for which run_id')
+from src.analysis.ko_permutation import load_ko_results
+stack, sizes, names = load_ko_results('$RESULTS_PATH')
+print(f'{stack.shape} (runs x classes x neuropils)')
+print('50 runs -> all checkpoints now available' if stack.shape[0] == 50 else f'still {stack.shape[0]} runs -- see the [WARN]/Checkpoint-missing lines in the .err log for which run_id')
 "
 echo "=== done"

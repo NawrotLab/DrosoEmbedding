@@ -12,7 +12,7 @@ construction of the baseline subtraction, so filling with it removes the
 stimulus-driven response of the neuropil while avoiding the large
 out-of-distribution black region that zero/NaN-fill produces for big
 neuropils (OL, VLNP). This is the KO variant used in the published S4
-figure (run_sfigure_ko_neuropils.py).
+figure (run_figS4_ko_neuropils.py).
 
 Output namespace:
     meanZ_allTs_KO_static_{neuropil}

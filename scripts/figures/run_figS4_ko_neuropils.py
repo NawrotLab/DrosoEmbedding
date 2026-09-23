@@ -21,8 +21,8 @@ seconds and needs no frames, models or GPU.  If the stack is missing (or with
 (slow — ~half a day on the server) and saves the stack there.
 
 Usage (from repo root):
-    python scripts/figures/run_sfigure_ko_neuropils.py
-    python scripts/figures/run_sfigure_ko_neuropils.py --recompute
+    python scripts/figures/run_figS4_ko_neuropils.py
+    python scripts/figures/run_figS4_ko_neuropils.py --recompute
 """
 
 import argparse
@@ -82,7 +82,7 @@ args = parser.parse_args()
 
 config = load_config()
 logger = setup_logger(task_name=f'sfig_ko_neuropils_{VARIANT}',
-                      log_dir='logs/run_sfigure_ko_neuropils')
+                      log_dir='logs/run_figS4_ko_neuropils')
 
 paths   = config['paths']
 OUT_DIR = paths['output_dir']

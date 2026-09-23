@@ -5,7 +5,7 @@ Everything the figure plots -- the pooled attribution maps (panel b), and the
 group / contrast tables (panels d, e) -- fits in one small .npz (well under
 5 MB), so the figure can be drawn from it without the model, the test frames
 or the neuropil masks. The heavy computation that produces it lives in
-scripts/figures/run_figure_gradcam_neuropils.py (compute_results()).
+scripts/figures/run_fig4_gradcam_neuropils.py (compute_results()).
 
 A plain .npz (no pickle) so it loads in any numpy version; dtypes are stored
 exactly, so a figure drawn from the file is identical to one drawn from the

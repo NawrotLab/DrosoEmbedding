@@ -26,7 +26,7 @@ Panel d (bottom-right):
 Shared legend at the bottom.
 
 Usage (from repo root):
-    python -m scripts.figures.run_figure_accuracy_error
+    python -m scripts.figures.run_fig3_accuracy_error
 
 Output:
     results/CombiPlots/{pdfs,pngs}/fig_accuracy_error.{pdf,png}
@@ -514,7 +514,7 @@ def build_figure(results, class_styles_dict, task_class_names, styles,
 
 def main():
     logger = setup_logger(task_name='fig_accuracy_error',
-                          log_dir='logs/run_figure_accuracy_error')
+                          log_dir='logs/run_fig3_accuracy_error')
     logger.info('Starting main')
 
     config = load_config()

@@ -43,42 +43,64 @@ done
 echo "PNGs kept in $BEFORE:"; ls -l "$BEFORE"
 
 # ── 1. Fig S4 results: move the two small files into the results folder (once) ─
-echo "=== 1. S4 results into $RESULTS_DIR"
-mkdir -p "$RESULTS_DIR/ko_static"
-[ -f "$RESULTS_DIR/ko_static/raw_delta_stack.npy" ] || \
-    cp results/diagnostics/KO_permutation_static/raw_delta_stack.npy "$RESULTS_DIR/ko_static/"
-[ -f "$RESULTS_DIR/neuropil_sizes_2d.json" ] || \
-    cp results/preprocessing/neuropil_sizes_2d.json "$RESULTS_DIR/"
-ls -l "$RESULTS_DIR" "$RESULTS_DIR/ko_static"
+echo "=== 1. S4 results into $RESULTS_DIR (merged ko_static.npz)"
+python3 -c "
+import os, json
+import numpy as np
+from src.analysis.ko_permutation import save_ko_results, NEUROPILS
+
+dst = os.path.join('$RESULTS_DIR', 'ko_static.npz')
+if os.path.exists(dst):
+    print(f'already have {dst}')
+else:
+    # migrate from whichever old split-file location is available, without
+    # recomputing -- either an earlier results_dir (pre-merge) or the
+    # original cluster-local location this was first computed to.
+    stack_candidates = [os.path.join('$RESULTS_DIR', 'ko_static', 'raw_delta_stack.npy'),
+                         'results/diagnostics/KO_permutation_static/raw_delta_stack.npy']
+    sizes_candidates = [os.path.join('$RESULTS_DIR', 'neuropil_sizes_2d.json'),
+                         'results/preprocessing/neuropil_sizes_2d.json']
+    stack_path = next((p for p in stack_candidates if os.path.exists(p)), None)
+    sizes_path = next((p for p in sizes_candidates if os.path.exists(p)), None)
+    if stack_path and sizes_path:
+        stack = np.load(stack_path)
+        sizes_json = json.load(open(sizes_path))
+        sizes = np.array([sizes_json[n] for n in NEUROPILS])
+        save_ko_results(dst, stack, sizes, NEUROPILS)
+        print(f'migrated {stack_path} + {sizes_path} -> {dst}')
+    else:
+        print('no old-format source found -- run_figS4_ko_neuropils.py will recompute from scratch')
+"
+ls -l "$RESULTS_DIR"
 
 # ── 2. Re-plot from the results ──────────────────────────────────────────────
 run() { echo "--- $*"; "$@" || echo "FAILED: $*"; }
 
 echo "=== 2. re-plot (Fig 3 first: it rebuilds the outdated aggregated results, ~3 min)"
-run python3 -m scripts.figures.run_figure_accuracy_error
+run python3 -m scripts.figures.run_fig3_accuracy_error
 run python3 -m scripts.analysis.describe_results
-run python3 -m scripts.figures.run_sfigure_training_curves
-run python3 -m scripts.figures.run_sfigure_ko_neuropils
-run python3 -m scripts.figures.run_figure_latent
-run python3 -m scripts.figures.run_sfigure_latent_interactions
+run python3 -m scripts.figures.run_figS3_training_curves
+run python3 -m scripts.figures.run_figS4_ko_neuropils
+run python3 -m scripts.figures.run_fig2_latent
+run python3 -m scripts.figures.run_figS2_latent_interactions
 
 # ── 2b. Fig 4: compute + save its results once, then re-plot from the saved file ─
 # First call: no results file yet -> computes Grad-CAM (model, test frames, neuropil masks)
 # and saves gradcam_neuropils_conv1.npz. Second call: loads it. The two figures must match.
 echo "=== 2b. Fig 4 (computes and saves its results, then re-plots from them)"
-run python3 -m scripts.figures.run_figure_gradcam_neuropils
+run python3 -m scripts.figures.run_fig4_gradcam_neuropils
 [ -f "$PNGS/fig_neuropils_conv1.png" ] && cp "$PNGS/fig_neuropils_conv1.png" "$BEFORE/fig4_computed_run.png"
-run python3 -m scripts.figures.run_figure_gradcam_neuropils
+run python3 -m scripts.figures.run_fig4_gradcam_neuropils
 ls -l "$RESULTS_DIR"
 
 # ── 2c. Fig 1 panel b + Fig S1: compute + save their results once, re-plot from them ─
 echo "=== 2c. Fig 1 + S1 (compute and save their results, then re-plot from them)"
-run python3 -m scripts.figures.run_figure_overview
+run python3 -m scripts.figures.run_fig1_overview
 [ -f "$PNGS/fig_overview.png" ] && cp "$PNGS/fig_overview.png" "$BEFORE/fig1_computed_run.png"
-run python3 -m scripts.figures.run_figure_overview
-run python3 -m scripts.figures.run_sfigure_exp_design
+run python3 -m scripts.figures.run_fig1_overview
+run python3 -m scripts.figures.run_figS1_exp_design
 [ -f "$PNGS/figS_exp_design.png" ] && cp "$PNGS/figS_exp_design.png" "$BEFORE/figS1_computed_run.png"
-run python3 -m scripts.figures.run_sfigure_exp_design
+run python3 -m scripts.figures.run_figS1_exp_design
 ls -l "$RESULTS_DIR"
 
 # ── 3. Compare with the PNGs from before ─────────────────────────────────────

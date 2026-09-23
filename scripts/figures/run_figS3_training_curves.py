@@ -7,7 +7,7 @@ Panel a (top):  training loss (solid) + validation loss (dashed) with shaded ban
 Panel b (bottom): validation accuracy (dashed) with shaded band
 
 Usage (from repo root):
-    python scripts/figures/run_sfigure_training_curves.py
+    python scripts/figures/run_figS3_training_curves.py
 
 Output:
     results/CombiPlots/{pdfs,pngs}/figS_training_curves.{pdf,png}

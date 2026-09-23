@@ -2,7 +2,7 @@
 Error classification taxonomy for the 6-class (State x Modality) and
 16-class (State x Modality x Valence) confusion matrices.
 
-Used by scripts/figures/run_figure_accuracy_error.py (Fig 3).
+Used by scripts/figures/run_fig3_accuracy_error.py (Fig 3).
 """
 
 import numpy as np

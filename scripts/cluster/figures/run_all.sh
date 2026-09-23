@@ -21,28 +21,28 @@ source "$BASE_DIR/.venv/bin/activate"
 # ── Paper figures, in paper order ───────────────────────────────────────────
 
 # Fig 1 — Overview
-python3 -m scripts.figures.run_figure_overview
+python3 -m scripts.figures.run_fig1_overview
 
 # S1 — Experimental Setup and Example Recordings
-python3 -m scripts.figures.run_sfigure_exp_design
+python3 -m scripts.figures.run_figS1_exp_design
 
 # S2 — Latent Space Interactions
-python3 -m scripts.figures.run_sfigure_latent_interactions
+python3 -m scripts.figures.run_figS2_latent_interactions
 
 # Fig 2 — Latent Space Visualization
-python3 -m scripts.figures.run_figure_latent
+python3 -m scripts.figures.run_fig2_latent
 
 # S3 — Training & Validation Curves
-python3 -m scripts.figures.run_sfigure_training_curves
+python3 -m scripts.figures.run_figS3_training_curves
 
 # Fig 3 — Classification Performance and Error Structure
-python3 -m scripts.figures.run_figure_accuracy_error
+python3 -m scripts.figures.run_fig3_accuracy_error
 
 # Fig 4 — Neuropil Importance (GradCAM-based)
-python3 -m scripts.figures.run_figure_gradcam_neuropils
+python3 -m scripts.figures.run_fig4_gradcam_neuropils
 
 # S4 — Neuropil Knockout Importance
-python3 -m scripts.figures.run_sfigure_ko_neuropils
+python3 -m scripts.figures.run_figS4_ko_neuropils
 
 # Note: an earlier, incorrect Fig 4 (run_figure_interpretability.py) was
 # removed — superseded by Fig 4 / S4 above. See git history to recover it.

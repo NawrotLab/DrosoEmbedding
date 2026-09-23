@@ -89,26 +89,26 @@ Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and clas
 
 ## Figures
 
-`run_figure_latent.py` and `run_figure_accuracy_error.py` read from the aggregated results of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) them once with:
+`run_fig2_latent.py` and `run_fig3_accuracy_error.py` read from the aggregated results of the full evaluation sweep rather than opening all ~750 per-model result files on every run. Build (or rebuild) them once with:
 
 ```bash
 python -m scripts.analysis.build_results
 ```
 
-This writes `evaluation/aggregated_results.pkl` (~8MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to build the results. Pass `RESULTS_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
+This writes `evaluation/aggregated_results.pkl` (~12MB). It's built automatically the first time either figure script needs it, but running it standalone avoids the confusing side effect of "generating a figure" just to build the results. Pass `RESULTS_RECOMPUTE=true` to force a fresh rebuild (needed if any evaluation result changed, e.g. a resubmitted sweep straggler — there's no staleness check against the underlying files).
 
-Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results:
+Each script in `scripts/figures/` reproduces one figure or supplementary figure, reading from published/evaluated results, in paper order:
 
 | Script | Figure |
 |---|---|
-| `run_figure_overview.py` | Study overview |
-| `run_figure_latent.py` | Latent-space geometry |
-| `run_figure_accuracy_error.py` | Classification performance and error structure |
-| `run_figure_gradcam_neuropils.py` | GradCAM-based neuropil importance |
-| `run_sfigure_exp_design.py` | Experimental design |
-| `run_sfigure_training_curves.py` | Training/validation curves across the sweep |
-| `run_sfigure_latent_interactions.py` | Latent-space interaction effects |
-| `run_sfigure_ko_neuropils.py` | Neuropil-knockout importance |
+| `run_fig1_overview.py` | Study overview |
+| `run_figS1_exp_design.py` | Experimental design |
+| `run_figS2_latent_interactions.py` | Latent-space interaction effects |
+| `run_fig2_latent.py` | Latent-space geometry |
+| `run_figS3_training_curves.py` | Training/validation curves across the sweep |
+| `run_fig3_accuracy_error.py` | Classification performance and error structure |
+| `run_fig4_gradcam_neuropils.py` | GradCAM-based neuropil importance |
+| `run_figS4_ko_neuropils.py` | Neuropil-knockout importance |
 
 Run them after the evaluation results they depend on exist (either from the Data repository directly, or from your own evaluation runs above).
 

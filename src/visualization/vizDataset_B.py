@@ -1,6 +1,6 @@
 # Generates source images for Figure 1, panel B (example input sequences).
 # Standalone (main()) saves a preview PNG to src/src_imgs/RawImages.png, but
-# run_figure_overview.py no longer loads that file -- it imports
+# run_fig1_overview.py no longer loads that file -- it imports
 # load_and_process_data/get_time_points/draw_meanZ_row directly and builds
 # panel B live, so there's no separate manual/cropped image asset to keep in
 # sync.
@@ -96,7 +96,7 @@ def draw_meanZ_row(ax, meanZ_data, time_points_row, bg_img, overlay_extents=OVER
     """
     Draw one row (background PNG + 6 overlaid frames: 1 pre-stimulus + 5
     sequence) onto the given axes. Shared by plot_meanZ() below and
-    run_figure_overview.py's panel B, so the two can never drift apart.
+    run_fig1_overview.py's panel B, so the two can never drift apart.
     """
     ax.imshow(bg_img, extent=[0, 6, 0, 1], zorder=0)
 
