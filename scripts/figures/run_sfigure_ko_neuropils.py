@@ -40,6 +40,7 @@ from src.utils.logger import setup_logger
 from src.analysis.ko_permutation import (
     NEUROPILS,
     load_or_run_ko_permutation,
+    load_ko_results,
     aggregate_ko_by_group,
 )
 from src.visualization.visualize_interpretability import (
@@ -86,18 +87,23 @@ logger = setup_logger(task_name=f'sfig_ko_neuropils_{VARIANT}',
 paths   = config['paths']
 OUT_DIR = paths['output_dir']
 
-# The KO stack (runs x classes x neuropils, ~40 KB) is what this figure is built
-# from. It lives in the published results folder, next to the neuropil-size file
-# the aggregation below normalises by.
-RESULTS_PATH = os.path.join(paths['results_dir'], f'ko_{VARIANT}', 'raw_delta_stack.npy')
+# What this figure is built from: the KO stack (runs x classes x neuropils)
+# and the neuropil-size normalisation, together in one small file (~75KB) in
+# the published results folder.
+RESULTS_PATH = os.path.join(paths['results_dir'], f'ko_{VARIANT}.npz')
 
 # ════════════════════════════════════════════════
-# LOAD OR COMPUTE KO STACK
+# LOAD OR COMPUTE KO STACK + SIZES
 # ════════════════════════════════════════════════
+
+rng = random.Random(42)
 
 if os.path.exists(RESULTS_PATH) and not args.recompute:
-    logger.info(f'Loading stored KO stack ({RESULTS_PATH})')
-    stack = np.load(RESULTS_PATH)
+    logger.info(f'Loading stored KO results ({RESULTS_PATH})')
+    stack, sizes, stored_names = load_ko_results(RESULTS_PATH)
+    if stored_names != NEUROPILS:
+        raise ValueError(f'{RESULTS_PATH} was built with neuropil order {stored_names}, '
+                          f'expected {NEUROPILS} -- rerun with --recompute.')
 else:
     # Recomputing needs the test frames, the 50 checkpoints and a GPU (slow).
     model_params = config['model']['parameters']
@@ -119,8 +125,11 @@ else:
     # for a run_id it can't find), so no need to pre-filter to existing ones.
     run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
 
-    stack = load_or_run_ko_permutation(
+    stack, sizes = load_or_run_ko_permutation(
         results_path=RESULTS_PATH,
+        neuropils=NEUROPILS,
+        config=config,
+        rng=rng,
         recompute=args.recompute,
         logger=logger,
         # kwargs forwarded to run_ko_permutation:
@@ -130,7 +139,6 @@ else:
         Y_test=Y_test,
         model_params=model_params,
         allTs_base=allTs_base,
-        neuropils=NEUROPILS,
         variant=VARIANT,
         device=device,
         n_classes=n_classes,
@@ -144,13 +152,10 @@ logger.info(f'KO stack shape: {stack.shape}  '
 # AGGREGATE: group profiles + contrasts
 # ════════════════════════════════════════════════
 
-rng = random.Random(42)
-
 df_group, df_contrast = aggregate_ko_by_group(
     stack=stack,
     neuropils=NEUROPILS,
-    config=config,
-    rng=rng,
+    sizes=sizes,
     logger=logger,
 )
 

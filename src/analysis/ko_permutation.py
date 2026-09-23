@@ -214,33 +214,60 @@ def run_ko_permutation(
 
 # ── caching wrapper ───────────────────────────────────────────────────────────
 
+def save_ko_results(path: str, stack: np.ndarray, sizes: np.ndarray, neuropil_names) -> None:
+    """One small file (plain .npz, no pickle) holding everything Fig S4 is built
+    from: stack (n_runs, n_classes, n_neuropils) delta-accuracy, and sizes
+    (n_neuropils,) the 2D pixel-footprint normalisation -- previously two
+    separate files (raw_delta_stack.npy + neuropil_sizes_2d.json)."""
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    np.savez_compressed(path, stack=stack, sizes=sizes, neuropil_names=np.array(neuropil_names))
+
+
+def load_ko_results(path: str):
+    """Inverse of save_ko_results: (stack, sizes, neuropil_names)."""
+    with np.load(path, allow_pickle=False) as z:
+        return z['stack'], z['sizes'], z['neuropil_names'].tolist()
+
+
 def load_or_run_ko_permutation(
     results_path: str,
+    neuropils,
+    config: dict = None,
+    rng: random.Random = None,
     recompute: bool = False,
     logger=None,
     **kwargs,
-) -> np.ndarray:
-    """Load the stored KO stack, or run the full permutation and save the result.
+):
+    """Load the stored (stack, sizes), or run the full permutation + size
+    computation and save the merged result.
 
-    The results file is a single .npy file containing the raw
-    (n_runs, n_classes, n_neuropils) delta-accuracy stack.
     Pass recompute=True to ignore the stored results and rerun everything.
     All extra kwargs are forwarded to run_ko_permutation.
+
+    Returns (stack, sizes).
     """
     def _log(msg):
         if logger: logger.info(msg)
         else: print(msg)
 
     if not recompute and os.path.exists(results_path):
-        _log(f'Loading stored KO stack ({results_path})')
-        return np.load(results_path)
+        _log(f'Loading stored KO results ({results_path})')
+        stack, sizes, stored_names = load_ko_results(results_path)
+        if stored_names != list(neuropils):
+            raise ValueError(
+                f'{results_path} was built with neuropil order {stored_names}, '
+                f'but this run expects {list(neuropils)} -- rebuild with recompute=True.')
+        return stack, sizes
 
-    _log('No stored KO stack, or recompute=True — running KO permutation (slow)…')
+    _log('No stored KO results, or recompute=True — running KO permutation (slow)…')
     stack = run_ko_permutation(logger=logger, **kwargs)
-    os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
-    np.save(results_path, stack)
-    _log(f'Saved KO stack → {results_path}')
-    return stack
+    # Same 2D pixel-footprint normalisation aggregate_ko_by_group() used to
+    # compute internally -- centralised here so both halves of the merged
+    # results file are always built (and go stale) together.
+    sizes = compute_neuropil_sizes_2d(config, rng=rng, logger=logger)
+    save_ko_results(results_path, stack, sizes, neuropils)
+    _log(f'Saved KO results → {results_path}')
+    return stack, sizes
 
 
 # ── aggregation ───────────────────────────────────────────────────────────────
@@ -248,6 +275,7 @@ def load_or_run_ko_permutation(
 def aggregate_ko_by_group(
     stack: np.ndarray,
     neuropils,
+    sizes: np.ndarray = None,
     config: dict = None,
     rng: random.Random = None,
     logger=None,
@@ -260,7 +288,11 @@ def aggregate_ko_by_group(
     Parameters
     ----------
     stack     : (n_runs, n_classes, n_neuropils) in pp — from load_or_run_ko_permutation
-    config    : base YAML config dict, needed for the 2D size normalisation
+    sizes     : (n_neuropils,) 2D pixel-footprint normalisation, also from
+                load_or_run_ko_permutation. If not given, computed here from
+                config (the pre-merge behaviour) -- kept as a fallback for any
+                caller that doesn't already have it.
+    config    : base YAML config dict; only needed if sizes is None.
 
     Returns
     -------
@@ -277,7 +309,8 @@ def aggregate_ko_by_group(
     delta_mean = np.nanmean(stack, axis=0)   # (n_classes, n_neuropils)
 
     # Normalise by each neuropil's mean 2D pixel footprint (per 1k pixels)
-    sizes = compute_neuropil_sizes_2d(config, rng=rng, logger=logger)
+    if sizes is None:
+        sizes = compute_neuropil_sizes_2d(config, rng=rng, logger=logger)
     delta_mean = delta_mean / (sizes / 1_000)
 
     n_classes = delta_mean.shape[0]
