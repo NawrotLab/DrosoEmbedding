@@ -136,7 +136,6 @@ def setup_derived_parameters(config):
     # === Expand dynamic paths ===
     root = Path(config["paths"]["root"])
     config["paths"]["checkpoints_dir"] = str(root / "results" / "_chkpt_finals")
-    config["paths"]["src_imgs_dir"]    = str(root / "src" / "src_imgs")
     config["paths"]["output_dir"]      = str(root / "results" / "CombiPlots")
     config["paths"]["recodings_df"] = f"{config['paths']['data_root']}/Recordings_df.xlsx"
     config["paths"]["imgs4DL"] = f"{config['paths']['data_root']}/imgs4DL"
@@ -186,6 +185,12 @@ def setup_derived_parameters(config):
     # confused with results_root above, which is one training run's scratch dir.
     config["paths"]["results_dir"] = os.environ.get(
         "DROSO_RESULTS_DIR", f"{publish_root}/results/")
+    # Hand-authored illustration assets (pipeline sketches, model diagram, atlas)
+    # that some figure scripts load -- published alongside the other results,
+    # not part of the code checkout (see git history for when these were
+    # untracked from src/src_imgs/ and moved to the data repository).
+    config["paths"]["src_imgs_dir"] = os.environ.get(
+        "DROSO_SRC_IMGS_DIR", f"{config['paths']['results_dir']}/src_imgs")
     config["paths"]["mlflow_dir"] = os.environ.get(
         "DROSO_MLFLOW_ROOT", f"{root}/mlflow")
 

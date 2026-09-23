@@ -31,17 +31,12 @@ __pycache__/
 # Poetry env (if local)
 .venv/
 
-# Source images -- excluded by default (drafts/archive/WIP), except the
-# specific files the figure scripts actually read at runtime.
+# Source images -- the illustration assets figure scripts read at runtime
+# (DrosoImaging.pdf, RawImages_blank_B.png, expHierarchy.svg, ModelArch.svg,
+# LatentSketch.svg, Placeholder.png, LFM_Sketch.svg, CAM_Sketch.svg,
+# NeuropilsAtlas.svg) moved out of the code repo entirely -- published in the
+# data repository's results/src_imgs/ (paths['src_imgs_dir']) instead. Ignore
+# this whole directory now; keep it around locally only as a convenience.
 src/src_imgs/*
-!src/src_imgs/DrosoImaging.pdf
-!src/src_imgs/RawImages_blank_B.png
-!src/src_imgs/expHierarchy.svg
-!src/src_imgs/ModelArch.svg
-!src/src_imgs/LatentSketch.svg
-!src/src_imgs/Placeholder.png
-!src/src_imgs/LFM_Sketch.svg
-!src/src_imgs/CAM_Sketch.svg
-!src/src_imgs/NeuropilsAtlas.svg
 
 mlflow/scripts/cluster/evaluation/eval_manifest.txt
