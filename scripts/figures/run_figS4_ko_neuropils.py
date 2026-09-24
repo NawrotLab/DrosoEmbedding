@@ -162,11 +162,6 @@ df_group, df_contrast = aggregate_ko_by_group(
     logger=logger,
 )
 
-# figure source data, saved next to the figure
-os.makedirs(OUT_DIR, exist_ok=True)
-df_group.to_csv(os.path.join(OUT_DIR, f'{OUT_STEM}_group_profiles.csv'))
-df_contrast.to_csv(os.path.join(OUT_DIR, f'{OUT_STEM}_contrasts.csv'))
-
 # ════════════════════════════════════════════════
 # ASSEMBLE FIGURE
 # ════════════════════════════════════════════════
