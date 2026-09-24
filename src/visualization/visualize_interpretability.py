@@ -347,7 +347,7 @@ FACTOR_POOLS = {
     'Taste':     [4, 5, 6, 7],
     'Odor+Taste':[8, 9, 10, 11, 12, 13, 14, 15],
     'App.':      [0, 2, 4, 6, 8, 12],
-    'Avers.':    [1, 3, 5, 7, 9, 13],
+    'Avs.':      [1, 3, 5, 7, 9, 13],
     'Mixed':     [10, 11, 14, 15],
 }
 
@@ -713,20 +713,20 @@ def plot_gradcam_pooled(
     Layout:
               State       Modality      Valence     ┃cbar
     Row 0:  ┃ Fed       ┃ Odor        ┃ App.       ┃ ▐
-    Row 1:  ┃ Starved   ┃ Taste       ┃ Avers.     ┃ ▐
-    Row 2:  ┃ (empty)   ┃ Odor+Taste  ┃ App./Avers.┃ ▐
+    Row 1:  ┃ Starved   ┃ Taste       ┃ Avs.       ┃ ▐
+    Row 2:  ┃ (empty)   ┃ Odor+Taste  ┃ App./Avs.  ┃ ▐
     """
     # Columns: group label → list of factor names (top-to-bottom)
     columns = [
         ('State',    ['Fed',    'Starved',   None]),
         ('Modality', ['Odor',   'Taste',     'Odor+Taste']),
-        ('Valence',  ['App.',   'Avers.',    'Mixed']),
+        ('Valence',  ['App.',   'Avs.',      'Mixed']),
     ]
 
     display_labels = {
         'Fed': 'Fed', 'Starved': 'Starved',
         'Odor': 'Odor', 'Taste': 'Taste', 'Odor+Taste': 'Odor+Taste',
-        'App.': 'App.', 'Avers.': 'Avers.', 'Mixed': 'App./Avers.',
+        'App.': 'App.', 'Avs.': 'Avs.', 'Mixed': 'App./Avs.',
     }
 
     nrows, ncols = 3, 3

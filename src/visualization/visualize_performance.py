@@ -1369,7 +1369,7 @@ def plot_2d_projection(
     _endpoints = {
         'State':    ('Starved', 'Fed'),
         'Modality': ('Odor',    'Taste'),
-        'Valence':  ('Avers.',  'App.'),
+        'Valence':  ('Avs.',    'App.'),
     }
     if xlabel in _endpoints:
         neg, pos = _endpoints[xlabel]
@@ -1543,7 +1543,7 @@ def plot_biological_axes_panel(
         ax.text(0, lim, 'Taste', ha='center', va='bottom', fontsize=FONT_SIZES['annotation'])
         ax.text(0, -lim, 'Odor', ha='center', va='top', fontsize=FONT_SIZES['annotation'])
         ax.text(diag_len * cos_a, diag_len * sin_a, '  App.', ha='left', va='bottom', fontsize=FONT_SIZES['annotation'])
-        ax.text(-diag_len * cos_a, -diag_len * sin_a, 'Avers.  ', ha='right', va='top', fontsize=FONT_SIZES['annotation'])
+        ax.text(-diag_len * cos_a, -diag_len * sin_a, 'Avs.  ', ha='right', va='top', fontsize=FONT_SIZES['annotation'])
 
         ax.set_xlim(-lim * 1.7, lim * 1.7)
         ax.set_ylim(-lim * 2.0, lim * 1.6)

@@ -19,6 +19,14 @@ import pandas as pd
 
 RESULTS_VERSION = 1
 
+# 'Avers.' -> 'Avs.' label rename (consistency fix across Fig2/S2/Fig4/S1/S4,
+# 2026-09-24): pooled_cams' keys are baked into already-published .npz files
+# as data (pooled_names), so a plain load of an old file would still hand
+# back the old key and KeyError against the new 'Avs.'-keyed FACTOR_POOLS/
+# columns in visualize_interpretability.py. Translate on load instead of
+# forcing a GPU recompute just to rename a label.
+_LEGACY_LABEL_RENAME = {'Avers.': 'Avs.'}
+
 
 def save_gradcam_results(path, pooled_cams, brain_shape, df_group, df_contrast):
     """pooled_cams: dict name -> (H, W) array (insertion order is kept);
@@ -48,7 +56,8 @@ def load_gradcam_results(path):
         if version != RESULTS_VERSION:
             raise ValueError(f'{path} has layout version {version}, expected {RESULTS_VERSION}')
         names = z['pooled_names'].tolist()
-        pooled_cams = {name: z[f'pooled_{i}'] for i, name in enumerate(names)}
+        pooled_cams = {_LEGACY_LABEL_RENAME.get(name, name): z[f'pooled_{i}']
+                       for i, name in enumerate(names)}
         brain_shape = tuple(int(v) for v in z['brain_shape'])
         neuropils = z['neuropils'].tolist()
         df_group = pd.DataFrame(z['group_values'], index=z['group_index'].tolist(), columns=neuropils)

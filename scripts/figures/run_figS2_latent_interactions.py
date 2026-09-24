@@ -44,7 +44,7 @@ TASK_AXES = {
 _AXIS_ENDPOINTS = {
     'State':    ('Starved', 'Fed'),
     'Modality': ('Odor',    'Taste'),
-    'Valence':  ('Avers.',  'App.'),
+    'Valence':  ('Avs.',    'App.'),
 }
 
 def _add_1d_endpoint_labels(ax: plt.Axes, proj: np.ndarray, axis_display: str,
