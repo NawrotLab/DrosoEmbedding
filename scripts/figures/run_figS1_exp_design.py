@@ -41,8 +41,21 @@ PANEL_A_SVG = os.path.join(paths['src_imgs_dir'], 'LFM_Sketch.svg')
 
 ALL_TS_DIR = paths['allTs_path']
 
-with open(paths['peakIDs_Times_All'], 'rb') as _f:
-    ID_TIMES_DICT = pickle.load(_f)
+# Lazy: only needed by get_included_excluded() -> select_frames_for_panel(),
+# both exclusively on the compute_results() (raw-data) path -- loading it
+# unconditionally at import time defeated the point of the Level-1 "load
+# stored results, no raw data needed" path (it required paths['peakIDs_Times_All']
+# to exist even when panel C was being loaded straight from example_frames.npz).
+_ID_TIMES_DICT = None
+
+
+def _id_times_dict():
+    global _ID_TIMES_DICT
+    if _ID_TIMES_DICT is None:
+        with open(paths['peakIDs_Times_All'], 'rb') as _f:
+            _ID_TIMES_DICT = pickle.load(_f)
+    return _ID_TIMES_DICT
+
 
 OUTPUT_BASE = os.path.join(paths['output_dir'], 'figS_exp_design')
 
@@ -117,7 +130,7 @@ def get_included_excluded(rec_name):
     all_dir = os.path.join(ALL_TS_DIR, rec_name)
     all_f = {int(f.replace('.tiff', '').split('_')[-1])
              for f in os.listdir(all_dir) if f.endswith('.tiff')}
-    log_f = set(ID_TIMES_DICT.get(rec_name, []))
+    log_f = set(_id_times_dict().get(rec_name, []))
 
     result = (sorted(log_f), sorted(all_f - log_f))
     _ie_memo[rec_name] = result
