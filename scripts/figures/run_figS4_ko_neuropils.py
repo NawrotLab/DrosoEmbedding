@@ -43,6 +43,7 @@ from src.analysis.ko_permutation import (
     load_ko_results,
     aggregate_ko_by_group,
 )
+from src.utils.resource_log import report
 from src.visualization.visualize_interpretability import (
     plot_heatmap_groups_abs,
     plot_contrasts_horizontal,
@@ -100,51 +101,53 @@ rng = random.Random(42)
 
 if os.path.exists(RESULTS_PATH) and not args.recompute:
     logger.info(f'Loading stored KO results ({RESULTS_PATH})')
-    stack, sizes, stored_names = load_ko_results(RESULTS_PATH)
-    if stored_names != NEUROPILS:
-        raise ValueError(f'{RESULTS_PATH} was built with neuropil order {stored_names}, '
-                          f'expected {NEUROPILS} -- rerun with --recompute.')
+    with report('S4 -- load from results', logger):
+        stack, sizes, stored_names = load_ko_results(RESULTS_PATH)
+        if stored_names != NEUROPILS:
+            raise ValueError(f'{RESULTS_PATH} was built with neuropil order {stored_names}, '
+                              f'expected {NEUROPILS} -- rerun with --recompute.')
 else:
     # Recomputing needs the test frames, the 50 checkpoints and a GPU (slow).
-    model_params = config['model']['parameters']
+    with report('S4 -- compute (50 checkpoints x 12 neuropils)', logger):
+        model_params = config['model']['parameters']
 
-    # device/allTs_path/classes are task-level constants (same for every run_id
-    # in the sweep), so the live config already has them -- no need to load a
-    # specific run's frozen config.pkl snapshot just to read these.
-    device      = config['device']
-    allTs_base  = config['paths']['allTs_path']
-    class_names = config['data']['classes']
-    n_classes   = len(class_names)
+        # device/allTs_path/classes are task-level constants (same for every run_id
+        # in the sweep), so the live config already has them -- no need to load a
+        # specific run's frozen config.pkl snapshot just to read these.
+        device      = config['device']
+        allTs_base  = config['paths']['allTs_path']
+        class_names = config['data']['classes']
+        n_classes   = len(class_names)
 
-    with open(paths['pickle_path'], 'rb') as fh:
-        _, _, X_test, _, _, Y_test = pickle.load(fh)
+        with open(paths['pickle_path'], 'rb') as fh:
+            _, _, X_test, _, _, Y_test = pickle.load(fh)
 
-    # Reads checkpoints from the flat, published models/<task>/ layout (same
-    # as run_evaluation.py) via paths['models_dir']. Missing checkpoints are
-    # skipped gracefully inside run_ko_permutation() (load_model() returns None
-    # for a run_id it can't find), so no need to pre-filter to existing ones.
-    run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
+        # Reads checkpoints from the flat, published models/<task>/ layout (same
+        # as run_evaluation.py) via paths['models_dir']. Missing checkpoints are
+        # skipped gracefully inside run_ko_permutation() (load_model() returns None
+        # for a run_id it can't find), so no need to pre-filter to existing ones.
+        run_ids = [f'{RUN_PREFIX}{x}' for x in range(1, N_RUNS + 1)]
 
-    stack, sizes = load_or_run_ko_permutation(
-        results_path=RESULTS_PATH,
-        neuropils=NEUROPILS,
-        config=config,
-        rng=rng,
-        recompute=args.recompute,
-        logger=logger,
-        # kwargs forwarded to run_ko_permutation:
-        run_ids=run_ids,
-        models_dir=paths['models_dir'],
-        X_test=X_test,
-        Y_test=Y_test,
-        model_params=model_params,
-        allTs_base=allTs_base,
-        variant=VARIANT,
-        device=device,
-        n_classes=n_classes,
-        batch_size=BATCH_SIZE,
-        num_workers=NUM_WORKERS,
-    )
+        stack, sizes = load_or_run_ko_permutation(
+            results_path=RESULTS_PATH,
+            neuropils=NEUROPILS,
+            config=config,
+            rng=rng,
+            recompute=args.recompute,
+            logger=logger,
+            # kwargs forwarded to run_ko_permutation:
+            run_ids=run_ids,
+            models_dir=paths['models_dir'],
+            X_test=X_test,
+            Y_test=Y_test,
+            model_params=model_params,
+            allTs_base=allTs_base,
+            variant=VARIANT,
+            device=device,
+            n_classes=n_classes,
+            batch_size=BATCH_SIZE,
+            num_workers=NUM_WORKERS,
+        )
 logger.info(f'KO stack shape: {stack.shape}  '
             f'(runs × classes × neuropils)')
 

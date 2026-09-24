@@ -4,6 +4,7 @@ from typing import Iterable, Mapping, Any, Dict, Optional
 import os, re, pickle
 import numpy as np
 import torch
+from src.utils import resource_log
 from sklearn.manifold import TSNE
 import yaml
 import gc
@@ -567,8 +568,9 @@ def load_or_build_all_results(
 
     if not recompute and os.path.exists(results_path):
         _log(f'Loading aggregated results ({results_path})')
-        with open(results_path, 'rb') as f:
-            stored = pickle.load(f)
+        with resource_log.report('Evaluation results -- load from results', logger):
+            with open(results_path, 'rb') as f:
+                stored = pickle.load(f)
         if all(isinstance(e, dict) and e.get('__version__', 0) >= RESULTS_VERSION for e in stored.values()):
             return stored
         _log(f'Aggregated results are outdated (need layout version {RESULTS_VERSION}) -- rebuilding')
@@ -579,14 +581,15 @@ def load_or_build_all_results(
                 f'Get an up-to-date results file.')
 
     _log('Building aggregated results from the per-model pkls…')
-    results = load_all_results(
-        base_dir, task_names,
-        fixed_trf_for_E=fixed_trf_for_E, fixed_cnn_for_H=fixed_cnn_for_H,
-        only_cnn_dim=only_cnn_dim, logger=logger,
-    )
-    os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
-    with open(results_path, 'wb') as f:
-        pickle.dump(results, f)
+    with resource_log.report('Evaluation results -- build from ~750 per-model pkls', logger):
+        results = load_all_results(
+            base_dir, task_names,
+            fixed_trf_for_E=fixed_trf_for_E, fixed_cnn_for_H=fixed_cnn_for_H,
+            only_cnn_dim=only_cnn_dim, logger=logger,
+        )
+        os.makedirs(os.path.dirname(os.path.abspath(results_path)), exist_ok=True)
+        with open(results_path, 'wb') as f:
+            pickle.dump(results, f)
     _log(f'Saved aggregated results -> {results_path}')
     return results
 

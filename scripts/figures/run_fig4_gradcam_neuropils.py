@@ -47,6 +47,7 @@ from src.visualization.visualize_interpretability import (
 )
 from src.data.dataset import compute_mean_frame_shape
 from src.analysis.gradcam_results import save_gradcam_results, load_gradcam_results
+from src.utils.resource_log import report
 from src.visualization.figure_base import (
     apply_style, FIGURE_WIDTH, save_figure, add_panel_label,
 )
@@ -190,9 +191,11 @@ RESULTS_PATH = os.path.join(paths['results_dir'], f'gradcam_neuropils_{GRADCAM_L
 
 if os.path.exists(RESULTS_PATH) and not args.recompute:
     logger.info(f'Loading stored Grad-CAM results ({RESULTS_PATH})')
-    pooled_cams, BRAIN_SHAPE, df_group, df_contrast = load_gradcam_results(RESULTS_PATH)
+    with report('Fig 4 -- load from results', logger):
+        pooled_cams, BRAIN_SHAPE, df_group, df_contrast = load_gradcam_results(RESULTS_PATH)
 else:
-    pooled_cams, BRAIN_SHAPE, df_group, df_contrast = compute_results()
+    with report('Fig 4 -- compute (model + test frames + masks)', logger):
+        pooled_cams, BRAIN_SHAPE, df_group, df_contrast = compute_results()
     save_gradcam_results(RESULTS_PATH, pooled_cams, BRAIN_SHAPE, df_group, df_contrast)
     logger.info(f'Saved Grad-CAM results -> {RESULTS_PATH}')
 

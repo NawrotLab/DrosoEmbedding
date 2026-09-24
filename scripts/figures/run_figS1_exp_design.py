@@ -23,6 +23,7 @@ import cairosvg
 from src.utils.config_loader import load_config
 from src.visualization.figure_base import apply_style, FONT_SIZES, FIGURE_WIDTH, save_figure, add_panel_label
 from src.analysis.example_frames import save_s1_frames, load_s1_frames, has_s1_frames
+from src.utils.resource_log import report
 
 # ─── FONT ────────────────────────────────────────────────────────────────────
 apply_style()
@@ -509,9 +510,11 @@ def main():
     results_path = os.path.join(paths['results_dir'], 'example_frames.npz')
     if has_s1_frames(results_path) and not args.recompute:
         print(f'Loading stored panel-C results ({results_path})')
-        results = load_s1_frames(results_path)
+        with report('S1 -- load from results'):
+            results = load_s1_frames(results_path)
     else:
-        results = compute_results()
+        with report('S1 -- compute from allTs_path'):
+            results = compute_results()
         save_s1_frames(results_path, **results)
         print(f'Saved panel-C results -> {results_path}')
 

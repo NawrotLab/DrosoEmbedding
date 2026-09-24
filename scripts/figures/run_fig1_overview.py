@@ -20,6 +20,7 @@ from src.visualization.vizDataset_B import (
     load_and_process_data, get_time_points, draw_meanZ_row,
 )
 from src.analysis.example_frames import save_fig1_panel_b, load_fig1_panel_b, has_fig1_panel_b
+from src.utils.resource_log import report
 
 apply_style()
 
@@ -165,9 +166,11 @@ def main():
     panel_b_results_path = os.path.join(paths['results_dir'], 'example_frames.npz')
     if has_fig1_panel_b(panel_b_results_path) and not args.recompute:
         print(f'Loading stored panel-b results ({panel_b_results_path})')
-        cond_names, rec_names, panel_b_frames = load_fig1_panel_b(panel_b_results_path)
+        with report('Fig 1 panel b -- load from results'):
+            cond_names, rec_names, panel_b_frames = load_fig1_panel_b(panel_b_results_path)
     else:
-        cond_names, rec_names, panel_b_frames = compute_panel_b_results()
+        with report('Fig 1 panel b -- compute from raw_recordings'):
+            cond_names, rec_names, panel_b_frames = compute_panel_b_results()
         save_fig1_panel_b(panel_b_results_path, cond_names, rec_names, panel_b_frames)
         print(f'Saved panel-b results -> {panel_b_results_path}')
     panel_b_bg = mpimg.imread(os.path.join(src_imgs_dir, 'RawImages_blank_B.png'))
