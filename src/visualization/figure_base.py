@@ -60,7 +60,13 @@ TASK_CONFIG = {
 def apply_style():
     """Call once at the top of each figure script before any plotting."""
     plt.rcParams.update({
-        'font.family':     'Arial',
+        # DejaVu Sans, not Arial: Arial isn't installed on the cluster or on a
+        # typical reviewer's machine, so matplotlib silently substitutes
+        # DejaVu Sans anyway -- declaring it directly renders identically
+        # (confirmed: same font actually used either way) without the
+        # "findfont: Font family 'Arial' not found" warning on every text
+        # element (hundreds of lines per figure, pure log noise).
+        'font.family':     'DejaVu Sans',
         'font.size':        FONT_SIZES['annotation'],
         'axes.titlesize':   FONT_SIZES['subplot_title'],
         'axes.labelsize':   FONT_SIZES['label'],
