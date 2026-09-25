@@ -166,14 +166,21 @@ def get_group_map(task_name: str, class_names: list[str]) -> dict[str, list[int]
         return {'S': [0, 2, 4], 'F': [1, 3, 5], 'O': [0, 1], 'T': [2, 3], 'O/T': [4, 5]}
 
     if task_name == 'State_Modality_Valence_16':
-        pos_inds = [i for i, n in enumerate(class_names) if '+' in n and '-' not in n]
-        neg_inds = [i for i, n in enumerate(class_names) if '-' in n and '+' not in n]
+        # Match the LaTeX valence marker itself ('$^{+}$'/'$^{-}$'), not a bare
+        # '+'/'-' character -- combined-class names also use a literal '+' to
+        # join the odor/taste parts (e.g. 'O$^{-}$+T$^{-}$ (S)'), which would
+        # otherwise wrongly disqualify a doubly-negative class from neg_inds
+        # (found via code review, 2026-09-25; see _compute_biological_axes
+        # in visualize_performance.py, which already used the precise
+        # pattern and doesn't have this bug).
+        pos_inds = [i for i, n in enumerate(class_names) if '$^{+}$' in n and '$^{-}$' not in n]
+        neg_inds = [i for i, n in enumerate(class_names) if '$^{-}$' in n and '$^{+}$' not in n]
         return {
             'S': [0, 1, 4, 5, 8, 9, 10, 11],
             'F': [2, 3, 6, 7, 12, 13, 14, 15],
             'O': [0, 1, 2, 3],
             'T': [4, 5, 6, 7],
-            'O/T': [8, 9, 10, 11, 12, 13],
+            'O/T': [8, 9, 10, 11, 12, 13, 14, 15],
             '+': pos_inds,
             '-': neg_inds,
             '+/-': [10, 11, 14, 15],
