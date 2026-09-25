@@ -16,15 +16,15 @@
 # skipped, and an existing .env is never overwritten.
 set -euo pipefail
 
-if [ $# -ne 1 ] || [ ! -d "$1/data/preprocessed_frames" ]; then
+if [ $# -ne 1 ] || [ ! -d "$1/inference/preprocessed_frames" ]; then
     echo "Usage: bash scripts/setup_data.sh /path/to/DrosoEmbedding_WBCI" >&2
     exit 1
 fi
 DATA_REPO="$(cd "$1" && pwd)"
 CODE_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FRAMES="$DATA_REPO/data/preprocessed_frames"
+FRAMES="$DATA_REPO/inference/preprocessed_frames"
 
-# All under data/preprocessed_frames/ (the extracted directories are
+# All under inference/preprocessed_frames/ (the extracted directories are
 # already git-ignored by the Data repository):
 #   intact.tars/<rec>.tar               -> meanZ_allTs/<rec>/
 #   ko_static_<neuropil>.tars/<rec>.tar -> meanZ_allTs_KO_static_<neuropil>/<rec>/

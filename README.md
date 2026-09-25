@@ -17,7 +17,7 @@ You'll need the Data repository alongside this one to actually run anything belo
 
 ## Quick start: reproduce all figures
 
-No raw data, no GPU, and no git-annex needed — the Data repository's `evaluation/` and `results/` folders (~16MB total, plain `git`-tracked) are everything the figures are built from. Measured on a from-scratch clone: every figure loads and renders in under a second, under 700MB peak memory.
+No raw data, no GPU, and no git-annex needed — the Data repository's `results/` folder (~16MB, plain `git`-tracked) is everything the figures are built from. Measured on a from-scratch clone: cloning takes seconds, and every figure loads and renders in under a second, under 700MB peak memory.
 
 Prerequisites:
 
@@ -32,10 +32,11 @@ poetry env use python3.12        # or python3.10 / python3.11 -- whichever you h
 poetry install --no-root
 source "$(poetry env info --path)/bin/activate"
 
-# 2. Data -- a plain clone is enough, no git-annex required
-#    NOTE: no ".git" at the end of the URL -- GIN only serves file content
-#    directly (no annexed-pointer placeholders) on the plain URL
-git clone https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI ../DrosoEmbedding_WBCI
+# 2. Data -- a shallow, plain clone is enough, no git-annex required
+#    (--depth 1: skips full history, which still carries some now-annexed
+#    content from past commits; NOTE: no ".git" at the end of the URL --
+#    GIN only serves file content directly on the plain URL)
+git clone --depth 1 https://gin.g-node.org/nawrotlab/DrosoEmbedding_WBCI ../DrosoEmbedding_WBCI
 
 # 3. Point this repo at it
 cp .env.example .env
@@ -89,18 +90,18 @@ Reproducing the figures needs none of this. To retrain and re-evaluate the model
 
 Each script in `scripts/figures/` reproduces one figure or supplementary figure, in paper order:
 
-| Figure | Script | Reads from the Data repository |
-|---|---|---|
-| Fig. 1 — Study overview | `run_fig1_overview.py` | `results/` (example frames + `src_imgs/`) |
-| Fig. S1 — Experimental design | `run_figS1_exp_design.py` | `results/` (example frames + `src_imgs/`) |
-| Fig. S2 — Latent-space interaction effects | `run_figS2_latent_interactions.py` | `evaluation/` |
-| Fig. 2 — Latent-space geometry | `run_fig2_latent.py` | `evaluation/` |
-| Fig. S3 — Training/validation curves across the sweep | `run_figS3_training_curves.py` | `evaluation/` |
-| Fig. 3 — Classification performance and error structure | `run_fig3_accuracy_error.py` | `evaluation/` |
-| Fig. 4 — GradCAM-based neuropil importance | `run_fig4_gradcam_neuropils.py` | `results/` |
-| Fig. S4 — Neuropil-knockout importance | `run_figS4_ko_neuropils.py` | `results/` |
+| Figure | Script |
+|---|---|
+| Fig. 1 — Study overview | `run_fig1_overview.py` |
+| Fig. S1 — Experimental design | `run_figS1_exp_design.py` |
+| Fig. S2 — Latent-space interaction effects | `run_figS2_latent_interactions.py` |
+| Fig. 2 — Latent-space geometry | `run_fig2_latent.py` |
+| Fig. S3 — Training/validation curves across the sweep | `run_figS3_training_curves.py` |
+| Fig. 3 — Classification performance and error structure | `run_fig3_accuracy_error.py` |
+| Fig. 4 — GradCAM-based neuropil importance | `run_fig4_gradcam_neuropils.py` |
+| Fig. S4 — Neuropil-knockout importance | `run_figS4_ko_neuropils.py` |
 
-Run any one with `python -m scripts.figures.<script name without .py>`; output goes to `results/CombiPlots/`. `run_fig2_latent.py`, `run_figS2_latent_interactions.py`, `run_fig3_accuracy_error.py`, and `run_figS3_training_curves.py` read `evaluation/aggregated_results.pkl`, an aggregate of the full evaluation sweep (~750 per-model results) built once so figures don't reopen every pkl on every run — it ships pre-built in the Data repository; see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md) if you need to rebuild it from your own evaluation runs. `run_fig4_gradcam_neuropils.py` and `run_figS4_ko_neuropils.py` similarly cache their (GPU-computed) results under `results/`; pass `--recompute` to force a fresh run instead of loading what's published.
+All 8 read only from `results/` — the Data repository's Level-1 folder. Run any one with `python -m scripts.figures.<script name without .py>`; output goes to `results/CombiPlots/`. `run_fig2_latent.py`, `run_figS2_latent_interactions.py`, `run_fig3_accuracy_error.py`, and `run_figS3_training_curves.py` read `results/aggregated_results.pkl`, an aggregate of the full evaluation sweep (~750 per-model results, which themselves live in `inference/sweep_cache/` — see below) built once so figures don't reopen every pkl on every run — it ships pre-built in the Data repository; see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md) if you need to rebuild it from your own evaluation runs. `run_fig4_gradcam_neuropils.py` and `run_figS4_ko_neuropils.py` similarly cache their (GPU-computed) results in `results/`; pass `--recompute` to force a fresh run instead of loading what's published.
 
 The figures can equally be built from your own training and evaluation runs instead of the published results — see [docs/FULL_REPRODUCTION.md](docs/FULL_REPRODUCTION.md).
 
@@ -108,7 +109,7 @@ The figures can equally be built from your own training and evaluation runs inst
 
 ## Classification tasks
 
-The models are trained on three classification tasks of increasing granularity. Their config keys are the values the `TASK` environment variable accepts, and the names of the per-task folders in the Data repository (`models/<task>/`, `evaluation/<task>/`):
+The models are trained on three classification tasks of increasing granularity. Their config keys are the values the `TASK` environment variable accepts, and the names of the per-task folders in the Data repository (`inference/models/<task>/`, `inference/sweep_cache/<task>/`):
 
 | Config key | Classes | Description |
 |---|---|---|

@@ -154,37 +154,47 @@ def setup_derived_parameters(config):
     config["paths"]["evaluation"] = f"{config['paths']['results_root']}/evaluation/"
 
     # Published, flat, task-level layout -- where checkpoints/evaluation
-    # results actually live (models/<task>/, evaluation/<task>/), as opposed
-    # to the per-run results/{task}_{run_id}/ scratch tree above. Their base
-    # defaults to DROSO_PUBLISH_ROOT (falling back to DROSO_ROOT if unset)
-    # rather than always following DROSO_ROOT -- so DROSO_ROOT can point at
-    # a normal code checkout (results/, logs, local pickle files all stay
-    # there, as scratch working state) while DROSO_PUBLISH_ROOT points at a
-    # published data clone (e.g. the G-Node clone), and only the curated
-    # checkpoints/evaluation results land there directly. Each is also
-    # independently overridable on top of that via DROSO_MODELS_DIR/
-    # DROSO_EVAL_DIR, for layouts that don't fit either pattern.
+    # results actually live (inference/models/<task>/, inference/sweep_cache/
+    # <task>/), as opposed to the per-run results/{task}_{run_id}/ scratch
+    # tree above. Their base defaults to DROSO_PUBLISH_ROOT (falling back to
+    # DROSO_ROOT if unset) rather than always following DROSO_ROOT -- so
+    # DROSO_ROOT can point at a normal code checkout (results/, logs, local
+    # pickle files all stay there, as scratch working state) while
+    # DROSO_PUBLISH_ROOT points at a published data clone (e.g. the G-Node
+    # clone), and only the curated checkpoints/evaluation results land there
+    # directly. Each is also independently overridable on top of that via
+    # DROSO_MODELS_DIR/DROSO_EVAL_DIR, for layouts that don't fit either
+    # pattern.
+    #
+    # 2026-09-25 G-Node restructure: the data repository's top level is now
+    # results/ (everything Level 1 -- the figures -- reads) and inference/
+    # (everything Level 2 -- retrain/re-evaluate -- needs). The ~750
+    # per-model evaluation pkls live in inference/sweep_cache/<task>/ -- a
+    # regenerable convenience cache (rerun the sweep to rebuild it), not a
+    # real input to anything, hence the name.
     publish_root = os.environ.get("DROSO_PUBLISH_ROOT", str(root))
     config["paths"]["models_dir"] = os.environ.get(
-        "DROSO_MODELS_DIR", f"{publish_root}/models/{config['data']['task']}/")
+        "DROSO_MODELS_DIR", f"{publish_root}/inference/models/{config['data']['task']}/")
     config["paths"]["eval_dir"] = os.environ.get(
-        "DROSO_EVAL_DIR", f"{publish_root}/evaluation/{config['data']['task']}/")
+        "DROSO_EVAL_DIR", f"{publish_root}/inference/sweep_cache/{config['data']['task']}/")
     # Parent of every task's eval_dir -- what load_all_results() walks to
-    # find all 3 tasks at once (evaluation/<task>/ per task), replacing the
-    # old paths['checkpoints_dir'] (_chkpt_finals) as that function's input.
+    # find all 3 tasks at once (inference/sweep_cache/<task>/ per task),
+    # replacing the old paths['checkpoints_dir'] (_chkpt_finals) as that
+    # function's input.
     config["paths"]["eval_base_dir"] = os.environ.get(
-        "DROSO_EVAL_BASE_DIR", f"{publish_root}/evaluation/")
-    # Aggregated results of the evaluation sweep (see load_or_build_all_results()
-    # in helpers.py) -- one small file, so figure scripts don't re-read/re-aggregate
-    # ~750 pkls on every run.
-    config["paths"]["eval_results_path"] = os.environ.get(
-        "DROSO_EVAL_RESULTS_PATH", f"{config['paths']['eval_base_dir']}/aggregated_results.pkl")
+        "DROSO_EVAL_BASE_DIR", f"{publish_root}/inference/sweep_cache/")
     # Published results that figures are built from and that are too small to
-    # be worth recomputing (e.g. the knockout stack and neuropil sizes of Fig S4).
-    # Lives in the data repository next to models/ and evaluation/. Not to be
-    # confused with results_root above, which is one training run's scratch dir.
+    # be worth recomputing (e.g. the knockout stack and neuropil sizes of Fig
+    # S4). Lives in the data repository's results/ folder. Not to be confused
+    # with results_root above, which is one training run's scratch dir.
     config["paths"]["results_dir"] = os.environ.get(
         "DROSO_RESULTS_DIR", f"{publish_root}/results/")
+    # Aggregated results of the evaluation sweep (see load_or_build_all_results()
+    # in helpers.py) -- one small file, so figure scripts don't re-read/re-aggregate
+    # ~750 pkls on every run. Lives in results/ (Level 1), not inference/
+    # sweep_cache/ (Level 2) -- it's the one thing figures actually read.
+    config["paths"]["eval_results_path"] = os.environ.get(
+        "DROSO_EVAL_RESULTS_PATH", f"{config['paths']['results_dir']}/aggregated_results.pkl")
     # Hand-authored illustration assets (pipeline sketches, model diagram, atlas)
     # that some figure scripts load -- published alongside the other results,
     # not part of the code checkout (see git history for when these were

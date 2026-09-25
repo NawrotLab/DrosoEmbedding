@@ -2,12 +2,12 @@
 
 > **Status: in preparation.** The raw-data repository is not yet public. This page will be completed when it is; the outline below describes what it will cover. To reproduce the paper's figures today, follow the [Quick start](../README.md#quick-start-reproduce-all-figures) — it needs neither raw data nor a GPU, and takes minutes, not hours.
 
-The Quick start reproduces every figure from the Data repository's published evaluation results and per-figure results files (~16MB total). This page covers the two levels beyond that:
+The Quick start reproduces every figure from the Data repository's `results/` folder (~16MB total). This page covers the two levels beyond that, which the Data repository's `inference/` folder is built for:
 
 | Level | Starts from | You re-run | Needs |
 |---|---|---|---|
-| 1 — Figures ([Quick start](../README.md#quick-start-reproduce-all-figures)) | Data repository's `evaluation/` + `results/` (~16MB) | figure scripts | CPU (GPU optional; only used by --recompute) |
-| 2 — Retrain and re-evaluate | Data repository (preprocessed frames + checkpoints + splits) | training sweep, evaluation, figures | GPU |
+| 1 — Figures ([Quick start](../README.md#quick-start-reproduce-all-figures)) | Data repository's `results/` (~16MB) | figure scripts | CPU (GPU optional; only used by --recompute) |
+| 2 — Retrain and re-evaluate | Data repository's `inference/` (preprocessed frames + checkpoints + splits) | training sweep, evaluation, figures | GPU |
 | 3 — Everything from raw recordings | Raw-data repository | preprocessing, neuropil knockouts, splits, then level 2 | GPU, [N — TBD] TB storage |
 
 ## Level 2 — Retrain and re-evaluate
@@ -22,20 +22,21 @@ poetry env use python3.12        # or python3.10 / python3.11
 poetry install --no-root
 source "$(poetry env info --path)/bin/activate"
 
-# 2. Data repository, this time with git-annex content
+# 2. Data repository, this time with git-annex content (full clone, not
+#    shallow -- git-annex needs full history for its branch-based tracking)
 git clone git@gin.g-node.org:/nawrotlab/DrosoEmbedding_WBCI.git ../DrosoEmbedding_WBCI
-cd ../DrosoEmbedding_WBCI && git annex init && git annex get --jobs=16 data/preprocessed_frames/intact.tars
+cd ../DrosoEmbedding_WBCI && git annex init && git annex get --jobs=16 inference/preprocessed_frames/intact.tars
 cd -   # back to the code repo
 
 # 3. Extract the frame archives and write .env (one-time, safe to re-run)
 bash scripts/setup_data.sh ../DrosoEmbedding_WBCI
 ```
 
-Short on disk or time? The knockout archives (`ko_static_*.tars`, ~28GB, Fig. S4 only) can be skipped: fetch only `data/preprocessed_frames/intact.tars` as above, and `setup_data.sh` will skip whatever wasn't fetched.
+Short on disk or time? The knockout archives (`ko_static_*.tars`, ~28GB, Fig. S4 only) can be skipped: fetch only `inference/preprocessed_frames/intact.tars` as above, and `setup_data.sh` will skip whatever wasn't fetched.
 
 The split file (`meanZ_logTs_..._State_Modality_Valence_16.pickle` etc.) ships with the Data repository already, one per task — no separate regeneration step needed unless you want to rebuild it from scratch (`python -m scripts.analysis.regenerate_split_pickle`, `TASK=...` to pick the task).
 
-Your own training/evaluation runs would otherwise write into the same `models/`/`evaluation/` folders as the published ones inside the Data repository clone. To keep them separate, set `DROSO_PUBLISH_ROOT` in `.env` to an empty directory of your choice instead of `${DROSO_DATA_REPO}` before continuing.
+Your own training/evaluation runs would otherwise write into the same `inference/models/`/`inference/sweep_cache/` folders as the published ones inside the Data repository clone. To keep them separate, set `DROSO_PUBLISH_ROOT` in `.env` to an empty directory of your choice instead of `${DROSO_DATA_REPO}` before continuing.
 
 ### Training
 
@@ -47,7 +48,7 @@ python -m scripts.training
 bash scripts/cluster/training/run_sweep.sh
 ```
 
-Set `RUN_ID`, `TASK`, `CNN_DIM`, `TRF_DIM`, etc. as environment variables to override `config.yaml` without editing it. Each run's best checkpoint is saved to `models/<task>/`.
+Set `RUN_ID`, `TASK`, `CNN_DIM`, `TRF_DIM`, etc. as environment variables to override `config.yaml` without editing it. Each run's best checkpoint is saved to `inference/models/<task>/`.
 
 ### Evaluation
 
@@ -55,11 +56,11 @@ Set `RUN_ID`, `TASK`, `CNN_DIM`, `TRF_DIM`, etc. as environment variables to ove
 python -m scripts.run_evaluation
 ```
 
-Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and class-mean GradCAMs for one model, saved to `evaluation/<task>/`. To evaluate an entire sweep at once, see `scripts/cluster/evaluation/` (`build_manifest.sh` + `run_array.sh` for a parallel SLURM array job, `summarize_sweep.sh` to check progress).
+Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and class-mean GradCAMs for one model, saved to `inference/sweep_cache/<task>/`. To evaluate an entire sweep at once, see `scripts/cluster/evaluation/` (`build_manifest.sh` + `run_array.sh` for a parallel SLURM array job, `summarize_sweep.sh` to check progress).
 
 ### Figures from your own results
 
-`run_fig2_latent.py`, `run_figS2_latent_interactions.py`, `run_fig3_accuracy_error.py`, and `run_figS3_training_curves.py` read from an aggregate of the full evaluation sweep (`evaluation/aggregated_results.pkl`, ~12MB) rather than opening all ~750 per-model result files on every run. It's built automatically the first time any of them needs it; to force a rebuild after your own evaluation runs (there's no staleness check against the underlying per-model files):
+`run_fig2_latent.py`, `run_figS2_latent_interactions.py`, `run_fig3_accuracy_error.py`, and `run_figS3_training_curves.py` read from an aggregate of the full evaluation sweep (`results/aggregated_results.pkl`, ~12MB) rather than opening all ~750 per-model result files (`inference/sweep_cache/<task>/`) on every run. It's built automatically the first time any of them needs it; to force a rebuild after your own evaluation runs (there's no staleness check against the underlying per-model files):
 
 ```bash
 RESULTS_RECOMPUTE=true python -m scripts.analysis.build_results

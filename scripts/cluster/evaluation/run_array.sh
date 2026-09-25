@@ -2,8 +2,8 @@
 # Evaluates the full model sweep as a real SLURM array job -- one model per
 # array task, read from eval_manifest.txt (build it first with
 # build_manifest.sh). run_evaluation.py already skips a model if its
-# evaluation/<task>/{run_id}_evalResults.pkl already exists, so this is
-# safe to resubmit for just the failed/missing array indices.
+# inference/sweep_cache/<task>/{run_id}_evalResults.pkl already exists, so
+# this is safe to resubmit for just the failed/missing array indices.
 #
 # Usage (from repo root, on the cluster):
 #   bash scripts/cluster/evaluation/build_manifest.sh
