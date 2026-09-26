@@ -260,7 +260,7 @@ def load_or_run_ko_permutation(
         return stack, sizes
 
     _log('No stored KO results, or recompute=True — running KO permutation (slow)…')
-    stack = run_ko_permutation(logger=logger, **kwargs)
+    stack = run_ko_permutation(neuropils=neuropils, logger=logger, **kwargs)
     # Same 2D pixel-footprint normalisation aggregate_ko_by_group() used to
     # compute internally -- centralised here so both halves of the merged
     # results file are always built (and go stale) together.
