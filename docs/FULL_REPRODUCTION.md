@@ -34,6 +34,8 @@ bash scripts/setup_data.sh ../DrosoEmbedding_WBCI
 
 Short on disk or time? The knockout archives (`ko_static_*.tars`, ~28GB, Fig. S4 only) can be skipped: fetch only `inference/preprocessed_frames/intact.tars` as above, and `setup_data.sh` will skip whatever wasn't fetched.
 
+Measured on a real cluster connection: fetching all of `inference/` (~48GB total) took about 35 minutes. On a very large `get`, verify nothing silently failed with `git annex find --not --in=here` before moving on (empty output = everything is actually present) — `git annex get` is safe to just rerun if it isn't.
+
 The split file (`meanZ_logTs_..._State_Modality_Valence_16.pickle` etc.) ships with the Data repository already, one per task — no separate regeneration step needed unless you want to rebuild it from scratch (`python -m scripts.analysis.regenerate_split_pickle`, `TASK=...` to pick the task).
 
 Your own training/evaluation runs would otherwise write into the same `inference/models/`/`inference/sweep_cache/` folders as the published ones inside the Data repository clone. To keep them separate, set `DROSO_PUBLISH_ROOT` in `.env` to an empty directory of your choice instead of `${DROSO_DATA_REPO}` before continuing.
