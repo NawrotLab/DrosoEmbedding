@@ -80,7 +80,7 @@ args = parser.parse_args()
 
 config = load_config()
 logger = setup_logger(task_name=config['run_id'],
-                      log_dir='logs/run_figure_neuropils')
+                      log_dir='logs/run_fig4_gradcam_neuropils')
 
 paths        = config['paths']
 OUT_DIR             = paths['output_dir']
