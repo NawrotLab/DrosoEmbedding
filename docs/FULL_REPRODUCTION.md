@@ -68,9 +68,16 @@ Produces accuracy, confusion matrices, latent-space embeddings (t-SNE), and clas
 RESULTS_RECOMPUTE=true python -m scripts.analysis.build_results
 ```
 
-`run_fig4_gradcam_neuropils.py` and `run_figS4_ko_neuropils.py` similarly cache their (GPU-computed) results in `results/`; pass `--recompute` to force a fresh run instead of loading what's there.
+`run_fig4_gradcam_neuropils.py` and `run_figS4_ko_neuropils.py` similarly cache their (GPU-computed) results in `results/`; pass `--recompute` to force a fresh run instead of loading what's there. Measured on an H200:
 
-[TBD: sweep size used in the paper, seeds, expected GPU hours per task.]
+| Step | Wall time | Peak memory |
+|---|---|---|
+| `run_fig4_gradcam_neuropils.py --recompute` (GradCAM, one model over the test set) | ~2 min | ~13GB |
+| `run_figS4_ko_neuropils.py --recompute` (50 checkpoints × 12 neuropils) | **~17.7 hours** | ~1.7GB |
+
+Fig. S4's recompute is by far the most expensive step here: each of the 50 checkpoints runs a baseline pass plus 12 knockout passes over the full test set (~20 min per checkpoint). Give the job at least a 24-hour limit — a 12-hour SLURM limit gets killed at roughly 35/50 checkpoints, and there is currently no resume capability, so a killed job means starting over. `scripts/cluster/figures/run_level2_recompute.sh` runs both steps with a suitable time limit.
+
+[TBD: sweep size used in the paper, seeds, expected GPU hours for a full training sweep.]
 
 ## Level 3 — From raw recordings
 
